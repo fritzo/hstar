@@ -67,7 +67,17 @@ Lemma less_j_r:
                       (JOIN(RAND x z)(RAND y z)).
 Proof.
   intros; split.
-  (* TODO *)
+  unfold less.
+  intros.
+  inversion H.
+  injection.
+  destruct H.
+  inversion H.
+  apply conv_r.
+  assumption.
+  auto.
+  case .
+Qed.
 
 Lemma equiv_join_idem: forall x, equiv x (JOIN x x).
 Lemma equiv_join_sym: forall x y, equiv (JOIN x y) (JOIN y x). 
