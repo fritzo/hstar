@@ -8,34 +8,35 @@ Definition find {A : Set} := Find A.
 Definition wait {A : Set} := Wait A.
 CoFixpoint diverge {A : Set} : Partial A := wait diverge.
 
-CoInductive leq_partial {A : Set} : Partial A -> Partial A -> Prop :=
-  | leq_partial_find : forall a, leq_partial (find a) (find a)
-  | leq_partial_wait : forall p q, leq_partial p q -> leq_partial (wait p) q
-  | leq_partial_wait_wait :
-    forall p q, leq_partial p q -> leq_partial (wait p) (wait q).
+CoInductive partial_leq {A : Set} : Partial A -> Partial A -> Prop :=
+  | partial_leq_find : forall a, partial_leq (find a) (find a)
+  | partial_leq_wait : forall p q, partial_leq p q -> partial_leq (wait p) q
+  | partial_leq_wait_wait :
+    forall p q, partial_leq p q -> partial_leq (wait p) (wait q).
 
-Definition partial_cont (A : Set) (B : Set) :=
+Definition partial_continuous (A : Set) (B : Set) :=
   forall f : Partial A -> Partial B,
   forall x y : Partial A,
-  leq_partial x y -> leq_partial (f x) (f y).
+  partial_leq x y -> partial_leq (f x) (f y).
 
-Lemma partial_leq_refl : forall A (x : Partial A), leq_partial x x.
+Lemma partial_leq_refl : forall A (x : Partial A), partial_leq x x.
   cofix.
   intros.
   destruct x.
-  apply leq_partial_find.
-  apply leq_partial_wait_wait.
+  apply partial_leq_find.
+  apply partial_leq_wait_wait.
   apply partial_leq_refl.
 Qed.
 
 Lemma partial_leq_trans {A : Set} : forall x y z : Partial A,
-  leq_partial x y -> leq_partial y z -> leq_partial x z.
+  partial_leq x y -> partial_leq y z -> partial_leq x z.
   intros x y z.
   cofix.
   destruct x.
-  TODO
+  (* TODO *)
+Admitted.
 
-Lemma unfold_diverge : forall A, diverge A = Wait A (diverge A).
-intros.
- unfold diverge at 1.
-unfold diverge at 1.
+Lemma unfold_diverge : forall A, @diverge A = wait diverge.
+  intros.
+  unfold diverge at 1.
+  unfold diverge at 1.

@@ -1,44 +1,58 @@
+Require Import List.
+
+(* [BOT] and [TOP] are [S,K,J,AP]-definable,
+   but specifying them simplifies convergence below *)
 Inductive term : Set :=
+  | TOP : term
+  | BOT : term
   | S : term
   | K : term
   | R : term
   | J : term
-  | BOT : term
-  | TOP : term
   | AP : term -> term -> term.
 
-Definition JOIN x y := AP(AP J x)y.
 Definition RAND x y := AP(AP R x)y.
+Definition JOIN x y := AP(AP J x)y.
+
+Hint Unfold RAND.
+Hint Unfold JOIN.
 
 Inductive red : term -> term -> Prop :=
-  | red_s: forall x y z,
-    red (AP(AP(AP S x)y)z) (AP(AP x z)(AP y z))
-  | red_k: forall x y, red (AP(AP K x)y) x
-  | red_r_idem: forall x, red x (RAND x x)
-  | red_r_sym: forall x y, red (RAND x y) (RAND y x)
-  | red_r_sym_sym: forall w x y z,
-    red (RAND(RAND w x)(RAND y z))
-        (RAND(RAND y x)(RAND w z))
-  | red_r_ap: forall x y z,
-    red (AP(RAND x y)z) (RAND(AP x z)(AP y z))
-  | red_j_1: forall x y, red (JOIN x y) x
-  | red_j_2: forall x y, red (JOIN x y) y
+  | red_refl: forall x, red x x
   | red_top: forall x, red TOP x
   | red_bot: forall x, red x BOT
-  | red_ap_1: forall x x' y,
-    red x x' -> red (AP x y) (AP x' y)
-  | red_ap_2: forall x y y',
-    red y y' -> red (AP x y) (AP x y').
+  | red_s: forall x y z, red (AP(AP(AP S x)y)z) (AP(AP x z)(AP y z))
+  | red_k: forall x y, red (AP(AP K x)y) x
+  | red_rand: forall x y z, red (AP(RAND x y)z) (RAND(AP x z)(AP y z))
+  | red_join: forall x y z, red (AP(JOIN x y)z) (JOIN(AP x z)(AP y z))
+  | red_ap: forall x x' y y', red x x' -> red y y' -> red (AP x y) (AP x' y').
 
-(* conv x p
-   means x converges with probability at least p
-   where p is a representation of a dyadic rational *)
-Inductive conv : term -> term -> Prop :=
-  | conv_bot: conv BOT BOT
-  | conv_top: conv TOP TOP
-  | conv_r: forall x x' p p',
-    conv x p -> conv x' p' -> conv (RAND x x') (RAND p p')
-  | conv_red: forall x y p, red x y -> conv y p -> conv x p.
+
+Lemma red_top_k_top : red TOP (AP K TOP).
+Proof.
+  apply red_top.
+Qed.
+
+Lemma top_consume : forall x, red (AP TOP x) TOP.
+Proof.
+  intros.
+  (* TODO *)
+Admitted.
+
+Inductive prob : term -> Prop :=
+  | prob_bot: prob BOT
+  | prob_top: prob TOP
+  | prob_rand: forall p q, prob p -> prob q -> prob (RAND p q).
+
+Inductive approx : term -> term -> Prop :=
+  | approx_rand_idem: forall x, approx x (RAND x x)
+  | approx_rand_sym: forall x y, approx (RAND x y) (RAND y x)
+  | approx_rand_sym_sym: forall w x y z,
+    approx (RAND(RAND w x)(RAND y z)) (RAND(RAND y x)(RAND w z))
+  | approx_join_1: forall x y, approx (JOIN x y) x
+  | approx_join_2: forall x y, approx (JOIN x y) y.
+
+Definition conv x p : Prop := exists y, red x y /\ approx y p.
 
 Definition less x y := forall f p,
   conv (AP f x) p -> conv (AP f y) p.
@@ -60,17 +74,18 @@ Proof.
   auto.
 Qed.
 
-Definition equiv x y := less x y /\ less y x.
-
 Lemma less_j_r:
-  forall x y z, equiv (RAND (JOIN x y) z)
-                      (JOIN(RAND x z)(RAND y z)).
+  forall x y z, less (RAND (JOIN x y) z) (JOIN(RAND x z)(RAND y z)).
 Proof.
-  intros; split.
-  unfold less.
-  intros.
+  unfold less; unfold conv; intros.
+  (* TODO *)
+
+  split.
+  destruct H.
+  induction H.
+  
   inversion H.
-  injection.
+  injection. (* FIXME *)
   destruct H.
   inversion H.
   apply conv_r.
@@ -79,7 +94,7 @@ Proof.
   case .
 Qed.
 
-Lemma equiv_join_idem: forall x, equiv x (JOIN x x).
+`Lemma equiv_join_idem: forall x, equiv x (JOIN x x).
 Lemma equiv_join_sym: forall x y, equiv (JOIN x y) (JOIN y x). 
 Lemma equiv_join_assoc: forall x y z,
   equiv (JOIN(JOIN x y)z) (JOIN x(JOIN y z)).
@@ -96,4 +111,9 @@ Theorem less_is_hp_complete:
   forall x y, less x y \/ (less x y -> less BOT TOP).
 Proof.
   (* TODO *)
+
+
+(* Convenience combinators *)
+
+
 
