@@ -2,6 +2,7 @@
 Inductive tp : Set :=
   | tp_nat: tp
   | tp_exp: tp -> tp -> tp.
+Hint Constructors tp.
 
 Notation "t -o t0" := (tp_exp t t0) (at level 51, right associativity).
 
@@ -12,6 +13,7 @@ Inductive term : tp -> Set :=
   | zero: term tp_nat
   | succ: term (tp_exp tp_nat tp_nat)
   | rec: forall {a : tp}, term (tp_nat -o (tp_nat -o a -o a) -o a -o a).
+Hint Constructors term.
 
 Notation "x * y" := (ap x y) (at level 40, left associativity).
 
@@ -23,7 +25,22 @@ Fixpoint eval_tp (a : tp) : Type :=
 
 (* this fails to type check *)
 Inductive step {a : tp} : term a -> term a -> Set :=
-  | red_k: forall {b : tp} (x : a -o b)) y, step (const*x*y) x
-  | red_subs: forall x y z, step (S*x*y*z) (x*z*(y*z))
-  | red_zero: forall f x, step (rec*x*f*zero) x
-  | red_succ: forall f x y, step (rec*x*f*(succ*y)) (f*y*(rec*x*f*y)).
+  | step_k: forall {b : tp} x y, step ((@const a b)*x*y) x
+  | step_subs: forall {b c : tp} x y z, step ((@sub b c a)*x*y*z) (x*z*(y*z))
+  | step_zero: forall f x, step (rec*zero*f*x) x
+  | step_succ: forall f x n, step (rec*(succ*n)*f*x) (f*n*(rec*n*f*x)).
+Hint Constructors step.
+
+(* Tait's hereditarily strongly normalizing predicate *)
+Inductive safe : forall {a : tp}, term a -> Prop :=
+  | safe_nat: forall x : term tp_nat, (forall y, step x y -> safe y) -> safe x
+  | safe_exp: forall {a b : tp} (f : term (a -o b)) x, safe x -> safe (f*x).
+Hint Constructors safe.
+
+Theorem safety: forall a (x : term a), safe x.
+Proof.
+  induction a.
+  induction x.
+  auto.
+  (* TODO *)
+Qed.
