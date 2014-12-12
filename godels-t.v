@@ -33,14 +33,24 @@ Hint Constructors step.
 
 (* Tait's hereditarily strongly normalizing predicate *)
 Inductive safe : forall {a : tp}, term a -> Prop :=
-  | safe_nat: forall x : term tp_nat, (forall y, step x y -> safe y) -> safe x
-  | safe_exp: forall {a b : tp} (f : term (a -o b)) x, safe x -> safe (f*x).
+  | safe_nat: forall x : term tp_nat,
+      (forall y, step x y -> safe y) -> safe x
+  | safe_exp: forall {a b : tp} (f : term (a -o b)),
+      (forall x, safe (f*x)) -> safe f.
 Hint Constructors safe.
 
 Theorem safety: forall a (x : term a), safe x.
 Proof.
-  induction a.
   induction x.
+  inversion IHx1.
+  (* TODO *)
+
+  induction H.
+  apply H0 with (f := x1).
+  apply (safe_exp x1).
+  apply safe_exp with (f := safe).
+  
+  induction a.
   auto.
   (* TODO *)
 Qed.
