@@ -9,7 +9,8 @@ Inductive term : Set :=
   | K : term
   | R : term
   | J : term
-  | AP : term -> term -> term.
+  | AP : term -> term -> term
+.
 
 Definition RAND x y := AP(AP R x)y.
 Definition JOIN x y := AP(AP J x)y.
@@ -39,18 +40,20 @@ Inductive beta : term -> term -> Prop :=
   | beta_ap_2: forall x y y', beta y y' -> beta (AP x y) (AP x y')
 .
 
-Inductive rho : term -> term -> Prop :=
-  | rho_rand_idem: forall x, rho x (RAND x x)
-  | rho_rand_sym: forall x y, rho (RAND x y) (RAND y x)
-  | rho_rand_sym_sym: forall w x y z,
-    rho (RAND(RAND w x)(RAND y z)) (RAND(RAND y x)(RAND w z))
-.
-
 Inductive lambda : term -> term -> Prop :=
   | lambda_top: forall x, lambda TOP x
   | lambda_bot: forall x, lambda x BOT
   | lambda_join_1: forall x y, lambda (JOIN x y) x
   | lambda_join_2: forall x y, lambda (JOIN x y) y
+.
+
+(* dyadic rational probabilities *)
+
+Inductive rho : term -> term -> Prop :=
+  | rho_rand_idem: forall x, rho x (RAND x x)
+  | rho_rand_sym: forall x y, rho (RAND x y) (RAND y x)
+  | rho_rand_sym_sym: forall w x y z,
+    rho (RAND(RAND w x)(RAND y z)) (RAND(RAND y x)(RAND w z))
 .
 
 Inductive star (r : term -> term -> Prop) : term -> term -> Prop :=
@@ -114,13 +117,25 @@ Proof. auto. Qed.
 Lemma less_trans: forall x y z, x [= y -> y [= z -> x [= z.
 Proof. auto. Qed.
 
+Lemma red_j_r: forall x y z p,
+  red' (RAND(JOIN x y)z) p -> red' (JOIN(RAND x y)(RAND x z)) p.
+Proof.
+  intros.
+  destruct H.
+  (* TODO *)
+Admitted.
+
+
 Lemma less_j_r:
   forall x y z, RAND (JOIN x y) z [= JOIN(RAND x z)(RAND y z).
 Proof.
   unfold less; unfold conv; intros.
  
   destruct H; split.
+  (*
+  The difficulty now is to prove lemmas.
   
+  *)
 
   (* TODO *)
 
