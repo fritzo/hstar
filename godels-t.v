@@ -17,40 +17,74 @@ Hint Constructors term.
 
 Notation "x * y" := (ap x y) (at level 40, left associativity).
 
-Fixpoint eval_tp (a : tp) : Type :=
+Fixpoint eval_tp (a : tp) : Set :=
   match a with
     | tp_nat => nat
     | a -o a0 => (eval_tp a) -> (eval_tp a0)
   end.
 
-(* this fails to type check *)
-Inductive step {a : tp} : term a -> term a -> Set :=
-  | step_k: forall {b : tp} x y, step ((@const a b)*x*y) x
-  | step_subs: forall {b c : tp} x y z, step ((@sub b c a)*x*y*z) (x*z*(y*z))
-  | step_zero: forall f x, step (rec*zero*f*x) x
-  | step_succ: forall f x n, step (rec*(succ*n)*f*x) (f*n*(rec*n*f*x)).
+Inductive step : forall {a}, term a -> term a -> Set :=
+  | step_ap_1: forall {a b} (f f0 : term (b -o a)) (x : term b),
+    step f f0 -> step (f*x) (f0*x)
+  | step_ap_2: forall {a b} (f : term (b -o a)) (x x0 : term b),
+    step x x0 -> step (f*x) (f*x0)
+  | step_const: forall {a b} x y, step ((@const a b)*x*y) x
+  | step_subs: forall {a b c} x y z, step ((@sub b c a)*x*y*z) (x*z*(y*z))
+  | step_zero: forall {a} f x, step ((@rec a)*zero*f*x) x
+  | step_succ: forall {a} f x n, step ((@rec a)*(succ*n)*f*x) (f*n*(rec*n*f*x)).
 Hint Constructors step.
 
-(* Tait's hereditarily strongly normalizing predicate *)
-Inductive safe : forall {a : tp}, term a -> Prop :=
-  | safe_nat: forall x : term tp_nat,
-      (forall y, step x y -> safe y) -> safe x
-  | safe_exp: forall {a b : tp} (f : term (a -o b)),
-      (forall x, safe (f*x)) -> safe f.
-Hint Constructors safe.
+Inductive terminates {a} (x : term a) : Prop :=
+  terminates_intro: (forall y, step x y -> terminates y) -> terminates x.
+Hint Constructors terminates.
 
-Theorem safety: forall a (x : term a), safe x.
+Ltac value :=
+  match goal with
+  | [  |- terminates ?X ] => apply terminates_intro; intros y H; inversion H
+  end.
+
+Lemma const_val {a b}: terminates (@const a b).
+Proof.  value.  Qed.
+
+Lemma const_x_val {a b}:
+  forall x, terminates x -> terminates ((@const a b) * x).
+Proof.
+  intros.
+  apply terminates_intro.
+  intros.
+  inversion H0.
+  (* TODO *)
+Admitted.
+
+(* Tait's hereditary termination predicate *)
+Inductive hterminates : forall {a}, term a -> Prop :=
+  | hterminates_nat: forall (x : term tp_nat),
+    terminates x -> hterminates x
+  | hterminates_exp: forall {a b} (f : term (a -o b)),
+ (* FIXME *)
+ (* terminates f -> (forall x, hterminates x -> hterminates (f*x)) -> *)
+    terminates f -> (forall x, terminates x -> hterminates (f*x)) ->
+    hterminates f.
+Hint Constructors hterminates.
+
+Lemma hterminates_ap: forall {a b} (x : term (a -o b)) (y : term a),
+  hterminates x -> hterminates y -> hterminates (x * y).
+Proof.
+  intros.
+  inversion H.
+  (* TODO get rid of existT in hypothesis *)
+Admitted.
+Hint Resolve hterminates_ap.
+
+Theorem hereditary_termination: forall a (x : term a), hterminates x.
 Proof.
   induction x.
   inversion IHx1.
-  (* TODO *)
-
-  induction H.
-  apply H0 with (f := x1).
-  apply (safe_exp x1).
-  apply safe_exp with (f := safe).
-  
-  induction a.
-  auto.
+  apply hterminates_ap; assumption.
+  assert (terminates (@sub a b c)).
+  apply terminates_intro.
+  intros.
+  inversion H.
+  destruct 1.
   (* TODO *)
 Qed.
