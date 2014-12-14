@@ -12,9 +12,9 @@ Inductive term : Set :=
   | AP : term -> term -> term
 .
 
-Definition RAND x y := AP(AP R x)y.
-Definition JOIN x y := AP(AP J x)y.
-
+Notation "x * y" := (AP x y) (at level 40, left associativity).
+Definition RAND x y := R * x * y.
+Definition JOIN x y := J * x * y.
 Hint Unfold RAND.
 Hint Unfold JOIN.
 
@@ -23,22 +23,50 @@ Inductive red : term -> term -> Prop :=
   | red_trans: forall x y z, red x y -> red y z -> red x z
   | red_top: forall x, red TOP x
   | red_bot: forall x, red x BOT
-  | red_s: forall x y z, red (AP(AP(AP S x)y)z) (AP(AP x z)(AP y z))
-  | red_k: forall x y, red (AP(AP K x)y) x
-  | red_rand: forall x y z, red (AP(RAND x y)z) (RAND(AP x z)(AP y z))
-  | red_join: forall x y z, red (AP(JOIN x y)z) (JOIN(AP x z)(AP y z))
-  | red_ap_1: forall x x' y, red x x' -> red (AP x y) (AP x' y)
-  | red_ap_2: forall x y y', red y y' -> red (AP x y) (AP x y')
+  | red_s: forall x y z, red (S*x*y*z) ((x*z)*(y*z))
+  | red_k: forall x y, red (K*x*y) x
+  | red_r: forall x y z, red (R*x*y*z) (R*(x*z)*(y*z))
+  | red_j: forall x y z, red (J*x*y*z) (J*(x*z)*(y*z))
+  | red_ap_1: forall x x' y, red x x' -> red (x*y) (x'*y)
+  | red_ap_2: forall x y y', red y y' -> red (x*y) (x*y')
 .
 
+Fixpoint beta_step (u : term) : option term :=
+  match u with
+  | S*x*y*z => Some (x*z*(y*z))
+  | K*x => Some x
+  | R*x*y*z => Some (R*(x*z)*(y*z))
+  | J*x*y*z => Some (J*(x*z)*(y*z))
+  | x * y =>
+    match beta_step x with
+    | Some x0 => Some (x0*y)
+    | None =>
+      match beta_step y with
+      | Some y0 => Some (x*y0)
+      | None => None
+      end
+    end
+  | _ => None
+  end.
+
 Inductive beta : term -> term -> Prop :=
-  | beta_s: forall x y z, beta (AP(AP(AP S x)y)z) (AP(AP x z)(AP y z))
-  | beta_k: forall x y, beta (AP(AP K x)y) x
-  | beta_rand: forall x y z, beta (AP(RAND x y)z) (RAND(AP x z)(AP y z))
-  | beta_join: forall x y z, beta (AP(JOIN x y)z) (JOIN(AP x z)(AP y z))
-  | beta_ap_1: forall x x' y, beta x x' -> beta (AP x y) (AP x' y)
-  | beta_ap_2: forall x y y', beta y y' -> beta (AP x y) (AP x y')
+  | beta_s: forall x y z, beta (S*x*y*z) ((x*z)*(y*z))
+  | beta_k: forall x y, beta (K*x*y) x
+  | beta_r: forall x y z, beta (R*x*y*z) (R*(x*z)*(y*z))
+  | beta_j: forall x y z, beta (J*x*y*z) (J*(x*z)*(y*z))
+  | beta_ap_1: forall x x' y, beta x x' -> beta (x*y) (x'*y)
+  | beta_ap_2: forall x y y', beta y y' -> beta (x*y) (x*y')
 .
+
+Lemma beta_step_beta : forall x,
+  match beta_step x with
+  | Some y => beta x y
+  | None => True
+  end.
+Proof.
+  intros.
+  (* TODO *)
+Admitted.
 
 Inductive lambda : term -> term -> Prop :=
   | lambda_top: forall x, lambda TOP x
@@ -59,8 +87,8 @@ Inductive rho : term -> term -> Prop :=
 Inductive star (r : term -> term -> Prop) : term -> term -> Prop :=
   | star_refl: forall x, star r x x
   | star_trans: forall x y z, star r x y -> r y z -> star r x z
-  | star_ap_1: forall x x' y, star r x x' -> star r (AP x y) (AP x' y)
-  | star_ap_2: forall x y y', star r y y' -> star r (AP x y) (AP x y')
+  | star_ap_1: forall x x' y, star r x x' -> star r (x*y) (x'*y)
+  | star_ap_2: forall x y y', star r y y' -> star r (x*y) (x*y')
 .
 
 Inductive red' : term -> term -> Prop :=
@@ -69,9 +97,9 @@ Inductive red' : term -> term -> Prop :=
 
 Hint Constructors red.
 
-Lemma top_consume : forall x, red (AP TOP x) TOP.
+Lemma top_consume : forall x, red (TOP*x) TOP.
 Proof.
-  intros; apply red_trans with (y := AP(AP K TOP)x); eauto.
+  intros; apply red_trans with (y := K*TOP*x); eauto.
 Qed.
 
 Hint Resolve top_consume.
@@ -125,6 +153,7 @@ Proof.
   (* TODO *)
 Admitted.
 
+Definition equiv x y := less x y /\ less y x.
 
 Lemma less_j_r:
   forall x y z, RAND (JOIN x y) z [= JOIN(RAND x z)(RAND y z).
@@ -132,35 +161,23 @@ Proof.
   unfold less; unfold conv; intros.
  
   destruct H; split.
-  (*
-  The difficulty now is to prove lemmas.
-  
-  *)
-
   (* TODO *)
-
-  split.
-  destruct H.
-  induction H.
-  
-  inversion H.
-  injection. (* FIXME *)
-  destruct H.
-  inversion H.
-  apply conv_r.
-  assumption.
-  auto.
-  case .
-Qed.
+Admitted.
 
 Lemma equiv_join_idem: forall x, equiv x (JOIN x x).
+Admitted.
 Lemma equiv_join_sym: forall x y, equiv (JOIN x y) (JOIN y x). 
+Admitted.
 Lemma equiv_join_assoc: forall x y z,
   equiv (JOIN(JOIN x y)z) (JOIN x(JOIN y z)).
+Admitted.
 Lemma equiv_join_bot: forall x, equiv (JOIN BOT x) x.
+Admitted.
 Lemma equiv_join_top: forall x, equiv (JOIN TOP x) TOP.
+Admitted.
 Lemma equiv_join_ap: forall x y z,
   equiv (AP(JOIN x y)z) (JOIN(AP x z)(AP y z)).
+Admitted.
 
 Definition excluded_middle :=
   forall p : Prop, p \/ ~p.
@@ -170,13 +187,74 @@ Theorem less_is_hp_complete:
   forall x y, less x y \/ (less x y -> less BOT TOP).
 Proof.
   (* TODO *)
+Admitted.
 
 
 (* Convenience combinators *)
 
+Definition I := S * K * K.
+Definition COMP x y := S * (K * x) * y.
+Notation "x 'o' y" := (COMP x y) (at level 30, right associativity).
+Hint Unfold COMP.
+Hint Unfold I.
+
+Lemma red_i: forall x, red (I * x) x.
+Proof.
+  intros.
+  unfold I.
+  apply red_trans with (y := K * x * (K * x)); eauto.
+Qed.
+
+Definition B := S * (K * S) * K.
+Hint Unfold B.
+
+Lemma red_b: forall x y z, B*x*y*z = x*(y*z).
+Proof.
+  intros.
+  unfold B.
+  (* TODO *)
+Admitted.
 
 (* Interesting results *)
 
 (* Theorem: for each exact p, Von Neumann's debiasing algorithm maps p to R. *)
 (* Question: how to define exactness,
    ie the property of an R term being J-free? *)
+
+(* definable types *)
+
+Definition C := TOP. (* FIXME *)
+Definition PAIR x y := (C*I*x) o (C*I*y).
+
+Theorem a_definable: {a | forall s r, less (r o s) I -> less (PAIR s r) a}.
+Proof.
+  (* TODO *)
+Admitted.
+
+Definition A : term := proj1_sig a_definable.
+
+(* abstraction notation *)
+Inductive open_term :=
+  | var : nat -> open_term
+  | open_ap : open_term -> open_term -> open_term
+  | open_from_closed :  term -> open_term.
+
+Fixedpoint closed_from_open (u : open_term) : term :=
+  match u with
+  | var n => TOP
+  | open_ap x y => (closed_from_open x) * (closed_from_open y)
+  | open_from_closed x => x
+  end.
+
+Fixedpoint lambda (n : nat) (u : open_term) :=
+  match u with
+  | var n0 =>
+    open_from_closed (if n0 = n then I else K)
+  | open_ap x y =>
+    open_ap (open_ap (open_from_closed S) (lambda n x) (lambda n y))
+  | open_from_closed x => open_from_closed x
+  end.
+
+Definition semi := A * (closed_from_open (abs fun x => x --> x)).
+
+Theorem closure_i: A 
