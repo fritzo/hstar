@@ -179,16 +179,15 @@ Lemma equiv_join_ap: forall x y z,
   equiv (AP(JOIN x y)z) (JOIN(AP x z)(AP y z)).
 Admitted.
 
-Definition excluded_middle :=
-  forall p : Prop, p \/ ~p.
+Definition excluded_middle := forall p : Prop, p \/ ~p.
 
 Theorem less_is_hp_complete:
   excluded_middle ->
-  forall x y, less x y \/ (less x y -> less BOT TOP).
+  forall x y, less x y \/ (less x y -> less TOP BOT).
 Proof.
   (* TODO *)
 Admitted.
-
+(* Question: Can this be stated intuitionistically? *)
 
 (* Convenience combinators *)
 
@@ -223,6 +222,9 @@ Admitted.
 
 (* definable types *)
 
+Definition V := TOP (* TODO *).
+Definition fixes a x := less (V * a * x) x.
+
 Definition C := TOP. (* FIXME *)
 Definition PAIR x y := (C*I*x) o (C*I*y).
 
@@ -234,27 +236,55 @@ Admitted.
 Definition A : term := proj1_sig a_definable.
 
 (* abstraction notation *)
+
 Inductive open_term :=
-  | var : nat -> open_term
+  | VAR : nat -> open_term
   | open_ap : open_term -> open_term -> open_term
-  | open_from_closed :  term -> open_term.
+  | open : term -> open_term.
 
-Fixedpoint closed_from_open (u : open_term) : term :=
+Notation "[ x ]" := (open x).
+Notation "x [*] y" := (open_ap x y) (at level 40, left associativity).
+
+Fixpoint close (u : open_term) : term :=
   match u with
-  | var n => TOP
-  | open_ap x y => (closed_from_open x) * (closed_from_open y)
-  | open_from_closed x => x
+  | VAR n => TOP
+  | open_ap x y => (close x) * (close y)
+  | open x => x
   end.
 
-Fixedpoint lambda (n : nat) (u : open_term) :=
+Require Import EqNat.
+
+Fixpoint LAMBDA (n : nat) (u : open_term) :=
   match u with
-  | var n0 =>
-    open_from_closed (if n0 = n then I else K)
-  | open_ap x y =>
-    open_ap (open_ap (open_from_closed S) (lambda n x) (lambda n y))
-  | open_from_closed x => open_from_closed x
+  | VAR n0 => open (if beq_nat n0 n then I else K)
+  | open_ap x y => open_ap (open_ap (open S) (LAMBDA n x)) (LAMBDA n y)
+  | open x => open x
   end.
 
-Definition semi := A * (closed_from_open (abs fun x => x --> x)).
+Definition semi := A * close (LAMBDA 0 (LAMBDA 1 (
+  [TOP] (* TODO *)
+))).
 
-Theorem closure_i: A 
+Inductive Prob l u : term -> Prop :=
+  | Prob_bot: Prob BOT
+  | Prob_top: Prob I
+  | Prob_rand: forall p q, Prob l u p -> Prob l u q -> Prob l u (RAND p q)
+  | Prob_equiv: forall p', prob p' -> equiv p' p -> prob p
+  | Prob_lim: forall (s : Set) (ps : s -> Prob l u).
+
+Inductive semi_fixes : term -> Set :=
+  | semi_fixes_i: forall p : Prob BOT I, semi_fixes p
+  | semi_fixes_top: semi_fixes TOP.
+
+Definition inhabitants (a : term) (a_fixes : term -> Set) : Prop :=
+  forall x, a_fixes x <-> fixes a x.
+
+Theorem semi_inhabs:
+  (forall x : term, semi_fixes x <-> fixes semi x)
+  (f BOT /\ f I /\ f TOP) /\
+  forall x, f x -> (equiv x BOT \/ equiv x I \/ equiv x TOP).
+Proof.
+  (* TODO *)
+Admitted.
+
+Definition 
