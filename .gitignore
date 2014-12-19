@@ -3,3 +3,11 @@ Isabelle*/
 coq*/
 *~
 \#*\#
+*.aux
+*.bbl
+*.blg
+*.html
+*.log
+*.out
+*.tex
+*.pdf
