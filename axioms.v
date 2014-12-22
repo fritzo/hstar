@@ -5,22 +5,34 @@
 Parameter Ob : Set.
 Parameter BOT : Ob.
 Parameter TOP : Ob.
-Parameter S : Ob.
+Parameter I : Ob.
 Parameter K : Ob.
+Parameter F : Ob.
+Parameter B : Ob.
+Parameter C : Ob.
+Parameter S : Ob.
 Parameter R : Ob.
 Parameter J : Ob.
 Parameter AP : Ob -> Ob -> Ob.
 Parameter LESS : Ob -> Ob -> Prop.
 
 Notation "x * y" := (AP x y) (at level 40, left associativity).
-Notation "x [= y" := (LESS x y) (at level 60, no associativity).
+Notation "x 'o' y" := (B * x * y) (at level 30, right associativity).
 Notation "x || y" := (J * x * y) (at level 50, left associativity).
 Notation "x (+) y" := (R * x * y) (at level 45, no associativity).
+Notation "x [= y" := (LESS x y) (at level 60, no associativity).
+(* Notation "< x , y >" := (). *)
+Definition PAIR x y := (C*B*y) o (C*B*x).
+Notation "x --> y" := ((B*y)o(C*B*x)) (at level 55, right associativity).
 
 Axiom TOP_def: forall x, x [= TOP.
 Axiom BOT_def: forall x, BOT [= x.
-Axiom S_beta: forall x y z, S*x*y*z = x*z*(y*z).
+Axiom I_beta: forall x, I*x = x.
 Axiom K_beta: forall x y, K*x*y = x.
+Axiom F_beta: forall x y, F*x*y = y.
+Axiom B_beta: forall x y z, B*x*y*z = x*(y*z).
+Axiom C_beta: forall x y z, C*x*y*z = x*z*y.
+Axiom S_beta: forall x y z, S*x*y*z = x*z*(y*z).
 Axiom J_ap: forall x y z, (x||y)*z = x*z || y*z.
 Axiom J_left: forall x y, x||y [= x.
 Axiom J_right: forall x y, x||y [= y.
@@ -34,6 +46,9 @@ Axiom R_supconvex: forall x y z, z [= x -> z [= x -> z [= x(+)y.
 Axiom LESS_refl: forall x, x [= x.
 Axiom LESS_antisym: forall x y, x [= y -> y [= x -> x = y.
 Axiom LESS_trans: forall x y z, x [= y -> y [= z -> x [= z.
+Axiom LESS_AP: forall x x' y y', x [= x' -> y [= y' -> x*y [= x'*y'.
+
+(** * Global properties *)
 
 Axiom consistency: LESS TOP BOT -> False.
 
@@ -55,3 +70,22 @@ Inductive definable : Ob -> Prop :=
   | AP_definable x y: definable x -> definable y -> definable (x*y).
 
 Axiom accessibility: forall x : Ob, x = Join (fun y => y [= x /\ definable y).
+
+Definition A := Join (fun sr => sr = PAIR (sr*K) (sr*F) /\ (sr*F)o(sr*K) [= I).
+
+Theorem A_definable: definable A.
+Proof.
+  unfold A; unfold Join.
+  (* TODO *)
+Admitted.
+
+Definition fixes (a : Ob) (x : Ob) := a*x = x.
+
+Definition semi : Ob.
+Admitted.
+
+Theorem semi_inhabs:
+  forall x, fixes semi x -> x = BOT \/ x = I \/ x = TOP.
+Proof.
+  (* TODO *)
+Admitted.
