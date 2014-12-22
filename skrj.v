@@ -1,3 +1,4 @@
+Require Import Equivalence.
 Require Import List.
 
 (* [BOT] and [TOP] are [S,K,J,AP]-definable,
@@ -136,14 +137,54 @@ Definition conv x p : Prop := red x p /\ prob p.
 Hint Unfold conv.
 
 Definition less x y := forall f p, conv (AP f x) p -> conv (AP f y) p.
-Notation "x [= y" := (less x y) (at level 70).
+Notation "x [= y" := (less x y) (at level 70, no associativity).
 Hint Unfold less.
+
+Definition equiv x y := less x y /\ less y x.
+Notation "x [=] y" := (equiv x y) (at level 70, no associativity).
+Hint Unfold equiv.
 
 Lemma less_refl : forall x, x [= x.
 Proof. auto. Qed.
+Hint Resolve less_refl.
 
 Lemma less_trans: forall x y z, x [= y -> y [= z -> x [= z.
 Proof. auto. Qed.
+
+Lemma less_antisym : forall x y, x [= y -> y [= x -> x [=] y.
+Proof. auto. Qed.
+Hint Resolve less_antisym.
+
+Lemma equiv_refl : forall x, x [=] x.
+Proof. auto. Qed.
+Hint Resolve equiv_refl.
+
+Lemma equiv_sym : forall x y, x [=] y -> y [=] x.
+Proof. firstorder. Qed.
+Hint Resolve equiv_sym.
+
+Lemma equiv_trans : forall x y z, x [=] y -> y [=] z -> x [=] z.
+Proof.
+  intros x y z H0 H1. unfold equiv. destruct H0. destruct H1. split; auto.
+Qed.
+
+(* Instance Term_Equivalence : Equivalence equiv *)
+Instance less_preorder : PreOrder less.
+Proof.
+  simpl_relation.
+Defined.
+
+Instance equiv_Equivalence : Equivalence (A := term) equiv := {}.
+Proof.
+  simpl_relation.
+  simpl_relation. firstorder.
+  simpl_relation. apply (equiv_trans x y z); auto.
+Defined.
+
+Instance term_PartialOrder : PartialOrder (A := term) equiv less.
+Proof.
+  simpl_relation.
+Defined.
 
 Lemma red_j_r: forall x y z p,
   red' (RAND(JOIN x y)z) p -> red' (JOIN(RAND x y)(RAND x z)) p.
@@ -152,8 +193,6 @@ Proof.
   destruct H.
   (* TODO *)
 Admitted.
-
-Definition equiv x y := less x y /\ less y x.
 
 Lemma less_j_r:
   forall x y z, RAND (JOIN x y) z [= JOIN(RAND x z)(RAND y z).
@@ -228,7 +267,7 @@ Definition fixes a x := less (V * a * x) x.
 Definition C := TOP. (* FIXME *)
 Definition PAIR x y := (C*I*x) o (C*I*y).
 
-Theorem a_definable: {a | forall s r, less (r o s) I -> less (PAIR s r) a}.
+Theorem a_definable: {a | forall s r, less (r o s) I <-> less (PAIR s r) a}.
 Proof.
   (* TODO *)
 Admitted.
