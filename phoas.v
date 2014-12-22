@@ -31,10 +31,10 @@ Definition Subs {Var : Type} (f : forall Var, Var -> Term Var) (x : Term Var) :=
 Eval compute in Subs (fun _ x => APP (VAR x) (VAR x)) I.
 
 Inductive step {Var : Type} : Term Var -> Term Var -> Prop :=
-  | step_beta: forall f x, step (APP (ABS (f Var)) x) (Subs f x)
-  | step_app_1: forall f f' x, step f f' -> step (APP f x) (APP f' x)
-  | step_app_2: forall f x x', step x x' -> step (APP f x) (APP f x')
-  | step_abs: forall f f' : Term1,
+  | step_beta f x: step (APP (ABS (f Var)) x) (Subs f x)
+  | step_app_1 f f' x: step f f' -> step (APP f x) (APP f' x)
+  | step_app_2 f x x': step x x' -> step (APP f x) (APP f x')
+  | step_abs f f' : Term1:
       (forall v x, step (Var := v) (f v x) (f' v x)) ->
       step (ABS (f Var)) (ABS (f' Var))
 .

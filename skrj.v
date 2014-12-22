@@ -19,16 +19,16 @@ Hint Unfold RAND.
 Hint Unfold JOIN.
 
 Inductive red : term -> term -> Prop :=
-  | red_refl: forall x, red x x
-  | red_trans: forall x y z, red x y -> red y z -> red x z
-  | red_top: forall x, red TOP x
-  | red_bot: forall x, red x BOT
-  | red_s: forall x y z, red (S*x*y*z) ((x*z)*(y*z))
-  | red_k: forall x y, red (K*x*y) x
-  | red_r: forall x y z, red (R*x*y*z) (R*(x*z)*(y*z))
-  | red_j: forall x y z, red (J*x*y*z) (J*(x*z)*(y*z))
-  | red_ap_1: forall x x' y, red x x' -> red (x*y) (x'*y)
-  | red_ap_2: forall x y y', red y y' -> red (x*y) (x*y')
+  | red_refl x: red x x
+  | red_trans x y z: red x y -> red y z -> red x z
+  | red_top x: red TOP x
+  | red_bot x: red x BOT
+  | red_s x y z: red (S*x*y*z) ((x*z)*(y*z))
+  | red_k x y: red (K*x*y) x
+  | red_r x y z: red (R*x*y*z) (R*(x*z)*(y*z))
+  | red_j x y z: red (J*x*y*z) (J*(x*z)*(y*z))
+  | red_ap_1 x x' y: red x x' -> red (x*y) (x'*y)
+  | red_ap_2 x y y': red y y' -> red (x*y) (x*y')
 .
 
 Fixpoint beta_step (u : term) : option term :=
@@ -50,12 +50,12 @@ Fixpoint beta_step (u : term) : option term :=
   end.
 
 Inductive beta : term -> term -> Prop :=
-  | beta_s: forall x y z, beta (S*x*y*z) ((x*z)*(y*z))
-  | beta_k: forall x y, beta (K*x*y) x
-  | beta_r: forall x y z, beta (R*x*y*z) (R*(x*z)*(y*z))
-  | beta_j: forall x y z, beta (J*x*y*z) (J*(x*z)*(y*z))
-  | beta_ap_1: forall x x' y, beta x x' -> beta (x*y) (x'*y)
-  | beta_ap_2: forall x y y', beta y y' -> beta (x*y) (x*y')
+  | beta_s x y z: beta (S*x*y*z) ((x*z)*(y*z))
+  | beta_k x y: beta (K*x*y) x
+  | beta_r x y z: beta (R*x*y*z) (R*(x*z)*(y*z))
+  | beta_j x y z: beta (J*x*y*z) (J*(x*z)*(y*z))
+  | beta_ap_1 x x' y: beta x x' -> beta (x*y) (x'*y)
+  | beta_ap_2 x y y': beta y y' -> beta (x*y) (x*y')
 .
 
 Lemma beta_step_beta : forall x,
@@ -69,30 +69,30 @@ Proof.
 Admitted.
 
 Inductive lambda : term -> term -> Prop :=
-  | lambda_top: forall x, lambda TOP x
-  | lambda_bot: forall x, lambda x BOT
-  | lambda_join_1: forall x y, lambda (JOIN x y) x
-  | lambda_join_2: forall x y, lambda (JOIN x y) y
+  | lambda_top x: lambda TOP x
+  | lambda_bot x: lambda x BOT
+  | lambda_join_1 x y: lambda (JOIN x y) x
+  | lambda_join_2 x y: lambda (JOIN x y) y
 .
 
 (* dyadic rational probabilities *)
 
 Inductive rho : term -> term -> Prop :=
-  | rho_rand_idem: forall x, rho x (RAND x x)
-  | rho_rand_sym: forall x y, rho (RAND x y) (RAND y x)
-  | rho_rand_sym_sym: forall w x y z,
+  | rho_rand_idem x: rho x (RAND x x)
+  | rho_rand_sym x y: rho (RAND x y) (RAND y x)
+  | rho_rand_sym_sym w x y z:
     rho (RAND(RAND w x)(RAND y z)) (RAND(RAND y x)(RAND w z))
 .
 
 Inductive star (r : term -> term -> Prop) : term -> term -> Prop :=
-  | star_refl: forall x, star r x x
-  | star_trans: forall x y z, star r x y -> r y z -> star r x z
-  | star_ap_1: forall x x' y, star r x x' -> star r (x*y) (x'*y)
-  | star_ap_2: forall x y y', star r y y' -> star r (x*y) (x*y')
+  | star_refl x: star r x x
+  | star_trans x y z: star r x y -> r y z -> star r x z
+  | star_ap_1 x x' y: star r x x' -> star r (x*y) (x'*y)
+  | star_ap_2 x y y': star r y y' -> star r (x*y) (x*y')
 .
 
 Inductive red' : term -> term -> Prop :=
-  | red'_constructor: forall w x y z,
+  | red'_constructor w x y z:
     star beta w x -> star rho x y -> star lambda y z -> red' w z.
 
 Hint Constructors red.
@@ -107,13 +107,13 @@ Hint Resolve top_consume.
 Inductive prob : term -> Prop :=
   | prob_bot: prob BOT
   | prob_top: prob TOP
-  | prob_rand: forall p q, prob p -> prob q -> prob (RAND p q).
+  | prob_rand p q: prob p -> prob q -> prob (RAND p q).
 Hint Constructors prob.
 
 Inductive nz_prob : term -> Prop :=
   | nz_prob_top: nz_prob TOP
-  | nz_prob_rand_1: forall p q, nz_prob p -> prob q -> nz_prob (RAND p q)
-  | nz_prob_rand_2: forall p q, prob p -> nz_prob q -> nz_prob (RAND p q).
+  | nz_prob_rand_1 p q: nz_prob p -> prob q -> nz_prob (RAND p q)
+  | nz_prob_rand_2 p q: prob p -> nz_prob q -> nz_prob (RAND p q).
 Hint Constructors nz_prob.
 
 Lemma nz_prob_prob : forall p, nz_prob p -> prob p.
@@ -125,12 +125,12 @@ Proof.
 Admitted.
 
 Inductive approx : term -> term -> Prop :=
-  | approx_rand_idem: forall x, approx x (RAND x x)
-  | approx_rand_sym: forall x y, approx (RAND x y) (RAND y x)
-  | approx_rand_sym_sym: forall w x y z,
+  | approx_rand_idem x: approx x (RAND x x)
+  | approx_rand_sym x y: approx (RAND x y) (RAND y x)
+  | approx_rand_sym_sym w x y z:
     approx (RAND(RAND w x)(RAND y z)) (RAND(RAND y x)(RAND w z))
-  | approx_join_1: forall x y, approx (JOIN x y) x
-  | approx_join_2: forall x y, approx (JOIN x y) y.
+  | approx_join_1 x y: approx (JOIN x y) x
+  | approx_join_2 x y: approx (JOIN x y) y.
 
 Definition conv x p : Prop := red x p /\ prob p.
 Hint Unfold conv.
@@ -268,12 +268,12 @@ Definition semi := A * close (LAMBDA 0 (LAMBDA 1 (
 Inductive Prob l u : term -> Prop :=
   | Prob_bot: Prob BOT
   | Prob_top: Prob I
-  | Prob_rand: forall p q, Prob l u p -> Prob l u q -> Prob l u (RAND p q)
-  | Prob_equiv: forall p', prob p' -> equiv p' p -> prob p
+  | Prob_rand p q: Prob l u p -> Prob l u q -> Prob l u (RAND p q)
+  | Prob_equiv p': prob p' -> equiv p' p -> prob p
   | Prob_lim: forall (s : Set) (ps : s -> Prob l u).
 
 Inductive semi_fixes : term -> Set :=
-  | semi_fixes_i: forall p : Prob BOT I, semi_fixes p
+  | semi_fixes_i p : Prob BOT I: semi_fixes p
   | semi_fixes_top: semi_fixes TOP.
 
 Definition inhabitants (a : term) (a_fixes : term -> Set) : Prop :=
