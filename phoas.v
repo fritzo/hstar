@@ -56,3 +56,36 @@ Proof.
   apply step_beta.
   *)
 Admitted.
+
+(** * Combinators *)
+
+Inductive code :=
+  | TOP : code
+  | S : code
+  | K : code
+  | AP : code -> code -> code.
+
+Notation "x ** y" := (AP x y) (at level 20, left associativity).
+
+Fixpoint decode {Var : Set} (e : code) : Var -> Term Var :=
+  fun top =>
+  match e with
+  | TOP => VAR top
+  | S => [x] [y] [z] VAR x * VAR z * (VAR y * VAR z)
+  | K => [x] [y] VAR x
+  | AP e0 e1 => APP (decode e0 top) (decode e1 top)
+  end.
+
+(* FIXME
+Fixpoint encode (e : forall Var, Term Var) : code :=
+  match e bool with
+  | VAR_ e0 => TOP   (* can this ever happen? *)
+  | APP_ e0 e1 => AP (encode e0) (encode e1)
+  | ABS_ e0 =>
+    match e0 true with
+    | VAR_ true => S ** K ** K
+    | APP_ e1 e2 => S ** (encode ([x] e1 (VAR x))) ** (encode ([x] e2 (VAR x)))
+    | ABS_ e1 => TOP
+    end
+  end.
+*)
