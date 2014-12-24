@@ -39,3 +39,24 @@ Proof.
   (* TODO *)
 Admitted.
   
+Fixpoint normal (t : code) : Prop :=
+ match t with
+   S => True
+ | AP S x => normal x
+ | AP(AP S x)y => normal x /\ normal y
+ | K => True
+ | AP K x => normal x
+ | _ => False
+ end.
+
+Theorem i_normal : normal I.
+simpl; auto.
+Qed.
+
+Fixpoint beta_step (t : code) : option code :=
+ match t with
+   AP(AP(AP S x)y)z => Some(AP(AP x z)(AP y z))
+ | AP(AP K x)y => Some x
+ | _ => None
+end.
+

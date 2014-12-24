@@ -1,4 +1,7 @@
-(* an attempt at domain theory *)
+(** * An attempt at domain theory
+
+    This follows Adam Chlipala's intro to coinductive types
+    applied to representing partial functions. *)
 
 CoInductive Partial (A : Set) : Set :=
   | Find : A -> Partial A

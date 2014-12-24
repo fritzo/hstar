@@ -1,5 +1,10 @@
-(** This demonstrates a simple way to write combinators using lambda notation,
-    but does not allow any direct reasoning about lambda terms *)
+(** * Cobinators [<->] lambda-terms.
+
+    This demonstrates a simple way to write combinators using lambda notation,
+    but does not allow any direct reasoning about lambda terms.
+    The main trick is to embed inline-assembly-style code blocks
+    in lambda terms via a [CODE] constructor.
+    *)
 
 Require Import EqNat.
 
