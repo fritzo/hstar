@@ -55,6 +55,8 @@ Axiom LESS_AP: forall x x' y y', x [= x' -> y [= y' -> x*y [= x'*y'.
 
 Axiom consistency: ~ TOP [= BOT.
 
+(** *** Completeness *)
+
 Definition is_upper_bound (s : Ob -> Prop) (x : Ob) : Prop :=
   forall y, s y -> y [= x.
 
@@ -65,38 +67,13 @@ Axiom completeness: forall s : Ob -> Prop, {x : Ob | is_lub s x}.
 
 Definition Join (s : Ob -> Prop) : Ob := proj1_sig (completeness s).
 
+(** *** Definability and accessibility *)
+
 Inductive definable : Ob -> Prop :=
   | S_definable: definable S
-  | K_definable: definable S
-  | R_definable: definable S
-  | J_definable: definable S
+  | K_definable: definable K
+  | R_definable: definable R
+  | J_definable: definable J
   | AP_definable x y: definable x -> definable y -> definable (x*y).
 
 Axiom accessibility: forall x : Ob, x = Join (fun y => y [= x /\ definable y).
-
-(** ** Properties of closures *)
-
-(*
-Notation "< x , y >" := ().
-Notation "x --> y" := ((B*y)o(C*B*x)) (at level 55, right associativity).
-*)
-Definition PAIR x y := (C*B*y) o (C*B*x).
-
-Definition A := Join (fun sr => sr = PAIR (sr*K) (sr*F) /\ (sr*F)o(sr*K) [= I).
-
-Theorem A_definable: definable A.
-Proof.
-  unfold A; unfold Join.
-  (* TODO *)
-Admitted.
-
-Definition fixes (a : Ob) (x : Ob) := a*x = x.
-
-Definition semi : Ob.
-Admitted.
-
-Theorem semi_inhabs:
-  forall x, fixes semi x -> x = BOT \/ x = I \/ x = TOP.
-Proof.
-  (* TODO *)
-Admitted.

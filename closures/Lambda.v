@@ -50,34 +50,69 @@ Section Encode.
   Definition encode x := close (compile x).
 End Encode.
 
-Notation "x * y" := (APP x y) (at level 40, left associativity) : Lambda_scope.
+Notation "[ x ]" := (OB x) : Lambda_scope.
 Delimit Scope Lambda_Scope with Lambda.
 Bind Scope Lambda_Scope with Lambda.
-Local Open Scope Lambda_scope.
 
-Notation "\ x , y" := (abs x y) (at level 60, right associativity) : Lambda_scope.
-Notation "x 'o' y" := (APP x y) (at level 30, right associativity) : Lambda_scope.
-Notation "x || y" := ((OB J) * x * y) (at level 50, left associativity) : Lambda_scope.
-Notation "x (+) y" := ((OB R) * x * y) (at level 45, no associativity) : Lambda_scope.
+Open Scope Lambda_scope.
+  Notation "x * y" := (APP x y)
+    (at level 40, left associativity) : Lambda_scope.
+  Notation "\ x , y" := (abs x y)
+    (at level 60, right associativity) : Lambda_scope.
+  Notation "x 'o' y" := ([B] * x * y)
+    (at level 30, right associativity) : Lambda_scope.
+  Notation "x || y" := ([J] * x * y)
+      (at level 50, left associativity) : Lambda_scope.
+  Notation "x (+) y" := ([R] * x * y)
+    (at level 45, no associativity) : Lambda_scope.
 
-Section combinators.
+  (*
+  Arguments OB e%Ob_scope.
+  Arguments VAR n%nat_scope.
+  Arguments ABS n%nat_scope e%Lambda_scope.
+  Arguments APP e0%Lambda_scope e1%Lambda_scope.
+  Arguments abs x%Lambda_scope y%Lambda_scope.
+  Arguments encode x%Lambda_scope.
+  *)
+
+  (*
   Notation "'x'" := (VAR 0) : Lambda_scope.
   Notation "'y'" := (VAR 1) : Lambda_scope.
   Notation "'z'" := (VAR 2) : Lambda_scope.
+  *)
+Close Scope Lambda_scope.
 
-  Let TOP' := OB TOP.
-  Let S' := \x,\y,\z, x*z*(y*z).
-  Let K' := \x,\y, x.
-  Let I' := \x, x.
-  Let B' := \x,\y,\z, x*(y*z).
-  Let C' := \x,\y,\z, x*z*y.
-  Let Y' := \x, (\y, x*(y*y)) * (\y, x*(y*y)).
-  Let V' := Y' * \x,\y, I' || x o y.
-  Let div' := Y' * \x, x * TOP'.
+(** ** A standard library *)
 
-  Definition B := encode B'.
-  Definition C := encode C'.
-  Definition Y := encode Y'.
-  Definition V := encode V'.
-  Definition div := encode div'.
-End combinators.
+Local Open Scope Ob_scope.
+
+Section Y.
+  Local Open Scope Lambda_scope.
+  Let x := VAR 0.
+  Let y := VAR 1.
+  Definition Y := encode (\x, (\y, x*(y*y)) * (\y, x*(y*y))).
+End Y.
+Lemma Y_fix : forall f : Ob, Y*f = f*(Y*f).
+Proof.
+  intros. unfold Y. compute.
+  (* TODO *)
+Admitted.
+
+Section V.
+  Local Open Scope Lambda_scope.
+  Let x := VAR 0.
+  Let y := VAR 1.
+  Definition V := encode ([Y] * \x,\y, [I] || x o y).
+End V.
+Lemma V_fix : forall f : Ob, f*(V*f) [= V*f.
+Proof.
+  intros. unfold V. compute.
+  firstorder.
+  (* TODO *)
+Admitted.
+
+Section div.
+  Local Open Scope Lambda_scope.
+  Let x := VAR 0.
+  Definition div := encode ([Y] * \x, x * [TOP]).
+End div.
