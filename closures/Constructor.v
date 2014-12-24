@@ -4,35 +4,27 @@ Require Import ObAxioms.
 Require Import Lambda.
 Local Open Scope Ob_scope.
 
-Section A.
+Section pair.
   Local Open Scope Lambda_scope.
   Let x := VAR 0.
   Let y := VAR 1.
   Let z := VAR 2.
 
-  (*
-  Notation "< x , y >" := ().
-  Notation "x --> y" := ((B*y)o(C*B*x)) (at level 55, right associativity).
-  *)
-  Definition PAIR := encode (\x, \y, \z, z * x * y).
+  Definition pair := encode (\x, \y, \z, z * x * y).
+End pair.
 
-End A.
+Definition A := Join (fun sr => sr = pair*(sr*K)*(sr*F) /\ (sr*F)o(sr*K) [= I).
+Open Scope Lambda_scope.
+  Notation "\\ x , y ; z" := ([A] * \x, \y, z)
+    (at level 59, right associativity) : Lambda_scope.
 
-Definition A := Join (fun sr => sr = PAIR*(sr*K)*(sr*F) /\ (sr*F)o(sr*K) [= I).
+  Let a := VAR 0.
+  Let a' := VAR 1.
+  Example A_example := (\\a,a'; a --> a').
+Close Scope Lambda_scope.
 
 Theorem A_is_definable: definable A.
 Proof.
   unfold A; unfold Join.
-  (* TODO *)
-Admitted.
-
-Definition fixes (a : Ob) (x : Ob) := a*x = x.
-
-Definition semi : Ob.
-Admitted.
-
-Theorem semi_inhabs:
-  forall x, fixes semi x -> x = BOT \/ x = I \/ x = TOP.
-Proof.
-  (* TODO *)
+  (* TODO: use the Bohm-out technique *)
 Admitted.

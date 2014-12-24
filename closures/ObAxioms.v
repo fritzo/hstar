@@ -55,6 +55,8 @@ Axiom LESS_AP: forall x x' y y', x [= x' -> y [= y' -> x*y [= x'*y'.
 
 Axiom consistency: ~ TOP [= BOT.
 
+Axiom extensionality: forall f g, (forall x, f * x = g * x) -> f = g.
+
 (** *** Completeness *)
 
 Definition is_upper_bound (s : Ob -> Prop) (x : Ob) : Prop :=

@@ -116,3 +116,22 @@ Section div.
   Let x := VAR 0.
   Definition div := encode ([Y] * \x, x * [TOP]).
 End div.
+
+Section exp.
+  Local Open Scope Lambda_scope.
+  Let a := VAR 0.
+  Let b := VAR 0.
+  Let f := VAR 0.
+  Definition exp := encode (\a, \b, \f, b o f o a).
+End exp.
+Open Scope Lambda_scope.
+  Notation "x --> y" := ([exp] * x * y)
+    (at level 55, right associativity) : Lambda_scope.
+Close Scope Lambda_scope.
+Lemma exp_I_I: exp * I * I = I.
+Proof.
+  apply extensionality.
+  intro x.
+  compute.
+  (* TODO: Ltac beta_normalize *)
+Admitted.
