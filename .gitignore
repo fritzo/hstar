@@ -11,3 +11,6 @@ coq*/
 *.out
 *.tex
 *.pdf
+*.vo
+*.v.d
+*.glob

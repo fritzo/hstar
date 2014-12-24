@@ -65,19 +65,19 @@ Section combinators.
   Notation "x || y" := ((CODE J) * x * y) (at level 50, left associativity).
   Notation "x (+) y" := ((CODE R) * x * y) (at level 45, no associativity).
 
-  Let x := VAR 0.
-  Let y := VAR 1.
-  Let z := VAR 2.
+  Notation "'x'" := (VAR 0).
+  Notation "'y'" := (VAR 1).
+  Notation "'z'" := (VAR 2).
 
-  Definition TOP' := CODE TOP.
-  Definition S' := \x,\y,\z, x*z*(y*z).
-  Definition K' := \x,\y, x.
-  Definition I' := \x, x.
-  Definition B' := \x,\y,\z, x*(y*z).
-  Definition C' := \x,\y,\z, x*z*y.
-  Definition Y' := \x, (\y, x*(y*y)) * (\y, x*(y*y)).
-  Definition V' := Y' * \x,\y, I' || x o y.
-  Definition div' := Y' * \x, x * TOP'.
+  Let TOP' := CODE TOP.
+  Let S' := \x,\y,\z, x*z*(y*z).
+  Let K' := \x,\y, x.
+  Let I' := \x, x.
+  Let B' := \x,\y,\z, x*(y*z).
+  Let C' := \x,\y,\z, x*z*y.
+  Let Y' := \x, (\y, x*(y*y)) * (\y, x*(y*y)).
+  Let V' := Y' * \x,\y, I' || x o y.
+  Let div' := Y' * \x, x * TOP'.
 
   Definition B := encode B'.
   Definition C := encode C'.

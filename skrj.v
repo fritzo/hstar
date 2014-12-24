@@ -77,7 +77,6 @@ Inductive lambda : term -> term -> Prop :=
 .
 
 (* dyadic rational probabilities *)
-
 Inductive rho : term -> term -> Prop :=
   | rho_rand_idem x: rho x (RAND x x)
   | rho_rand_sym x y: rho (RAND x y) (RAND y x)
@@ -325,5 +324,3 @@ Theorem semi_inhabs:
 Proof.
   (* TODO *)
 Admitted.
-
-Definition 

@@ -1,6 +1,7 @@
-(* This follows the axiomatic treatment of reals in the Coq standard library *)
+(** * This follows the axiomatic treatment of reals
+    in the Coq standard library. *)
 
-(** * Axioms *)
+(** ** Axioms *)
 
 Parameter Ob : Set.
 Parameter BOT : Ob.
@@ -16,14 +17,16 @@ Parameter J : Ob.
 Parameter AP : Ob -> Ob -> Ob.
 Parameter LESS : Ob -> Ob -> Prop.
 
-Notation "x * y" := (AP x y) (at level 40, left associativity).
-Notation "x 'o' y" := (B * x * y) (at level 30, right associativity).
-Notation "x || y" := (J * x * y) (at level 50, left associativity).
-Notation "x (+) y" := (R * x * y) (at level 45, no associativity).
-Notation "x [= y" := (LESS x y) (at level 60, no associativity).
-(* Notation "< x , y >" := (). *)
-Definition PAIR x y := (C*B*y) o (C*B*x).
-Notation "x --> y" := ((B*y)o(C*B*x)) (at level 55, right associativity).
+Notation "x * y" := (AP x y) (at level 40, left associativity) : Ob_scope.
+Delimit Scope Ob_Scope with Ob.
+Bind Scope Ob_Scope with Ob.
+Local Open Scope Ob_scope.
+
+Notation "x 'o' y" := (B * x * y) (at level 30, right associativity) : Ob_scope.
+Notation "x || y" := (J * x * y) (at level 50, left associativity) : Ob_scope.
+Notation "x (+) y" := (R * x * y) (at level 45, no associativity) : Ob_scope.
+Notation "x [= y" := (LESS x y) (at level 60, no associativity) : Ob_scope.
+
 
 Axiom TOP_def: forall x, x [= TOP.
 Axiom BOT_def: forall x, BOT [= x.
@@ -48,9 +51,9 @@ Axiom LESS_antisym: forall x y, x [= y -> y [= x -> x = y.
 Axiom LESS_trans: forall x y z, x [= y -> y [= z -> x [= z.
 Axiom LESS_AP: forall x x' y y', x [= x' -> y [= y' -> x*y [= x'*y'.
 
-(** * Global properties *)
+(** ** Global properties *)
 
-Axiom consistency: LESS TOP BOT -> False.
+Axiom consistency: ~ TOP [= BOT.
 
 Definition is_upper_bound (s : Ob -> Prop) (x : Ob) : Prop :=
   forall y, s y -> y [= x.
@@ -70,6 +73,14 @@ Inductive definable : Ob -> Prop :=
   | AP_definable x y: definable x -> definable y -> definable (x*y).
 
 Axiom accessibility: forall x : Ob, x = Join (fun y => y [= x /\ definable y).
+
+(** ** Properties of closures *)
+
+(*
+Notation "< x , y >" := ().
+Notation "x --> y" := ((B*y)o(C*B*x)) (at level 55, right associativity).
+*)
+Definition PAIR x y := (C*B*y) o (C*B*x).
 
 Definition A := Join (fun sr => sr = PAIR (sr*K) (sr*F) /\ (sr*F)o(sr*K) [= I).
 
