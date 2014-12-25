@@ -12,7 +12,8 @@ Section is_pair.
   Definition is_pair (x : Ob) := x = pair (x * K) (x * F).
 End is_pair.
 
-Definition A := Join (fun sr => is_pair sr /\ (sr*F)o(sr*K) [= I).
+Definition A_prop (sr : Ob) := is_pair sr /\ (sr*F)o(sr*K) [= I.
+Definition A := Join A_prop.
 Notation "\\ x , y ; z" := ([A] * \x, \y, z)%Lambda
   (at level 59, right associativity) : Lambda_scope.
 
@@ -24,6 +25,15 @@ End A_example.
 
 Theorem A_is_definable: definable A.
 Proof.
-  unfold A; unfold Join.
-  (* TODO: use the Bohm-out technique *)
+  assert (exists A', A = A' /\ definable A').
+  (* TODO Proof sketch
+    1. Use Bohm-out technique to carefully construct an A' such that
+       for each <s,r>[=A,
+         for each context f,
+           if f <s,r> converges then f A' converges.
+    2. Conclude that A [= A'
+    3. Inspect A' to show that also A' [= A.
+    4. apply LESS_antisym
+    5. Inspect A' to show that A' is definable.
+  *)
 Admitted.

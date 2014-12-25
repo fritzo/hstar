@@ -65,9 +65,14 @@ Definition is_upper_bound (s : Ob -> Prop) (x : Ob) : Prop :=
 Definition is_lub (s : Ob -> Prop) (x : Ob) : Prop :=
   is_upper_bound s x /\ forall y, is_upper_bound s y -> x [= y.
 
+(* Version 1.
 Axiom completeness: forall s : Ob -> Prop, {x : Ob | is_lub s x}.
-
 Definition Join (s : Ob -> Prop) : Ob := proj1_sig (completeness s).
+*)
+
+(* Version 2. *)
+Axiom Join : (Ob -> Prop) -> Ob.
+Axiom completeness: forall s, is_lub s (Join s).
 
 (** *** Definability and accessibility *)
 
