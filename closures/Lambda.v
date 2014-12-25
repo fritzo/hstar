@@ -113,8 +113,8 @@ End div.
 
 Section exp.
   Let a := VAR 0.
-  Let b := VAR 0.
-  Let f := VAR 0.
+  Let b := VAR 1.
+  Let f := VAR 2.
   Definition exp := encode (\a, \b, \f, b o f o a).
 End exp.
 Notation "x --> y" := ([exp] * x * y)%Lambda

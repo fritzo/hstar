@@ -6,12 +6,11 @@ Require Import Lambda.
 Open Scope Lambda_scope.
 Open Scope Ob_scope.
 
-Section PAIR.
+Section is_pair.
   Let z := VAR 0.
-
-  Definition PAIR (x y : Ob) := encode (\z, z * [x] * [y])%Lambda.
-  Definition is_pair (x : Ob) := x = PAIR (x * K) (x * F).
-End PAIR.
+  Let pair (x y : Ob) := encode (\z, z * [x] * [y])%Lambda.
+  Definition is_pair (x : Ob) := x = pair (x * K) (x * F).
+End is_pair.
 
 Definition A := Join (fun sr => is_pair sr /\ (sr*F)o(sr*K) [= I).
 Notation "\\ x , y ; z" := ([A] * \x, \y, z)%Lambda
