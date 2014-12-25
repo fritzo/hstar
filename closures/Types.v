@@ -44,7 +44,6 @@ Proof.
 Qed.
 
 Section semi.
-  Open Scope Lambda_scope.
   Let a := VAR 0.
   Let a' := VAR 1.
   Definition semi := encode (\\a,a'; a --> a').
@@ -65,7 +64,6 @@ Proof.
 Admitted.
 
 Section boool.
-  Open Scope Lambda_scope.
   Let a := VAR 0.
   Let a' := VAR 1.
   Definition boool := encode (\\a,a'; a --> a --> a').

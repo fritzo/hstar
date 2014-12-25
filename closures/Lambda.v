@@ -54,21 +54,26 @@ End Encode.
 
 Notation "[ x ]" := (OB x) : Lambda_scope.
 
-Delimit Scope Lambda_Scope with Lambda.
-Bind Scope Lambda_Scope with Lambda.
+Delimit Scope Lambda_scope with Lambda.
+Bind Scope Lambda_scope with Lambda.
 
+(* Bind Scope is not retroactive, so: *)
+Arguments encode _%Lambda.
+
+Close Scope Ob_scope.
 Open Scope Lambda_scope.
-  Notation "x * y" := (APP x y)
-    (at level 40, left associativity) : Lambda_scope.
-  Notation "\ x , y" := (abs x y)
-    (at level 60, right associativity) : Lambda_scope.
-  Notation "x 'o' y" := ([B] * x * y)
-    (at level 30, right associativity) : Lambda_scope.
-  Notation "x || y" := ([J] * x * y)
-      (at level 50, left associativity) : Lambda_scope.
-  Notation "x (+) y" := ([R] * x * y)
-    (at level 45, no associativity) : Lambda_scope.
-Close Scope Lambda_scope.
+Open Scope Ob_scope.
+
+Notation "x * y" := (APP x y)%Lambda
+  (at level 40, left associativity) : Lambda_scope.
+Notation "\ x , y" := (abs x y)%Lambda
+  (at level 60, right associativity) : Lambda_scope.
+Notation "x 'o' y" := ([B] * x * y)%Lambda
+  (at level 30, right associativity) : Lambda_scope.
+Notation "x || y" := ([J] * x * y)%Lambda
+    (at level 50, left associativity) : Lambda_scope.
+Notation "x (+) y" := ([R] * x * y)%Lambda
+  (at level 45, no associativity) : Lambda_scope.
 
 (*
 Notation "'x'" := (VAR 0) : Lambda_scope.
@@ -76,17 +81,9 @@ Notation "'y'" := (VAR 1) : Lambda_scope.
 Notation "'z'" := (VAR 2) : Lambda_scope.
 *)
 
-Arguments Scope OB [Ob_scope].
-Arguments Scope VAR [nat_scope].
-Arguments Scope ABS [nat_scope Lambda_scope].
-Arguments Scope APP [Lambda_scope Lambda_scope].
-Arguments Scope abs [Lambda_scope Lambda_scope].
-Arguments Scope encode [Lambda_scope].
-
 (** ** A standard library *)
 
 Section Y.
-  Open Scope Lambda_scope.
   Let x := VAR 0.
   Let y := VAR 1.
   Definition Y := encode (\x, (\y, x*(y*y)) * (\y, x*(y*y))).
@@ -98,7 +95,6 @@ Proof.
 Admitted.
 
 Section V.
-  Open Scope Lambda_scope.
   Let x := VAR 0.
   Let y := VAR 1.
   Definition V := encode ([Y] * \x,\y, [I] || x o y).
@@ -111,22 +107,18 @@ Proof.
 Admitted.
 
 Section div.
-  Local Open Scope Lambda_scope.
   Let x := VAR 0.
   Definition div := encode ([Y] * \x, x * [TOP]).
 End div.
 
 Section exp.
-  Local Open Scope Lambda_scope.
   Let a := VAR 0.
   Let b := VAR 0.
   Let f := VAR 0.
   Definition exp := encode (\a, \b, \f, b o f o a).
 End exp.
-Open Scope Lambda_scope.
-  Notation "x --> y" := ([exp] * x * y)
-    (at level 55, right associativity) : Lambda_scope.
-Close Scope Lambda_scope.
+Notation "x --> y" := ([exp] * x * y)%Lambda
+  (at level 55, right associativity) : Lambda_scope.
 Lemma exp_I_I: exp * I * I = I.
 Proof.
   apply extensionality.
