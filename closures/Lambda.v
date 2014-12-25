@@ -9,16 +9,18 @@
 Require Import ObAxioms.
 Require Import EqNat.
 
+Open Scope Ob_scope.
+
 Inductive Lambda : Set :=
 | OB : Ob -> Lambda
 | VAR : nat -> Lambda
 | ABS : nat -> Lambda -> Lambda
 | APP : Lambda -> Lambda -> Lambda.
 
-Definition abs (x : Lambda) (y : Lambda) : Lambda :=
+Definition abs (x y : Lambda) : Lambda :=
   match x with
   | VAR n => ABS n y
-  | z => OB TOP
+  | z => OB TOP  (* HACK *)
   end.
 
 Section Encode.
@@ -51,6 +53,7 @@ Section Encode.
 End Encode.
 
 Notation "[ x ]" := (OB x) : Lambda_scope.
+
 Delimit Scope Lambda_Scope with Lambda.
 Bind Scope Lambda_Scope with Lambda.
 
@@ -65,29 +68,25 @@ Open Scope Lambda_scope.
       (at level 50, left associativity) : Lambda_scope.
   Notation "x (+) y" := ([R] * x * y)
     (at level 45, no associativity) : Lambda_scope.
-
-  (*
-  Arguments OB e%Ob_scope.
-  Arguments VAR n%nat_scope.
-  Arguments ABS n%nat_scope e%Lambda_scope.
-  Arguments APP e0%Lambda_scope e1%Lambda_scope.
-  Arguments abs x%Lambda_scope y%Lambda_scope.
-  Arguments encode x%Lambda_scope.
-  *)
-
-  (*
-  Notation "'x'" := (VAR 0) : Lambda_scope.
-  Notation "'y'" := (VAR 1) : Lambda_scope.
-  Notation "'z'" := (VAR 2) : Lambda_scope.
-  *)
 Close Scope Lambda_scope.
+
+(*
+Notation "'x'" := (VAR 0) : Lambda_scope.
+Notation "'y'" := (VAR 1) : Lambda_scope.
+Notation "'z'" := (VAR 2) : Lambda_scope.
+*)
+
+Arguments Scope OB [Ob_scope].
+Arguments Scope VAR [nat_scope].
+Arguments Scope ABS [nat_scope Lambda_scope].
+Arguments Scope APP [Lambda_scope Lambda_scope].
+Arguments Scope abs [Lambda_scope Lambda_scope].
+Arguments Scope encode [Lambda_scope].
 
 (** ** A standard library *)
 
-Local Open Scope Ob_scope.
-
 Section Y.
-  Local Open Scope Lambda_scope.
+  Open Scope Lambda_scope.
   Let x := VAR 0.
   Let y := VAR 1.
   Definition Y := encode (\x, (\y, x*(y*y)) * (\y, x*(y*y))).
@@ -99,7 +98,7 @@ Proof.
 Admitted.
 
 Section V.
-  Local Open Scope Lambda_scope.
+  Open Scope Lambda_scope.
   Let x := VAR 0.
   Let y := VAR 1.
   Definition V := encode ([Y] * \x,\y, [I] || x o y).

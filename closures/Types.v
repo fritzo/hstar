@@ -4,7 +4,7 @@ Require Import ObAxioms.
 Require Import Lambda.
 Require Import Constructor.
 
-Open Local Scope Ob_scope.
+Open Scope Ob_scope.
 
 (** ** Properties of types *)
 
@@ -44,7 +44,7 @@ Proof.
 Qed.
 
 Section semi.
-  Local Open Scope Lambda_scope.
+  Open Scope Lambda_scope.
   Let a := VAR 0.
   Let a' := VAR 1.
   Definition semi := encode (\\a,a'; a --> a').
@@ -65,7 +65,7 @@ Proof.
 Admitted.
 
 Section boool.
-  Local Open Scope Lambda_scope.
+  Open Scope Lambda_scope.
   Let a := VAR 0.
   Let a' := VAR 1.
   Definition boool := encode (\\a,a'; a --> a --> a').

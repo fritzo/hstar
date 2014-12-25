@@ -18,15 +18,18 @@ Parameter AP : Ob -> Ob -> Ob.
 Parameter LESS : Ob -> Ob -> Prop.
 
 Notation "x * y" := (AP x y) (at level 40, left associativity) : Ob_scope.
+
+Open Scope Ob_scope.
 Delimit Scope Ob_Scope with Ob.
 Bind Scope Ob_Scope with Ob.
-Local Open Scope Ob_scope.
 
 Notation "x 'o' y" := (B * x * y) (at level 30, right associativity) : Ob_scope.
 Notation "x || y" := (J * x * y) (at level 50, left associativity) : Ob_scope.
 Notation "x (+) y" := (R * x * y) (at level 45, no associativity) : Ob_scope.
 Notation "x [= y" := (LESS x y) (at level 60, no associativity) : Ob_scope.
 
+Arguments AP (_ _)%Ob.
+Arguments LESS (_ _)%Ob.
 
 Axiom TOP_def: forall x, x [= TOP.
 Axiom BOT_def: forall x, BOT [= x.
