@@ -1,4 +1,4 @@
-(** * A constructor for simple types *)
+(** * A_def constructor for simple types *)
 
 Require Import ObAxioms.
 Require Import Lambda.
@@ -7,10 +7,13 @@ Open Scope Lambda_scope.
 Open Scope Ob_scope.
 
 Section is_pair.
-  Let z := VAR 0.
-  Let pair (x y : Ob) := encode (\z, z * [x] * [y])%Lambda.
-  Definition is_pair (x : Ob) := x = pair (x * K) (x * F).
+  Let x := VAR 0.
+  Let y := VAR 1.
+  Let z := VAR 2.
+  Definition pair := encode (\x,\y,\z, z * x * y).
+  Definition is_pair (x : Ob) := x = pair * (x * K) * (x * F).
 End is_pair.
+Notation "<< x , y >>" := ([pair] * x * y)%Lambda : Lambda_scope.
 
 Definition A_prop (sr : Ob) := is_pair sr /\ (sr*F)o(sr*K) [= I.
 Definition A := Join A_prop.
@@ -20,20 +23,56 @@ Notation "\\ x , y ; z" := ([A] * \x, \y, z)%Lambda
 Section A_example.
   Let a := VAR 0.
   Let a' := VAR 1.
-  Example A_example := (\\a,a'; a --> a').
+  Let A_example := (\\a,a'; a --> a').
 End A_example.
 
-Theorem A_is_definable: definable A.
+Section raise.
+  Let x := VAR 3.
+  Let y := VAR 4.
+
+  Definition raise := encode (\x, \y, x).
+  Definition lower := encode (\x, x * [TOP]).
+
+  Definition pull := encode (\x, \y, x || [div] * y).
+  Definition push := encode (\x, x * [BOT]).
+End raise.
+
+Section A_def.
+  Let s := VAR 0.
+  Let a := VAR 1.
+  Let a' := VAR 2.
+  Let b := VAR 3.
+  Let b' := VAR 4.
+
+  Definition A_prefix := encode (
+    \s, <<[I], [I]>>
+     || <<[raise], [lower]>>
+     || <<[pull], [push]>>
+     || (s*\a,\a', s*\b,\b', <<a*b, b'*a'>>)
+     || (s*\a,\a', s*\b,\b', <<(a'-->b), (a-->b')>>)
+  ).
+  Definition A_def := Y * A_prefix.
+End A_def.
+
+Lemma A_sound: A_def [= A.
 Proof.
-  assert (exists A', A = A' /\ definable A').
-  (* TODO Proof sketch
-    1. Use Bohm-out technique to carefully construct an A' such that
-       for each <s,r>[=A,
-         for each context f,
-           if f <s,r> converges then f A' converges.
-    2. Conclude that A [= A'
-    3. Inspect A' to show that also A' [= A.
-    4. apply LESS_antisym
-    5. Inspect A' to show that A' is definable.
-  *)
+  unfold A_def.
+  apply Y_lfp.
+  intros y.
+  (* TODO *)
 Admitted.
+
+Lemma A_complete: A [= A_def.
+Proof.
+  unfold A_def.
+  apply LESS_conv.
+  intros f Hdef Hconv.
+  induction Hconv.
+  induction Hdef.
+  (* TODO *)
+Admitted.
+
+Theorem A_definable: A = A_def.
+Proof.
+  apply LESS_antisym ; apply A_sound || apply A_complete.
+Qed.

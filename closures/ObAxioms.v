@@ -29,8 +29,6 @@ Notation "x || y" := (J * x * y) (at level 50, left associativity) : Ob_scope.
 Notation "x (+) y" := (R * x * y) (at level 45, no associativity) : Ob_scope.
 Notation "x [= y" := (LESS x y) (at level 60, no associativity) : Ob_scope.
 
-Axiom TOP_def: forall x, x [= TOP.
-Axiom BOT_def: forall x, BOT [= x.
 Axiom I_beta: forall x, I*x = x.
 Axiom K_beta: forall x y, K*x*y = x.
 Axiom F_beta: forall x y, F*x*y = y.
@@ -47,6 +45,9 @@ Axiom R_sym: forall x y, x(+)y = y(+)x.
 Axiom R_sym_sym: forall w x y z, (w(+)x) (+) (y(+)z) = (y(+)x) (+) (w(+)z).
 Axiom R_subconvex: forall x y z, x [= z -> y [= z -> x(+)y [= z.
 Axiom R_supconvex: forall x y z, z [= x -> z [= x -> z [= x(+)y.
+
+Axiom LESS_TOP: forall x, x [= TOP.
+Axiom LESS_BOT: forall x, BOT [= x.
 Axiom LESS_refl: forall x, x [= x.
 Axiom LESS_antisym: forall x y, x [= y -> y [= x -> x = y.
 Axiom LESS_trans: forall x y z, x [= y -> y [= z -> x [= z.
@@ -83,3 +84,11 @@ Inductive definable : Ob -> Prop :=
   | AP_definable x y: definable x -> definable y -> definable (x*y).
 
 Axiom accessibility: forall x : Ob, x = Join (fun y => y [= x /\ definable y).
+
+(** This is specialized to SKJ, TODO update for SKRJ *)
+Inductive conv : Ob -> Prop :=
+  | conv_TOP : conv TOP
+  | conv_AP_TOP x : conv (x * TOP) -> conv x.
+
+Axiom LESS_conv x y:
+  forall x y, (forall f, definable f -> conv (f*x) -> conv (f*y)) -> x [= y.

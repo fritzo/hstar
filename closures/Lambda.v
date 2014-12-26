@@ -94,6 +94,12 @@ Proof.
   (* TODO *)
 Admitted.
 
+Lemma Y_lfp : forall f x, (forall y, y [= x -> f*y [= x) -> Y*f [= x.
+Proof.
+  intros f x H.
+  (* TODO *)
+Admitted.
+
 Section V.
   Let x := VAR 0.
   Let y := VAR 1.
