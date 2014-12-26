@@ -49,6 +49,7 @@ Fixpoint beta_step (u : term) : option term :=
     end
   | _ => None
   end.
+Hint Unfold beta_step.
 
 Inductive beta : term -> term -> Prop :=
   | beta_s x y z: beta (S*x*y*z) ((x*z)*(y*z))
@@ -58,6 +59,7 @@ Inductive beta : term -> term -> Prop :=
   | beta_ap_1 x x' y: beta x x' -> beta (x*y) (x'*y)
   | beta_ap_2 x y y': beta y y' -> beta (x*y) (x*y')
 .
+Hint Constructors beta.
 
 Lemma beta_step_beta : forall x,
   match beta_step x with
@@ -65,7 +67,7 @@ Lemma beta_step_beta : forall x,
   | None => True
   end.
 Proof.
-  intros.
+  induction x; simpl; auto.
   (* TODO *)
 Admitted.
 

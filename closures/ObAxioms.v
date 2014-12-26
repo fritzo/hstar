@@ -16,6 +16,7 @@ Parameter R : Ob.
 Parameter J : Ob.
 Parameter AP : Ob -> Ob -> Ob.
 Parameter LESS : Ob -> Ob -> Prop.
+Parameter Join : (Ob -> Prop) -> Ob.
 
 Notation "x * y" := (AP x y) (at level 40, left associativity) : Ob_scope.
 
@@ -51,30 +52,28 @@ Axiom LESS_antisym: forall x y, x [= y -> y [= x -> x = y.
 Axiom LESS_trans: forall x y z, x [= y -> y [= z -> x [= z.
 Axiom LESS_AP: forall x x' y y', x [= x' -> y [= y' -> x*y [= x'*y'.
 
-(** ** Global properties *)
-
-Axiom consistency: ~ TOP [= BOT.
-
-Axiom extensionality: forall f g, (forall x, f * x = g * x) -> f = g.
-
-(** *** Completeness *)
-
 Definition is_upper_bound (s : Ob -> Prop) (x : Ob) : Prop :=
   forall y, s y -> y [= x.
 
 Definition is_lub (s : Ob -> Prop) (x : Ob) : Prop :=
   is_upper_bound s x /\ forall y, is_upper_bound s y -> x [= y.
 
-(* Version 1.
-Axiom completeness: forall s : Ob -> Prop, {x : Ob | is_lub s x}.
-Definition Join (s : Ob -> Prop) : Ob := proj1_sig (completeness s).
-*)
+Axiom Join_lub: forall s, is_lub s (Join s).
 
-(* Version 2. *)
-Axiom Join : (Ob -> Prop) -> Ob.
-Axiom completeness: forall s, is_lub s (Join s).
+(** ** Global properties *)
 
-(** *** Definability and accessibility *)
+Axiom consistency: ~ TOP [= BOT.
+
+Axiom extensionality: forall f g, (forall x, f * x = g * x) -> f = g.
+
+Theorem completeness: forall s, exists x, is_lub s x.
+Proof.
+  intros s.
+  exists (Join s).
+  apply Join_lub.
+Qed.
+
+(** ** Definability and accessibility *)
 
 Inductive definable : Ob -> Prop :=
   | S_definable: definable S
