@@ -35,11 +35,14 @@ Axiom F_beta: forall x y, F*x*y = y.
 Axiom B_beta: forall x y z, B*x*y*z = x*(y*z).
 Axiom C_beta: forall x y z, C*x*y*z = x*z*y.
 Axiom S_beta: forall x y z, S*x*y*z = x*z*(y*z).
-Axiom J_ap: forall x y z, (x||y)*z = x*z || y*z.
+Axiom J_beta: forall x y z, (x||y)*z = x*z || y*z.
+Axiom R_beta: forall x y z, (x(+)y)*z = x*z (+) y*z.
+
+Hint Rewrite I_beta K_beta F_beta B_beta C_beta S_beta J_beta R_beta.
+
 Axiom J_left: forall x y, x||y [= x.
 Axiom J_right: forall x y, x||y [= y.
 Axiom J_lub: forall x y z, x [= z -> y [= z -> x||y [= z.
-Axiom R_ap: forall x y z, (x(+)y)*z = x*z (+) y*z.
 Axiom R_idem: forall x, x(+)x = x.
 Axiom R_sym: forall x y, x(+)y = y(+)x.
 Axiom R_sym_sym: forall w x y z, (w(+)x) (+) (y(+)z) = (y(+)x) (+) (w(+)z).

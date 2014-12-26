@@ -1,6 +1,7 @@
-(** * A_def constructor for simple types *)
+(** * A constructor for simple types *)
 
 Require Import ObAxioms.
+Require Import ObTactics.
 Require Import Lambda.
 
 Open Scope Lambda_scope.
@@ -13,7 +14,13 @@ Section is_pair.
   Definition pair := encode (\x,\y,\z, z * x * y).
   Definition is_pair (x : Ob) := x = pair * (x * K) * (x * F).
 End is_pair.
+Notation "<< x , y >>" := (pair * x * y)%Ob : Ob_scope.
 Notation "<< x , y >>" := ([pair] * x * y)%Lambda : Lambda_scope.
+
+Lemma pair_is_pair : forall x y, is_pair << x, y>>.
+Proof.
+  intros x y. compute. reduce 100; auto.
+Qed.
 
 Definition A_prop (sr : Ob) := is_pair sr /\ (sr*F)o(sr*K) [= I.
 Definition A := Join A_prop.
@@ -37,6 +44,13 @@ Section raise.
   Definition push := encode (\x, x * [BOT]).
 End raise.
 
+Lemma A_I_I : A_prop <<I, I>>.
+Proof.
+  unfold A_prop; split.
+  apply pair_is_pair.
+  reduce 100; auto.
+Qed.
+
 Section A_def.
   Let s := VAR 0.
   Let a := VAR 1.
@@ -45,9 +59,9 @@ Section A_def.
   Let b' := VAR 4.
 
   Definition A_prefix := encode (
-    \s, <<[I], [I]>>
-     || <<[raise], [lower]>>
-     || <<[pull], [push]>>
+    \s, [<<I, I>>]
+     || [<<raise, lower>>]
+     || [<<pull, push>>]
      || (s*\a,\a', s*\b,\b', <<a*b, b'*a'>>)
      || (s*\a,\a', s*\b,\b', <<(a'-->b), (a-->b')>>)
   ).
