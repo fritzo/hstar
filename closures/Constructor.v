@@ -44,29 +44,47 @@ Section raise.
   Definition push := encode (\x, x * [BOT]).
 End raise.
 
-Lemma A_I_I : A_prop <<I, I>>.
-Proof.
-  unfold A_prop; split.
-  apply pair_is_pair.
-  reduce 100; auto.
-Qed.
+Ltac A_prop_pair :=
+  unfold A_prop; split; [apply pair_is_pair | reduce 100; auto].
 
-Section A_def.
+Lemma A_I_I : A_prop <<I, I>>.
+Proof. A_prop_pair. Qed.
+
+Lemma A_raise_lower : A_prop <<raise, lower>>.
+Proof. A_prop_pair. Qed.
+
+Lemma A_pull_push : A_prop <<pull, push>>.
+Proof. A_prop_pair. Qed.
+
+Section compose.
   Let s := VAR 0.
   Let a := VAR 1.
   Let a' := VAR 2.
   Let b := VAR 3.
   Let b' := VAR 4.
 
-  Definition A_prefix := encode (
-    \s, [<<I, I>>]
-     || [<<raise, lower>>]
-     || [<<pull, push>>]
-     || (s*\a,\a', s*\b,\b', <<a*b, b'*a'>>)
-     || (s*\a,\a', s*\b,\b', <<(a'-->b), (a-->b')>>)
+  Definition compose := encode
+    (\s, s*\a,\a', s*\b,\b', <<a*b, b'*a'>>).
+
+  Definition conjugate := encode
+    (\s, s*\a,\a', s*\b,\b', <<(a'-->b), (a-->b')>>).
+End compose.
+
+Lemma A_compose: forall a, A_prop a -> A_prop (conjugate * a).
+Proof.
+  intros a H.
+  unfold A_prop.
+  (* TODO *)
+Admitted.
+
+Definition A_prefix :=
+  (  K * <<I, I>>
+  || K * <<raise, lower>>
+  || K * <<pull, push>>
+  || compose
+  || conjugate
   ).
-  Definition A_def := Y * A_prefix.
-End A_def.
+Definition A_def := Y * A_prefix.
 
 Lemma A_sound: A_def [= A.
 Proof.
