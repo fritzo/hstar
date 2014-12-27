@@ -124,9 +124,17 @@ Definition A_def := Y * A_prefix.
 
 Lemma A_sound: A_def [= A.
 Proof.
+  (*
+  unfold A.
+  apply Join_lub.
+  *)
+  (* unfold A_prop; split. *)
   unfold A_def.
   apply Y_lfp.
-  intros y.
+  intros y Hless.
+  unfold A_prefix.
+  repeat rewrite J_beta.
+  repeat apply J_lub.
   (* TODO *)
 Admitted.
 
