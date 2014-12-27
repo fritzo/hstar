@@ -3,20 +3,21 @@
 
 (** ** Axioms *)
 
-Parameter Ob : Set.
-Parameter BOT : Ob.
-Parameter TOP : Ob.
-Parameter I : Ob.
-Parameter K : Ob.
-Parameter F : Ob.
-Parameter B : Ob.
-Parameter C : Ob.
-Parameter S : Ob.
-Parameter R : Ob.
-Parameter J : Ob.
-Parameter AP : Ob -> Ob -> Ob.
-Parameter LESS : Ob -> Ob -> Prop.
-Parameter Join : (Ob -> Prop) -> Ob.
+Axiom Ob : Set.
+
+Axiom BOT : Ob.
+Axiom TOP : Ob.
+Axiom I : Ob.
+Axiom K : Ob.
+Axiom F : Ob.
+Axiom B : Ob.
+Axiom C : Ob.
+Axiom S : Ob.
+Axiom R : Ob.
+Axiom J : Ob.
+Axiom AP : Ob -> Ob -> Ob.
+Axiom LESS : Ob -> Ob -> Prop.
+Axiom Join : (Ob -> Prop) -> Ob.
 
 Notation "x * y" := (AP x y) (at level 40, left associativity) : Ob_scope.
 
@@ -37,24 +38,35 @@ Axiom C_beta: forall x y z, C*x*y*z = x*z*y.
 Axiom S_beta: forall x y z, S*x*y*z = x*z*(y*z).
 Axiom J_beta: forall x y z, (x||y)*z = x*z || y*z.
 Axiom R_beta: forall x y z, (x(+)y)*z = x*z (+) y*z.
-
-Hint Rewrite I_beta K_beta F_beta B_beta C_beta S_beta J_beta R_beta.
-
-Axiom J_left: forall x y, x||y [= x.
-Axiom J_right: forall x y, x||y [= y.
-Axiom J_lub: forall x y z, x [= z -> y [= z -> x||y [= z.
 Axiom R_idem: forall x, x(+)x = x.
 Axiom R_sym: forall x y, x(+)y = y(+)x.
 Axiom R_sym_sym: forall w x y z, (w(+)x) (+) (y(+)z) = (y(+)x) (+) (w(+)z).
-Axiom R_subconvex: forall x y z, x [= z -> y [= z -> x(+)y [= z.
-Axiom R_supconvex: forall x y z, z [= x -> z [= x -> z [= x(+)y.
+
+Hint Rewrite I_beta K_beta F_beta B_beta C_beta S_beta J_beta R_beta R_idem
+  : beta.
+Ltac beta_reduce := autorewrite with beta.
+
 
 Axiom LESS_TOP: forall x, x [= TOP.
 Axiom LESS_BOT: forall x, BOT [= x.
+Axiom J_left: forall x y, x [= x||y.
+Axiom J_right: forall x y, y [= x||y.
+Axiom J_lub: forall x y z, x [= z -> y [= z -> x||y [= z.
+Axiom R_subconvex: forall x y z, x [= z -> y [= z -> x(+)y [= z.
+Axiom R_supconvex: forall x y z, z [= x -> z [= x -> z [= x(+)y.
 Axiom LESS_refl: forall x, x [= x.
 Axiom LESS_antisym: forall x y, x [= y -> y [= x -> x = y.
 Axiom LESS_trans: forall x y z, x [= y -> y [= z -> x [= z.
 Axiom LESS_AP: forall x x' y y', x [= x' -> y [= y' -> x*y [= x'*y'.
+
+Hint Resolve LESS_TOP.
+Hint Resolve LESS_BOT.
+Hint Resolve J_left.
+Hint Resolve J_right.
+Hint Resolve J_lub.
+Hint Resolve LESS_refl.
+Hint Resolve LESS_antisym.
+Hint Resolve LESS_AP.
 
 Definition is_upper_bound (s : Ob -> Prop) (x : Ob) : Prop :=
   forall y, s y -> y [= x.
@@ -64,11 +76,22 @@ Definition is_lub (s : Ob -> Prop) (x : Ob) : Prop :=
 
 Axiom Join_lub: forall s, is_lub s (Join s).
 
+Lemma J_sym: forall x y, x||y = y||x.
+Proof.
+  intros x y.
+  apply LESS_antisym; auto.
+Qed.
+
+Lemma less_eq_join: forall x y, x [= y <-> y = x || y.
+Proof.
+  intros x y; split; intro H.
+  apply LESS_antisym; auto.
+  rewrite H; auto.
+Qed.
+
 (** ** Global properties *)
 
 Axiom consistency: ~ TOP [= BOT.
-
-Axiom extensionality: forall f g, (forall x, f * x = g * x) -> f = g.
 
 Theorem completeness: forall s, exists x, is_lub s x.
 Proof.
@@ -76,6 +99,81 @@ Proof.
   exists (Join s).
   apply Join_lub.
 Qed.
+
+Axiom extensionality: forall f g, (forall x, f * x = g * x) -> f = g.
+
+Lemma less_extensionality: forall f g, (forall x, f * x [= g * x) -> f [= g.
+Proof.
+  intros f g H.
+  apply less_eq_join.
+  apply extensionality; intro x.
+  rewrite J_beta; auto.
+Qed.
+
+Ltac eta_expand :=
+  let x := fresh in
+  match goal with
+  | [|- _ = _] => apply extensionality; intro x
+  | [|- _ [= _] => apply less_extensionality; intro x
+  end.
+
+Example eq_SKK_I: S*K*K = I.
+Proof.
+  eta_expand.
+  beta_reduce; auto.
+Qed.
+
+Lemma TOP_beta: forall x, TOP*x = TOP.
+Proof.
+  intro x.
+  apply LESS_antisym.
+  apply LESS_TOP.
+  apply LESS_trans with (K*TOP*x).
+  beta_reduce; auto.
+  apply LESS_AP; auto.
+Qed.
+
+Lemma BOT_beta: forall x, BOT*x = BOT.
+Proof.
+  intro x.
+  apply LESS_antisym.
+  apply LESS_trans with (K*BOT*x).
+  apply LESS_AP; auto.
+  beta_reduce; auto.
+  apply LESS_BOT.
+Qed.
+
+Lemma TOP_J_left: forall x, TOP||x = TOP.
+Proof.
+  intro x.
+  symmetry.
+  rewrite J_sym.
+  apply less_eq_join; auto.
+Qed.
+
+Lemma TOP_J_right: forall x, x||TOP = TOP.
+Proof.
+  intro x.
+  rewrite J_sym.
+  apply TOP_J_left.
+Qed.
+
+Lemma BOT_J_left: forall x, BOT||x = x.
+Proof.
+  intro x.
+  symmetry.
+  apply less_eq_join; auto.
+Qed.
+
+Lemma BOT_J_right: forall x, x||BOT = x.
+Proof.
+  intro x.
+  rewrite J_sym.
+  apply BOT_J_left.
+Qed.
+
+Hint Rewrite TOP_beta BOT_beta TOP_J_left TOP_J_right BOT_J_left BOT_J_right
+  : beta.
 
 (** ** Definability and accessibility *)
 
@@ -93,5 +191,12 @@ Inductive conv : Ob -> Prop :=
   | conv_TOP : conv TOP
   | conv_AP_TOP x : conv (x * TOP) -> conv x.
 
-Axiom LESS_conv x y:
+Axiom LESS_conv:
   forall x y, (forall f, definable f -> conv (f*x) -> conv (f*y)) -> x [= y.
+
+Lemma eq_conv:
+  forall x y, (forall f, definable f -> conv (f*x) <-> conv (f*y)) -> x = y.
+Proof.
+  intros x y H.
+  apply LESS_antisym; apply LESS_conv; intros f Hdef; firstorder.
+Qed.

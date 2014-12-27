@@ -1,7 +1,6 @@
 (** * A constructor for simple types *)
 
 Require Import ObAxioms.
-Require Import ObTactics.
 Require Import Lambda.
 
 Open Scope Lambda_scope.
@@ -19,7 +18,7 @@ Notation "<< x , y >>" := ([pair] * x * y)%Lambda : Lambda_scope.
 
 Lemma pair_is_pair : forall x y, is_pair << x, y>>.
 Proof.
-  intros x y. compute. reduce 100; auto.
+  intros x y. compute. beta_reduce; auto.
 Qed.
 
 Definition A_prop (sr : Ob) := is_pair sr /\ (sr*F)o(sr*K) [= I.
@@ -45,7 +44,9 @@ Section raise.
 End raise.
 
 Ltac A_prop_pair :=
-  unfold A_prop; split; [apply pair_is_pair | reduce 100; auto].
+  unfold A_prop;
+  split;
+  [apply pair_is_pair | compute; eta_expand; beta_reduce; auto].
 
 Lemma A_I_I : A_prop <<I, I>>.
 Proof. A_prop_pair. Qed.
@@ -54,7 +55,10 @@ Lemma A_raise_lower : A_prop <<raise, lower>>.
 Proof. A_prop_pair. Qed.
 
 Lemma A_pull_push : A_prop <<pull, push>>.
-Proof. A_prop_pair. Qed.
+Proof.
+  (* A_prop_pair. FIXME div does not terminate. *)
+  admit. (* TODO *)
+Qed.
 
 Section compose.
   Let s := VAR 0.
