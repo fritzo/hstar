@@ -12,6 +12,7 @@ Axiom K : Ob.
 Axiom F : Ob.
 Axiom B : Ob.
 Axiom C : Ob.
+Axiom W : Ob.
 Axiom S : Ob.
 Axiom R : Ob.
 Axiom J : Ob.
@@ -35,6 +36,7 @@ Axiom K_beta: forall x y, K*x*y = x.
 Axiom F_beta: forall x y, F*x*y = y.
 Axiom B_beta: forall x y z, B*x*y*z = x*(y*z).
 Axiom C_beta: forall x y z, C*x*y*z = x*z*y.
+Axiom W_beta: forall x y, W*x*y = x*y*y.
 Axiom S_beta: forall x y z, S*x*y*z = x*z*(y*z).
 Axiom J_beta: forall x y z, (x||y)*z = x*z || y*z.
 Axiom R_beta: forall x y z, (x(+)y)*z = x*z (+) y*z.
@@ -42,10 +44,11 @@ Axiom R_idem: forall x, x(+)x = x.
 Axiom R_sym: forall x y, x(+)y = y(+)x.
 Axiom R_sym_sym: forall w x y z, (w(+)x) (+) (y(+)z) = (y(+)x) (+) (w(+)z).
 
-Hint Rewrite I_beta K_beta F_beta B_beta C_beta S_beta J_beta R_beta R_idem
+Hint Rewrite
+  I_beta K_beta F_beta B_beta C_beta
+  W_beta S_beta J_beta R_beta R_idem
   : beta.
 Ltac beta_reduce := autorewrite with beta.
-
 
 Axiom LESS_TOP: forall x, x [= TOP.
 Axiom LESS_BOT: forall x, BOT [= x.
@@ -57,7 +60,8 @@ Axiom R_supconvex: forall x y z, z [= x -> z [= x -> z [= x(+)y.
 Axiom LESS_refl: forall x, x [= x.
 Axiom LESS_antisym: forall x y, x [= y -> y [= x -> x = y.
 Axiom LESS_trans: forall x y z, x [= y -> y [= z -> x [= z.
-Axiom LESS_AP: forall x x' y y', x [= x' -> y [= y' -> x*y [= x'*y'.
+Axiom LESS_AP_left: forall x x' y, x [= x' -> x*y [= x'*y.
+Axiom LESS_AP_right: forall x y y', y [= y' -> x*y [= x*y'.
 
 Hint Resolve LESS_TOP.
 Hint Resolve LESS_BOT.
@@ -66,7 +70,8 @@ Hint Resolve J_right.
 Hint Resolve J_lub.
 Hint Resolve LESS_refl.
 Hint Resolve LESS_antisym.
-Hint Resolve LESS_AP.
+Hint Resolve LESS_AP_left.
+Hint Resolve LESS_AP_right.
 
 Definition is_upper_bound (s : Ob -> Prop) (x : Ob) : Prop :=
   forall y, s y -> y [= x.
@@ -117,10 +122,10 @@ Ltac eta_expand :=
   | [|- _ [= _] => apply less_extensionality; intro x
   end.
 
-Example eq_SKK_I: S*K*K = I.
+Lemma B_assoc: forall f g h, (f o g) o h = f o (g o h).
 Proof.
-  eta_expand.
-  beta_reduce; auto.
+  intros f g h.
+  eta_expand; beta_reduce; auto.
 Qed.
 
 Lemma TOP_beta: forall x, TOP*x = TOP.
@@ -130,7 +135,7 @@ Proof.
   apply LESS_TOP.
   apply LESS_trans with (K*TOP*x).
   beta_reduce; auto.
-  apply LESS_AP; auto.
+  apply LESS_AP_left; auto.
 Qed.
 
 Lemma BOT_beta: forall x, BOT*x = BOT.
@@ -138,7 +143,7 @@ Proof.
   intro x.
   apply LESS_antisym.
   apply LESS_trans with (K*BOT*x).
-  apply LESS_AP; auto.
+  apply LESS_AP_left; auto.
   beta_reduce; auto.
   apply LESS_BOT.
 Qed.

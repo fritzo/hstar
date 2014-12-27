@@ -8,6 +8,7 @@
 
 Require Import ObAxioms.
 Require Import EqNat.
+Require Import Setoid.
 
 Open Scope Ob_scope.
 
@@ -27,12 +28,38 @@ Section Encode.
   Notation "[ x ]" := (OB x).
   Notation "x [*] y" := (APP x y) (at level 40, left associativity).
 
+  Fixpoint occurs (n : nat) (x : Lambda) : bool :=
+    match x with
+    | VAR m => beq_nat m n
+    | ABS m y => andb (beq_nat m n) (occurs n y)
+    | APP y z => orb (occurs n y) (occurs n z)
+    | y => false
+    end.
+
+  (* Simple [I,K,S] abstraction *)
+  Fixpoint abstract0 (n : nat) (x : Lambda) : Lambda :=
+    match x with
+    | VAR m => if beq_nat m n then [I] else [K] [*] x
+    | ABS m y => if beq_nat m n then [K] [*] x else ABS m (abstract0 n y)
+    | APP y z => [S] [*] (abstract0 n y) [*] (abstract0 n z)
+    | _ => [K] [*] x
+    end.
+
+  (* Efficient [I,K,B,C,W,S,eta] abstraction *)
   Fixpoint abstract (n : nat) (x : Lambda) : Lambda :=
     match x with
-    | VAR m => if beq_nat m n then [I] else [K] [*] (VAR m)
-    | ABS m y => if beq_nat m n then [K] [*] (ABS m y) else ABS m (abstract n y)
-    | APP y z => [S] [*] (abstract n y) [*] (abstract n z)
-    | y => [K] [*] y
+    | VAR m => if beq_nat m n then [I] else [K] [*] x
+    | ABS m y => if beq_nat m n then [K] [*] x else ABS m (abstract n y)
+    | APP y z =>
+        match occurs n y, occurs n z, z with
+        | true, true, VAR _ => [W] [*] (abstract n y)
+        | false, true, VAR _ => y
+        | true, true, _ => [S] [*] (abstract n y) [*] (abstract n z)
+        | true, false, _ => [C] [*] (abstract n y) [*] z
+        | false, true, _ => [B] [*] y [*] (abstract n z)
+        | false, false, _ => [K] [*] x
+        end
+    | _ => [K] [*] x
     end.
 
   Fixpoint compile (x : Lambda) : Lambda :=
@@ -75,12 +102,6 @@ Notation "x || y" := ([J] * x * y)%Lambda
 Notation "x (+) y" := ([R] * x * y)%Lambda
   (at level 45, no associativity) : Lambda_scope.
 
-(*
-Notation "'x'" := (VAR 0) : Lambda_scope.
-Notation "'y'" := (VAR 1) : Lambda_scope.
-Notation "'z'" := (VAR 2) : Lambda_scope.
-*)
-
 (** ** A standard library *)
 
 Section Y.
@@ -91,8 +112,14 @@ End Y.
 Lemma Y_fix : forall f : Ob, Y*f = f*(Y*f).
 Proof.
   intros. unfold Y. compute.
-  (* TODO *)
-Admitted.
+  rewrite S_beta at 1.
+  rewrite C_beta at 1.
+  rewrite B_beta at 1.
+  rewrite W_beta at 1.
+  rewrite I_beta at 1.
+  rewrite <- S_beta at 1.
+  auto.
+Qed.
 
 Lemma Y_lfp : forall f x, (forall y, y [= x -> f*y [= x) -> Y*f [= x.
 Proof.
@@ -103,7 +130,8 @@ Admitted.
 Section V.
   Let x := VAR 0.
   Let y := VAR 1.
-  Definition V := encode ([Y] * \x,\y, [I] || x o y).
+  Definition V_prefix := encode (\x,\y, [I] || x o y).
+  Definition V := Y * V_prefix.
 End V.
 Lemma V_fix : forall f : Ob, f*(V*f) [= V*f.
 Proof.
@@ -127,8 +155,9 @@ Notation "x --> y" := ([exp] * x * y)%Lambda
   (at level 55, right associativity) : Lambda_scope.
 Lemma exp_I_I: exp * I * I = I.
 Proof.
-  apply extensionality.
-  intro x.
   compute.
-  (* TODO: Ltac beta_normalize *)
-Admitted.
+  eta_expand.
+  eta_expand.
+  beta_reduce.
+  auto.
+Qed.

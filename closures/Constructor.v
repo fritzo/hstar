@@ -68,18 +68,50 @@ Section compose.
   Let b' := VAR 4.
 
   Definition compose := encode
-    (\s, s*\a,\a', s*\b,\b', <<a*b, b'*a'>>).
+    (\s, s*\a,\a', s*\b,\b', <<a o b, b' o a'>>).
 
   Definition conjugate := encode
     (\s, s*\a,\a', s*\b,\b', <<(a'-->b), (a-->b')>>).
 End compose.
 
-Lemma A_compose: forall a, A_prop a -> A_prop (conjugate * a).
+Ltac eta_expand_in H :=
+  eapply LESS_AP_left in H; autorewrite with beta in H.
+
+Lemma A_compose: forall a, A_prop a -> A_prop (compose * a).
 Proof.
   intros a H.
-  unfold A_prop.
-  (* TODO *)
-Admitted.
+  unfold A_prop in H; destruct H as [Hpair Hless].
+  unfold is_pair in Hpair.
+  rewrite Hpair.
+  unfold A_prop; split.
+    compute; beta_reduce; auto.
+  compute; eta_expand; beta_reduce.
+  apply LESS_trans with (a * F * (a * K * H)).
+    eta_expand_in Hless.
+    eapply LESS_AP_right in Hless.
+    apply Hless.
+  eta_expand_in Hless.
+  apply Hless.
+Qed.
+
+Lemma A_conjugate: forall a, A_prop a -> A_prop (conjugate * a).
+Proof.
+  intros a H.
+  unfold A_prop in H; destruct H as [Hpair Hless].
+  unfold is_pair in Hpair.
+  rewrite Hpair.
+  unfold A_prop; split.
+    compute; beta_reduce; auto.
+  compute; eta_expand; eta_expand; beta_reduce.
+  apply LESS_trans with (a * F * (a * K * (H * H0))).
+    eta_expand_in Hless.
+    apply LESS_AP_right.
+    apply LESS_AP_right.
+    apply LESS_AP_right.
+    apply Hless.
+  eta_expand_in Hless.
+  apply Hless.
+Qed.
 
 Definition A_prefix :=
   (  K * <<I, I>>
