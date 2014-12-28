@@ -145,6 +145,11 @@ Section div.
   Definition div := encode ([Y] * \x, x * [TOP]).
 End div.
 
+Lemma div_BOT: div*BOT = BOT.
+Proof.
+  (* TODO *)
+Admitted.
+
 Section exp.
   Let a := VAR 0.
   Let b := VAR 1.

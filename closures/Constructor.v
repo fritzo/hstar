@@ -16,7 +16,7 @@ End is_pair.
 Notation "<< x , y >>" := (pair * x * y)%Ob : Ob_scope.
 Notation "<< x , y >>" := ([pair] * x * y)%Lambda : Lambda_scope.
 
-Lemma pair_is_pair : forall x y, is_pair << x, y>>.
+Lemma pair_is_pair : forall x y, is_pair <<x, y>>.
 Proof.
   intros x y. compute. beta_reduce; auto.
 Qed.
@@ -54,10 +54,23 @@ Proof. A_prop_pair. Qed.
 Lemma A_raise_lower : A_prop <<raise, lower>>.
 Proof. A_prop_pair. Qed.
 
+Ltac freeze c tac :=
+  let v := fresh "v" in
+  let H := fresh "Hv" in
+  assert (exists v, c=v) as H;
+  [ exists c; reflexivity
+  | destruct H as [v H]; rewrite H; tac; destruct H].
+
+Tactic Notation "freeze" reference(c) "in" tactic(tac) := (freeze c tac).
+
 Lemma A_pull_push : A_prop <<pull, push>>.
 Proof.
-  (* A_prop_pair. FIXME div does not terminate. *)
-  admit. (* TODO *)
+  unfold A_prop; split.
+  apply pair_is_pair.
+  unfold pair; unfold pull; unfold push.
+  freeze div in (compute; eta_expand; beta_reduce; auto).
+  rewrite div_BOT.
+  auto.
 Qed.
 
 Section compose.
@@ -104,10 +117,10 @@ Proof.
     compute; beta_reduce; auto.
   compute; eta_expand; eta_expand; beta_reduce.
   apply LESS_trans with (a * F * (a * K * (H * H0))).
+    apply LESS_AP_right.
+    apply LESS_AP_right.
+    apply LESS_AP_right.
     eta_expand_in Hless.
-    apply LESS_AP_right.
-    apply LESS_AP_right.
-    apply LESS_AP_right.
     apply Hless.
   eta_expand_in Hless.
   apply Hless.
