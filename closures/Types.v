@@ -18,22 +18,31 @@ Lemma I_closure: closure I.
 Proof.
   unfold closure; split.
   apply LESS_refl.
-  apply extensionality.
-  (* TODO *)
-Admitted.
+  eta_expand; beta_reduce; auto.
+Qed.
 
 Theorem I_inhab (x : Ob) : x :: I <-> True.
 Proof.
-  (* TODO *)
-Admitted.
+  unfold fixes.
+  beta_reduce; firstorder.
+Qed.
 
 Lemma V_closure: closure V.
 Proof.
+  unfold closure.
+  split.
+    unfold V; rewrite Y_fix; rewrite Y_fix; fold V.
+    freeze V in (compute; eta_expand as f; eta_expand as x; beta_reduce).
+    apply LESS_trans with (x || f * x); monotonicity; auto.
   (* TODO *)
 Admitted.
 
 Theorem V_inhab (x : Ob) : x :: V <-> closure x.
 Proof.
+  unfold fixes. unfold closure.
+  split.
+    intros Hfix; rewrite <- Hfix; clear Hfix.
+    split.
   (* TODO *)
 Admitted.
 

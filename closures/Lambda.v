@@ -98,7 +98,7 @@ Notation "\ x , y" := (abs x y)%Lambda
 Notation "x 'o' y" := ([B] * x * y)%Lambda
   (at level 30, right associativity) : Lambda_scope.
 Notation "x || y" := ([J] * x * y)%Lambda
-    (at level 50, left associativity) : Lambda_scope.
+  (at level 50, left associativity) : Lambda_scope.
 Notation "x (+) y" := ([R] * x * y)%Lambda
   (at level 45, no associativity) : Lambda_scope.
 
@@ -130,25 +130,31 @@ Admitted.
 Section V.
   Let x := VAR 0.
   Let y := VAR 1.
-  Definition V_prefix := encode (\x,\y, [I] || x o y).
+  Definition V_prefix := encode (\x,\y, [I] || y o (x * y)).
   Definition V := Y * V_prefix.
 End V.
-Lemma V_fix : forall f : Ob, f*(V*f) [= V*f.
+Lemma V_fix : forall f : Ob, f o (V*f) [= V*f.
 Proof.
-  intros. unfold V. compute.
-  firstorder.
-  (* TODO *)
-Admitted.
+  intros f.
+  unfold V; rewrite Y_fix at 2; fold V.
+  freeze V in (compute; beta_reduce).
+  unfold V_prefix.
+  auto.
+Qed.
 
 Section div.
   Let x := VAR 0.
-  Definition div := encode ([Y] * \x, x * [TOP]).
+  Definition div_prefix := encode (\x, x * [TOP]).
+  Definition div := Y * div_prefix.
 End div.
 
 Lemma div_BOT: div*BOT = BOT.
 Proof.
-  (* TODO *)
-Admitted.
+  apply LESS_antisym.
+    unfold div.
+    admit. (* TODO *)
+  auto.
+Qed.
 Hint Rewrite div_BOT.
 
 Section exp.
@@ -161,9 +167,5 @@ Notation "x --> y" := ([exp] * x * y)%Lambda
   (at level 55, right associativity) : Lambda_scope.
 Lemma exp_I_I: exp * I * I = I.
 Proof.
-  compute.
-  eta_expand.
-  eta_expand.
-  beta_reduce.
-  auto.
+  compute; eta_expand; eta_expand; beta_reduce; auto.
 Qed.

@@ -55,6 +55,17 @@ Tactic Notation "beta_reduce" := beta_reduce_.
 Ltac beta_reduce_in H := autorewrite with beta in H.
 Tactic Notation "beta_reduce" "in" hyp(H) := beta_reduce_in H.
 
+(** To avoid nontermination in [beta_reduce],
+    we provide a mechanism to "freeze" terms during reduction *)
+Ltac freeze c tac :=
+  let v := fresh "v" in
+  let H := fresh "Hv" in
+  assert (exists v, c=v) as H;
+  [ exists c; reflexivity
+  | destruct H as [v H]; rewrite H; tac; destruct H].
+
+Tactic Notation "freeze" reference(c) "in" tactic(tac) := (freeze c tac).
+
 Axiom LESS_TOP: forall x, x [= TOP.
 Axiom LESS_BOT: forall x, BOT [= x.
 Axiom J_left: forall x y, x [= x||y.

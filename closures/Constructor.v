@@ -60,34 +60,27 @@ Section raise.
   Definition push := encode (\x, x * [BOT]).
 End raise.
 
-Ltac A_prop_pair :=
+Lemma A_I_I : A_prop <<I, I>>.
+Proof.
   unfold A_prop; split;
   [ apply pair_is_pair
   | compute; eta_expand; beta_reduce; auto].
-
-Lemma A_I_I : A_prop <<I, I>>.
-Proof. A_prop_pair. Qed.
+Qed.
 
 Lemma A_raise_lower : A_prop <<raise, lower>>.
-Proof. A_prop_pair. Qed.
-
-Ltac freeze c tac :=
-  let v := fresh "v" in
-  let H := fresh "Hv" in
-  assert (exists v, c=v) as H;
-  [ exists c; reflexivity
-  | destruct H as [v H]; rewrite H; tac; destruct H].
-
-Tactic Notation "freeze" reference(c) "in" tactic(tac) := (freeze c tac).
+Proof.
+  unfold A_prop; split;
+  [ apply pair_is_pair
+  | compute; eta_expand; beta_reduce; auto].
+Qed.
 
 Lemma A_pull_push : A_prop <<pull, push>>.
 Proof.
   unfold A_prop; split.
   apply pair_is_pair.
-  unfold pair; unfold pull; unfold push.
-  freeze div in (compute; eta_expand; beta_reduce; auto).
-  rewrite div_BOT.
-  auto.
+  unfold pull.
+  freeze div in (compute; eta_expand; beta_reduce).
+  rewrite div_BOT; auto.
 Qed.
 
 Section compose.
@@ -113,12 +106,8 @@ Proof.
   unfold A_prop; split.
     compute; beta_reduce; auto.
   compute; eta_expand; beta_reduce.
-  apply LESS_trans with (a * F * (a * K * H)).
-    eta_expand in Hless.
-    eapply LESS_AP_right in Hless.
-    apply Hless.
-  eta_expand in Hless.
-  apply Hless.
+  apply LESS_trans with (a * F * (a * K * H));
+    monotonicity; eta_expand in Hless; apply Hless.
 Qed.
 
 Lemma A_conjugate: forall a, A_prop a -> A_prop (conjugate * a).
@@ -161,11 +150,10 @@ Admitted.
 
 Lemma A_complete: A [= A_def.
 Proof.
-  unfold A_def.
-  apply LESS_conv.
-  intros f Hdef Hconv.
-  induction Hconv.
-  induction Hdef.
+  unfold A; unfold A_prop; apply Join_lub; unfold is_upper_bound.
+  intros xy [Hpair Hless].
+  unfold is_pair in Hpair; rewrite Hpair; clear Hpair.
+  eta_expand as f; freeze A_def in (compute; beta_reduce).
   (* TODO *)
 Admitted.
 
