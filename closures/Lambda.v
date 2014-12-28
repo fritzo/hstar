@@ -149,6 +149,7 @@ Lemma div_BOT: div*BOT = BOT.
 Proof.
   (* TODO *)
 Admitted.
+Hint Rewrite div_BOT.
 
 Section exp.
   Let a := VAR 0.

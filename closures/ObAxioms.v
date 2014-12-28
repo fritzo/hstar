@@ -48,7 +48,12 @@ Hint Rewrite
   I_beta K_beta F_beta B_beta C_beta
   W_beta S_beta J_beta R_beta R_idem
   : beta.
-Ltac beta_reduce := autorewrite with beta.
+
+Ltac beta_reduce_ := autorewrite with beta.
+Tactic Notation "beta_reduce" := beta_reduce_.
+
+Ltac beta_reduce_in H := autorewrite with beta in H.
+Tactic Notation "beta_reduce" "in" hyp(H) := beta_reduce_in H.
 
 Axiom LESS_TOP: forall x, x [= TOP.
 Axiom LESS_BOT: forall x, BOT [= x.
@@ -72,6 +77,8 @@ Hint Resolve LESS_refl.
 Hint Resolve LESS_antisym.
 Hint Resolve LESS_AP_left.
 Hint Resolve LESS_AP_right.
+
+Ltac monotonicity := repeat (apply LESS_AP_left || apply LESS_AP_right).
 
 Definition is_upper_bound (s : Ob -> Prop) (x : Ob) : Prop :=
   forall y, s y -> y [= x.
@@ -115,12 +122,23 @@ Proof.
   rewrite J_beta; auto.
 Qed.
 
-Ltac eta_expand :=
+Ltac eta_expand_ :=
   let x := fresh in
   match goal with
   | [|- _ = _] => apply extensionality; intro x
   | [|- _ [= _] => apply less_extensionality; intro x
   end.
+Tactic Notation "eta_expand" := eta_expand_.
+
+Ltac eta_expand_as x :=
+  match goal with
+  | [|- _ = _] => apply extensionality; intro x
+  | [|- _ [= _] => apply less_extensionality; intro x
+  end.
+Tactic Notation "eta_expand" "as" ident(x) := eta_expand_as x.
+
+Ltac eta_expand_in H := eapply LESS_AP_left in H; beta_reduce in H.
+Tactic Notation "eta_expand" "in" hyp(H) := eta_expand_in H.
 
 Lemma B_assoc: forall f g h, (f o g) o h = f o (g o h).
 Proof.

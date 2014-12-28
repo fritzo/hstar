@@ -6,20 +6,37 @@ Require Import Lambda.
 Open Scope Lambda_scope.
 Open Scope Ob_scope.
 
-Section is_pair.
+Section pair.
   Let x := VAR 0.
   Let y := VAR 1.
   Let z := VAR 2.
   Definition pair := encode (\x,\y,\z, z * x * y).
-  Definition is_pair (x : Ob) := x = pair * (x * K) * (x * F).
-End is_pair.
+End pair.
 Notation "<< x , y >>" := (pair * x * y)%Ob : Ob_scope.
 Notation "<< x , y >>" := ([pair] * x * y)%Lambda : Lambda_scope.
 
-Lemma pair_is_pair : forall x y, is_pair <<x, y>>.
+Definition is_pair (x : Ob) := x = <<x * K, x * F>>.
+Lemma pair_is_pair: forall x y, is_pair <<x, y>>.
 Proof.
   intros x y. compute. beta_reduce; auto.
 Qed.
+
+Definition sub_pair (x : Ob) := x [= <<TOP, TOP>>.
+Lemma sub_pair_pair: forall x y, sub_pair <<x, y>>.
+Proof.
+  intros x y. compute. beta_reduce.
+  apply LESS_trans with (C*(C*I*TOP)*y);
+  monotonicity; auto.
+Qed.
+
+Definition sub_pair_elim_intro: forall x, sub_pair x -> x [= <<x*K, x*F>>.
+Proof.
+  unfold sub_pair; unfold pair; compute.
+  intros x H.
+  eta_expand as y. beta_reduce.
+  eta_expand in H.
+  (* TODO *)
+Admitted.
 
 Definition A_prop (sr : Ob) := is_pair sr /\ (sr*F)o(sr*K) [= I.
 Definition A := Join A_prop.
@@ -44,9 +61,9 @@ Section raise.
 End raise.
 
 Ltac A_prop_pair :=
-  unfold A_prop;
-  split;
-  [apply pair_is_pair | compute; eta_expand; beta_reduce; auto].
+  unfold A_prop; split;
+  [ apply pair_is_pair
+  | compute; eta_expand; beta_reduce; auto].
 
 Lemma A_I_I : A_prop <<I, I>>.
 Proof. A_prop_pair. Qed.
@@ -87,9 +104,6 @@ Section compose.
     (\s, s*\a,\a', s*\b,\b', <<(a'-->b), (a-->b')>>).
 End compose.
 
-Ltac eta_expand_in H :=
-  eapply LESS_AP_left in H; autorewrite with beta in H.
-
 Lemma A_compose: forall a, A_prop a -> A_prop (compose * a).
 Proof.
   intros a H.
@@ -100,10 +114,10 @@ Proof.
     compute; beta_reduce; auto.
   compute; eta_expand; beta_reduce.
   apply LESS_trans with (a * F * (a * K * H)).
-    eta_expand_in Hless.
+    eta_expand in Hless.
     eapply LESS_AP_right in Hless.
     apply Hless.
-  eta_expand_in Hless.
+  eta_expand in Hless.
   apply Hless.
 Qed.
 
@@ -116,14 +130,8 @@ Proof.
   unfold A_prop; split.
     compute; beta_reduce; auto.
   compute; eta_expand; eta_expand; beta_reduce.
-  apply LESS_trans with (a * F * (a * K * (H * H0))).
-    apply LESS_AP_right.
-    apply LESS_AP_right.
-    apply LESS_AP_right.
-    eta_expand_in Hless.
-    apply Hless.
-  eta_expand_in Hless.
-  apply Hless.
+  apply LESS_trans with (a * F * (a * K * (H * H0)));
+    monotonicity; eta_expand in Hless; apply Hless.
 Qed.
 
 Definition A_prefix :=
