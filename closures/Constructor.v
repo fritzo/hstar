@@ -38,8 +38,9 @@ Proof.
   (* TODO *)
 Admitted.
 
-Definition A_prop (sr : Ob) := is_pair sr /\ (sr*F)o(sr*K) [= I.
-Definition A := Join A_prop.
+Inductive A_set : Set := A_set_intro s r : r o s [= I -> A_set.
+Definition A_map : A_set -> Ob := fun sr => let (s, r, _) := sr in <<s, r>>.
+Definition A := Join A_map.
 Notation "\\ x , y ; z" := ([A] * \x, \y, z)%Lambda
   (at level 59, right associativity) : Lambda_scope.
 
@@ -60,6 +61,7 @@ Section raise.
   Definition push := encode (\x, x * [BOT]).
 End raise.
 
+(*
 Lemma A_I_I : A_prop <<I, I>>.
 Proof.
   unfold A_prop; split;
@@ -82,6 +84,7 @@ Proof.
   freeze div in (compute; eta_expand; beta_reduce).
   rewrite div_BOT; auto.
 Qed.
+*)
 
 Section compose.
   Let s := VAR 0.
@@ -97,6 +100,7 @@ Section compose.
     (\s, s*\a,\a', s*\b,\b', <<(a'-->b), (a-->b')>>).
 End compose.
 
+(*
 Lemma A_compose: forall a, A_prop a -> A_prop (compose * a).
 Proof.
   intros a H.
@@ -122,6 +126,7 @@ Proof.
   apply LESS_trans with (a * F * (a * K * (H * H0)));
     monotonicity; eta_expand in Hless; apply Hless.
 Qed.
+*)
 
 Definition A_prefix :=
   (  K * <<I, I>>
@@ -150,10 +155,12 @@ Admitted.
 
 Lemma A_complete: A [= A_def.
 Proof.
-  unfold A; unfold A_prop; apply Join_lub; unfold is_upper_bound.
-  intros xy [Hpair Hless].
-  unfold is_pair in Hpair; rewrite Hpair; clear Hpair.
-  eta_expand as f; freeze A_def in (compute; beta_reduce).
+  unfold A; unfold A_map.
+  apply Join_lub; unfold is_upper_bound.
+  intros sr; induction sr.
+  apply LESS_conv.
+  intros c Hdef Hconv.
+  inversion Hconv.
   (* TODO *)
 Admitted.
 

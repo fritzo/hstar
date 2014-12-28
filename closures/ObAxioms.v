@@ -18,7 +18,7 @@ Axiom R : Ob.
 Axiom J : Ob.
 Axiom AP : Ob -> Ob -> Ob.
 Axiom LESS : Ob -> Ob -> Prop.
-Axiom Join : (Ob -> Prop) -> Ob.
+Axiom Join : forall {s : Set}, (s -> Ob) -> Ob.
 
 Notation "x * y" := (AP x y) (at level 40, left associativity) : Ob_scope.
 
@@ -91,13 +91,13 @@ Hint Resolve LESS_AP_right.
 
 Ltac monotonicity := repeat (apply LESS_AP_left || apply LESS_AP_right).
 
-Definition is_upper_bound (s : Ob -> Prop) (x : Ob) : Prop :=
-  forall y, s y -> y [= x.
+Definition is_upper_bound {s : Set} (e : s -> Ob) (x : Ob) : Prop :=
+  forall i, e i [= x.
 
-Definition is_lub (s : Ob -> Prop) (x : Ob) : Prop :=
-  is_upper_bound s x /\ forall y, is_upper_bound s y -> x [= y.
+Definition is_lub {s : Set} (e : s -> Ob) (x : Ob) : Prop :=
+  is_upper_bound e x /\ forall y, is_upper_bound e y -> x [= y.
 
-Axiom Join_lub: forall s, is_lub s (Join s).
+Axiom Join_lub: forall {s : Set} (e : s -> Ob), is_lub e (Join e).
 
 Lemma J_sym: forall x y, x||y = y||x.
 Proof.
@@ -116,10 +116,10 @@ Qed.
 
 Axiom consistency: ~ TOP [= BOT.
 
-Theorem completeness: forall s, exists x, is_lub s x.
+Theorem completeness: forall {s : Set} (e : s -> Ob), exists x, is_lub e x.
 Proof.
-  intros s.
-  exists (Join s).
+  intros s e.
+  exists (Join e).
   apply Join_lub.
 Qed.
 
@@ -218,7 +218,13 @@ Inductive definable : Ob -> Prop :=
   | J_definable: definable J
   | AP_definable x y: definable x -> definable y -> definable (x*y).
 
-Axiom accessibility: forall x : Ob, x = Join (fun y => y [= x /\ definable y).
+Inductive definable_below (y : Ob) : Set :=
+  definable_below_intro x : definable x -> x [= y -> definable_below y.
+
+Definition eval_definable_below y (d : definable_below y) : Ob :=
+  let (x, _, _) := d in x.
+
+Axiom accessibility: forall x : Ob, x = Join (eval_definable_below x).
 
 (** This is specialized to SKJ, TODO update for SKRJ *)
 Inductive conv : Ob -> Prop :=
