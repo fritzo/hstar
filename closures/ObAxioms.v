@@ -5,6 +5,9 @@
 
 Axiom Ob : Set.
 
+(** printing TOP $\top$ *)
+(** printing BOT $\bot$ *)
+
 Axiom BOT : Ob.
 Axiom TOP : Ob.
 Axiom I : Ob.
@@ -19,6 +22,11 @@ Axiom J : Ob.
 Axiom AP : Ob -> Ob -> Ob.
 Axiom LESS : Ob -> Ob -> Prop.
 Axiom Join : forall {s : Set}, (s -> Ob) -> Ob.
+
+(** printing * $\ensuremath{\ast}$ *)
+(** printing )* $\ensuremath{)\ast}$ *)
+(** printing *( $\ensuremath{\ast(}$ *)
+(** printing )*( $\ensuremath{)\ast(}$ *)
 
 Notation "x * y" := (AP x y) (at level 40, left associativity) : Ob_scope.
 
@@ -42,10 +50,16 @@ Open Scope Ob_scope.
 Delimit Scope Ob_scope with Ob.
 Bind Scope Ob_scope with Ob.
 
+(** printing (+) $\oplus$ *)
+(** printing [= $\sqsubseteq$ *)
+(** printing =] $\sqsupseteq$ *)
+
 Notation "x 'o' y" := (B * x * y) (at level 30, right associativity) : Ob_scope.
 Notation "x || y" := (J * x * y) (at level 50, left associativity) : Ob_scope.
 Notation "x (+) y" := (R * x * y) (at level 45, no associativity) : Ob_scope.
 Notation "x [= y" := (LESS x y) (at level 60, no associativity) : Ob_scope.
+Notation "x =] y" := (LESS y x) (at level 60, no associativity, only parsing)
+  : Ob_scope.
 
 Axiom I_beta: forall x, I*x = x.
 Axiom K_beta: forall x y, K*x*y = x.
