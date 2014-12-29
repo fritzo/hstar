@@ -153,7 +153,15 @@ Proof.
   intros s e i x Heq; rewrite Heq; apply Join_lub.
 Qed.
 
-Lemma Join_single: forall (x : Ob) (s : Type), s -> x = Join (x for _ : s).
+Lemma Join_empty: forall e : Empty_set -> Ob, Join e = BOT.
+Proof.
+  intros e.
+  apply LESS_antisym.
+    apply Join_lub; unfold is_upper_bound; intro i; elim i.
+  auto.
+Qed.
+
+Lemma Join_single: forall (x : Ob) (s : Type), s -> Join (x for _ : s) = x.
 Proof.
   intros x s y.
   apply LESS_antisym;
@@ -168,11 +176,11 @@ Proof.
   apply LESS_antisym; auto.
 Qed.
 
-Lemma less_eq_join: forall x y, x [= y <-> y = x || y.
+Lemma less_eq_join: forall x y, x [= y <-> x || y = y.
 Proof.
   intros x y; split; intro H.
   apply LESS_antisym; auto.
-  rewrite H; auto.
+  rewrite <- H; auto.
 Qed.
 
 (** ** Global properties *)
@@ -243,7 +251,6 @@ Qed.
 Lemma TOP_J_left: forall x, TOP||x = TOP.
 Proof.
   intro x.
-  symmetry.
   rewrite J_sym.
   apply less_eq_join; auto.
 Qed.
@@ -258,7 +265,6 @@ Qed.
 Lemma BOT_J_left: forall x, BOT||x = x.
 Proof.
   intro x.
-  symmetry.
   apply less_eq_join; auto.
 Qed.
 
@@ -310,11 +316,12 @@ Inductive conv : Ob -> Set :=
 Axiom LESS_conv:
   forall x y, (forall f, definable f -> conv (f*x) -> conv (f*y)) -> x [= y.
 
-(*
+Notation "x <--> y" := ((x -> y) * (y -> x))%type
+  (at level 95, no associativity) : type_scope.
+
 Lemma eq_conv:
-  forall x y, (forall f, definable f -> conv (f*x) <-> conv (f*y)) -> x = y.
+  forall x y, (forall f, definable f -> conv (f*x) <--> conv (f*y)) -> x = y.
 Proof.
   intros x y H.
   apply LESS_antisym; apply LESS_conv; intros f Hdef; firstorder.
 Qed.
-*)
