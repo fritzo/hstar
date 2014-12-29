@@ -59,14 +59,16 @@ Section raise.
   Definition push := encode (\x, x * [BOT]).
 End raise.
 
-(*
-Lemma A_I_I : A_prop <<I, I>>.
+Lemma A_I_I : <<I, I>> [= A.
 Proof.
-  unfold A_prop; split;
-  [ apply pair_is_pair
-  | compute; eta_expand; beta_reduce; auto].
-Qed.
+  unfold A.
+  assert (I o I [= I) as Heq; eta_expand; beta_reduce; auto.
+  (* TODO
+  apply Join_ub_eq with (i := restrict2_intro _ I I Heq).
+  *)
+Admitted.
 
+(*
 Lemma A_raise_lower : A_prop <<raise, lower>>.
 Proof.
   unfold A_prop; split;
@@ -126,14 +128,12 @@ Proof.
 Qed.
 *)
 
-Definition A_prefix :=
-  (  K * <<I, I>>
-  || K * <<raise, lower>>
-  || K * <<pull, push>>
-  || compose
-  || conjugate
-  ).
-Definition A_def := Y * A_prefix.
+Definition A_def :=
+  Y * ( K * <<I, I>>
+     || K * <<raise, lower>>
+     || K * <<pull, push>>
+     || compose
+     || conjugate).
 
 Lemma A_sound: A_def [= A.
 Proof.
@@ -145,8 +145,7 @@ Proof.
   unfold A_def.
   apply Y_lfp.
   intros y Hless.
-  unfold A_prefix.
-  repeat rewrite J_beta.
+  repeat (rewrite J_beta || rewrite K_beta).
   repeat apply J_lub.
   (* TODO *)
 Admitted.
