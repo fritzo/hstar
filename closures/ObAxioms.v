@@ -21,7 +21,36 @@ Axiom R : Ob.
 Axiom J : Ob.
 Axiom AP : Ob -> Ob -> Ob.
 Axiom LESS : Ob -> Ob -> Prop.
-Axiom Join : forall {s : Set}, (s -> Ob) -> Ob.
+Axiom Join : forall {s : Type}, (s -> Ob) -> Ob.
+
+(** We use combine replacement with comprehension as [(m for x : s if p)],
+    which is more flexible than comprehension alone [{x : s & p}].
+    This will be especially useful for constructing [Join]s.  *)
+Notation "( m 'for' x1 : t1 )" :=
+  (fun x1 : t1 => m)
+  (at level 0, x1 at level 99) : type_scope.
+Notation "( m 'for' x1 : t1 'if' t2 )" :=
+  (fun x : {x1 : t1 & t2} => match x with existT x1 _ => m end)
+  (at level 0, x1 at level 99) : type_scope.
+Notation "( m 'for' x1 : t1 'if' t2 'if' t3 )" :=
+  (fun x : {x1 : t1 & t2 & t3} => match x with existT2 x1 _ _ => m end)
+  (at level 0, x1 at level 99) : type_scope.
+Notation "( m 'for' x1 : t1 'for' x2 : t2 )" :=
+  (fun x : t1 * t2 => match x with (x1, x2) => m end)
+  (at level 0, x1 at level 99, x2 at level 99) : type_scope.
+Notation "( m 'for' x1 : t1 'for' x2 : t2 'if' t3 )" :=
+  (fun x : sigT (fun x12 : t1 * t2 => let (x1, x2) := x12 in t3) =>
+  match x with existT (x1, x2) _ => m end)
+  (at level 0, x1 at level 99, x2 at level 99) : type_scope.
+Notation "( m 'for' x1 : t1 'for' x2 : t2 'if' t3 )" :=
+  (fun x : sigT (fun x12 : t1 * t2 => let (x1, x2) := x12 in t3) =>
+  match x with existT (x1, x2) _ => m end)
+  (at level 0, x1 at level 99, x2 at level 99) : type_scope.
+Notation "( m 'for' x1 : t1 'for' x2 : t2 'if' t3 'if' t4 )" :=
+  (fun x : sigT2 (fun x12 : t1 * t2 => let (x1, x2) := x12 in t3)
+                 (fun x12 : t1 * t2 => let (x1, x2) := x12 in t4) =>
+  match x with existT2 (x1, x2) _ _ => m end)
+  (at level 0, x1 at level 99, x2 at level 99) : type_scope.
 
 (** printing * $\ensuremath{\ast}$ *)
 (** printing )* $\ensuremath{)\ast}$ *)
@@ -29,30 +58,6 @@ Axiom Join : forall {s : Set}, (s -> Ob) -> Ob.
 (** printing )*( $\ensuremath{)\ast(}$ *)
 
 Notation "x * y" := (AP x y) (at level 40, left associativity) : Ob_scope.
-
-(** The [restrict] functions and the [{m | x : s, p}] notations
-    are useful for constructing [Join]s. *)
-Inductive restrict {s : Set} (p : s -> Prop) : Set :=
-  restrict_intro (x : s) : p x -> restrict p.
-Inductive restrict2 {s1 s2 : Set} (p : s1 -> s2 -> Prop) : Set :=
-  restrict2_intro (x1 : s1) (x2 : s2) : p x1 x2 -> restrict2 p.
-
-Add Printing Let restrict.
-Add Printing Let restrict2.
-
-Notation "{ m 'for' x : s }" :=
-  (fun x : s => m)
-  (at level 0, x at level 99) : type_scope.
-Notation "{ m 'for' x1 : s1 'for' x2 : s2 }" :=
-  (fun x : s1 * s2 => let (x1, x2) := x in m)
-  (at level 0, x1 at level 99, x2 at level 99) : type_scope.
-Notation "{ m 'for' x : s 'if' p }" :=
-  (fun xy : restrict (fun x : s => p) => let (x, _) := xy in m)
-  (at level 0, x at level 99) : type_scope.
-Notation "{ m 'for' x1 : s1 'for' x2 : s2 'if' p }" :=
-  (fun xy : restrict2 (fun x1 : s1 => fun x2 : s2 => p) =>
-  let (x1, x2, _) := xy in m)
-  (at level 0, x1 at level 99, x2 at level 99) : type_scope.
 
 Open Scope Ob_scope.
 Delimit Scope Ob_scope with Ob.
@@ -81,7 +86,7 @@ Axiom R_beta: forall x y z, (x(+)y)*z = x*z (+) y*z.
 Axiom R_idem: forall x, x(+)x = x.
 Axiom R_sym: forall x y, x(+)y = y(+)x.
 Axiom R_sym_sym: forall w x y z, (w(+)x) (+) (y(+)z) = (y(+)x) (+) (w(+)z).
-Axiom Join_beta: forall (s : Set) x y, Join x * y = Join {x i * y for i : s}.
+Axiom Join_beta: forall (s : Type) x y, Join x * y = Join (x i * y for i : s).
 
 Hint Rewrite
   I_beta K_beta F_beta B_beta C_beta
@@ -130,25 +135,25 @@ Hint Resolve LESS_AP_right.
 
 Ltac monotonicity := repeat (apply LESS_AP_left || apply LESS_AP_right).
 
-Definition is_upper_bound {s : Set} (e : s -> Ob) (x : Ob) : Prop :=
+Definition is_upper_bound {s : Type} (e : s -> Ob) (x : Ob) : Prop :=
   forall i, e i [= x.
 
-Definition is_lub {s : Set} (e : s -> Ob) (x : Ob) : Prop :=
+Definition is_lub {s : Type} (e : s -> Ob) (x : Ob) : Prop :=
   is_upper_bound e x /\ forall y, is_upper_bound e y -> x [= y.
 
-Axiom Join_lub: forall {s : Set} (e : s -> Ob), is_lub e (Join e).
+Axiom Join_lub: forall {s : Type} (e : s -> Ob), is_lub e (Join e).
 
-Lemma Join_ub: forall {s : Set} (e : s -> Ob) i, e i [= Join e.
+Lemma Join_ub: forall {s : Type} (e : s -> Ob) i, e i [= Join e.
 Proof.
   intros s e i; apply Join_lub.
 Qed.
 
-Lemma Join_ub_eq: forall {s : Set} (e : s -> Ob) i x, x = e i -> x [= Join e.
+Lemma Join_ub_eq: forall {s : Type} (e : s -> Ob) i x, x = e i -> x [= Join e.
 Proof.
   intros s e i x Heq; rewrite Heq; apply Join_lub.
 Qed.
 
-Lemma Join_single: forall (x : Ob) (s : Set), s -> x = Join {x for _ : s}.
+Lemma Join_single: forall (x : Ob) (s : Type), s -> x = Join (x for _ : s).
 Proof.
   intros x s y.
   apply LESS_antisym;
@@ -174,7 +179,7 @@ Qed.
 
 Axiom consistency: ~ TOP [= BOT.
 
-Theorem completeness: forall {s : Set} (e : s -> Ob), exists x, is_lub e x.
+Theorem completeness: forall {s : Type} (e : s -> Ob), exists x, is_lub e x.
 Proof.
   intros s e.
   exists (Join e).
@@ -272,18 +277,20 @@ Proof.
   eta_expand as x; eta_expand as y; beta_reduce; auto.
 Qed.
 
-Lemma J_Join: J = Join {if b then K else F for b : bool}.
+Lemma J_Join: J = Join (if b then K else F for b : bool).
 Proof.
   rewrite J_K_F.
   apply LESS_antisym.
     apply J_lub.
-      apply Join_ub with (e := {if i then K else F for i : bool}) (i := true).
-    apply Join_ub with (e := {if i then K else F for i : bool}) (i := false).
+      apply Join_ub with (e := (if i then K else F for i : bool)) (i := true).
+    apply Join_ub with (e := (if i then K else F for i : bool)) (i := false).
   apply Join_lub; unfold is_upper_bound.
   intro b; case b; auto.
 Qed.
 
 (** ** Definability and accessibility *)
+
+(* FIXME should [definable] and [conv] be [Set] or [Prop]? *)
 
 Inductive definable : Ob -> Prop :=
   | S_definable: definable S
@@ -293,13 +300,7 @@ Inductive definable : Ob -> Prop :=
   | AP_definable x y: definable x -> definable y -> definable (x*y).
 
 Axiom accessibility:
-  forall x : Ob, x = Join {y for y : Ob if definable y /\ y [= x}.
-
-Inductive definable_below (y : Ob) : Set :=
-  definable_below_intro x : definable x -> x [= y -> definable_below y.
-
-Definition eval_definable_below y (d : definable_below y) : Ob :=
-  let (x, _, _) := d in x.
+  forall x : Ob, x = Join (y for y : Ob if definable y).
 
 (** This is specialized to SKJ, TODO update for SKRJ *)
 Inductive conv : Ob -> Prop :=

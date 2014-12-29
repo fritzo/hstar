@@ -38,7 +38,7 @@ Proof.
   (* TODO *)
 Admitted.
 
-Definition A := Join {<<s, r>> for s : Ob for r : Ob if r o s [= I}.
+Definition A := Join (<<s, r>> for s : Ob for r : Ob if r o s [= I).
 Notation "\\ x , y ; z" := ([A] * \x, \y, z)%Lambda
   (at level 59, right associativity) : Lambda_scope.
 
@@ -154,7 +154,7 @@ Lemma A_complete: A [= A_def.
 Proof.
   unfold A.
   apply Join_lub; unfold is_upper_bound.
-  intros sr; induction sr as [s r Hless].
+  intros sr; induction sr as [[s r] Hless].
   apply LESS_conv.
   intros c Hdef Hconv.
   inversion Hconv.
