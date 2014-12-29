@@ -38,9 +38,7 @@ Proof.
   (* TODO *)
 Admitted.
 
-Inductive A_set : Set := A_set_intro s r : r o s [= I -> A_set.
-Definition A_map : A_set -> Ob := fun sr => let (s, r, _) := sr in <<s, r>>.
-Definition A := Join A_map.
+Definition A := Join {<<s, r>> for s : Ob for r : Ob if r o s [= I}.
 Notation "\\ x , y ; z" := ([A] * \x, \y, z)%Lambda
   (at level 59, right associativity) : Lambda_scope.
 
@@ -155,9 +153,9 @@ Admitted.
 
 Lemma A_complete: A [= A_def.
 Proof.
-  unfold A; unfold A_map.
+  unfold A.
   apply Join_lub; unfold is_upper_bound.
-  intros sr; induction sr.
+  intros sr; induction sr as [s r Hless].
   apply LESS_conv.
   intros c Hdef Hconv.
   inversion Hconv.

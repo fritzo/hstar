@@ -22,6 +22,22 @@ Axiom Join : forall {s : Set}, (s -> Ob) -> Ob.
 
 Notation "x * y" := (AP x y) (at level 40, left associativity) : Ob_scope.
 
+(** The [restrict] functions and the [{m | x : s, p}] notations
+    are useful for constructing [Join]s. *)
+Inductive restrict {s : Set} (p : s -> Prop) : Set :=
+  restrict_intro (x : s) : p x -> restrict p.
+Notation "{ m 'for' x : s 'if' p }" :=
+  (fun xy : restrict (fun x : s => p) =>
+  let (x, _) := xy in m) 
+  (at level 0, x at level 99).
+
+Inductive restrict2 {s1 s2 : Set} (p : s1 -> s2 -> Prop) : Set :=
+  restrict2_intro (x1 : s1) (x2 : s2) : p x1 x2 -> restrict2 p.
+Notation "{ m 'for' x1 : s1 'for' x2 : s2 'if' p }" :=
+  (fun xy : restrict2 (fun x1 : s1 => fun x2 : s2 => p) =>
+  let (x1, x2, _) := xy in m)
+  (at level 0, x1 at level 99, x2 at level 99).
+
 Open Scope Ob_scope.
 Delimit Scope Ob_scope with Ob.
 Bind Scope Ob_scope with Ob.
@@ -218,13 +234,14 @@ Inductive definable : Ob -> Prop :=
   | J_definable: definable J
   | AP_definable x y: definable x -> definable y -> definable (x*y).
 
+Axiom accessibility:
+  forall x : Ob, x = Join {y for y : Ob if definable y /\ y [= x}.
+
 Inductive definable_below (y : Ob) : Set :=
   definable_below_intro x : definable x -> x [= y -> definable_below y.
 
 Definition eval_definable_below y (d : definable_below y) : Ob :=
   let (x, _, _) := d in x.
-
-Axiom accessibility: forall x : Ob, x = Join (eval_definable_below x).
 
 (** This is specialized to SKJ, TODO update for SKRJ *)
 Inductive conv : Ob -> Prop :=
