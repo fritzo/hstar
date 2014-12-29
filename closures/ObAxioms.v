@@ -292,7 +292,7 @@ Qed.
 
 (* FIXME should [definable] and [conv] be [Set] or [Prop]? *)
 
-Inductive definable : Ob -> Prop :=
+Inductive definable : Ob -> Set :=
   | S_definable: definable S
   | K_definable: definable K
   | R_definable: definable R
@@ -303,16 +303,18 @@ Axiom accessibility:
   forall x : Ob, x = Join (y for y : Ob if definable y).
 
 (** This is specialized to SKJ, TODO update for SKRJ *)
-Inductive conv : Ob -> Prop :=
+Inductive conv : Ob -> Set :=
   | conv_TOP : conv TOP
   | conv_AP_TOP x : conv (x * TOP) -> conv x.
 
 Axiom LESS_conv:
   forall x y, (forall f, definable f -> conv (f*x) -> conv (f*y)) -> x [= y.
 
+(*
 Lemma eq_conv:
   forall x y, (forall f, definable f -> conv (f*x) <-> conv (f*y)) -> x = y.
 Proof.
   intros x y H.
   apply LESS_antisym; apply LESS_conv; intros f Hdef; firstorder.
 Qed.
+*)

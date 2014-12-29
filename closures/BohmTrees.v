@@ -3,7 +3,7 @@
 Require Import ObAxioms.
 Require Import Lambda.
 
-Inductive hnf : Ob -> Prop :=
+Inductive hnf : Ob -> Type :=
   | hnf_TOP: hnf TOP
   | hnf_K: hnf K
   | hnf_Kx x: hnf (K * x)
@@ -13,12 +13,12 @@ Inductive hnf : Ob -> Prop :=
   | hnf_Rxy x y: hnf x -> hnf y -> hnf (x(+)y)
   | hnf_Jxy x y: hnf x -> hnf y -> hnf (x||y)
   | hnf_Join (s : Set) (e : s -> Ob): (forall i, hnf (e i)) -> hnf (Join e).
+Hint Constructors hnf.
 
 Theorem hnf_conv: forall x : Ob, conv x -> {y : Ob & y [= x & hnf y}.
 Proof.
   intros x Hconv.
-  (* FIXME why does this fail?
-  elim Hconv.
-  *)
+  inversion Hconv.
+    exists TOP; auto.
   (* TODO *)
 Admitted.
