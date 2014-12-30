@@ -93,22 +93,18 @@ Hint Rewrite
   W_beta S_beta J_beta R_beta R_idem Join_beta
   : beta.
 
-Ltac beta_reduce_ := autorewrite with beta.
-Tactic Notation "beta_reduce" := beta_reduce_.
-
-Ltac beta_reduce_in H := autorewrite with beta in H.
-Tactic Notation "beta_reduce" "in" hyp(H) := beta_reduce_in H.
+Tactic Notation "beta_reduce" := autorewrite with beta.
+Tactic Notation "beta_reduce" "in" hyp(H) := autorewrite with beta in H.
 
 (** To avoid nontermination in [beta_reduce],
-    we provide a mechanism to "freeze" terms during reduction *)
-Ltac freeze c tac :=
+    we provide a mechanism to "freeze" terms during reduction. *)
+Tactic Notation "freeze" reference(c) "in" tactic(tac) :=
   let v := fresh "v" in
   let H := fresh "Hv" in
   assert (exists v, c=v) as H;
   [ exists c; reflexivity
   | destruct H as [v H]; rewrite H; tac; destruct H].
 
-Tactic Notation "freeze" reference(c) "in" tactic(tac) := (freeze c tac).
 
 Axiom LESS_TOP: forall x, x [= TOP.
 Axiom LESS_BOT: forall x, BOT [= x.
@@ -204,23 +200,21 @@ Proof.
   rewrite J_beta; auto.
 Qed.
 
-Ltac eta_expand_ :=
+Tactic Notation "eta_expand" :=
   let x := fresh in
   match goal with
   | [|- _ = _] => apply extensionality; intro x
   | [|- _ [= _] => apply less_extensionality; intro x
   end.
-Tactic Notation "eta_expand" := eta_expand_.
 
-Ltac eta_expand_as x :=
+Tactic Notation "eta_expand" "as" ident(x) :=
   match goal with
   | [|- _ = _] => apply extensionality; intro x
   | [|- _ [= _] => apply less_extensionality; intro x
   end.
-Tactic Notation "eta_expand" "as" ident(x) := eta_expand_as x.
 
-Ltac eta_expand_in H := eapply LESS_AP_left in H; beta_reduce in H.
-Tactic Notation "eta_expand" "in" hyp(H) := eta_expand_in H.
+Tactic Notation "eta_expand" "in" hyp(H) :=
+  eapply LESS_AP_left in H; beta_reduce in H.
 
 Ltac beta_eta :=
   compute; (
