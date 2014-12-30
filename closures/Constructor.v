@@ -2,6 +2,7 @@
 
 Require Import ObAxioms.
 Require Import Lambda.
+Require Import BohmTrees.
 
 Open Scope Lambda_scope.
 Open Scope Ob_scope.

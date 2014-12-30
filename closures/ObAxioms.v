@@ -222,10 +222,16 @@ Tactic Notation "eta_expand" "as" ident(x) := eta_expand_as x.
 Ltac eta_expand_in H := eapply LESS_AP_left in H; beta_reduce in H.
 Tactic Notation "eta_expand" "in" hyp(H) := eta_expand_in H.
 
+Ltac beta_eta :=
+  compute; (
+  beta_reduce; auto
+  || eta_expand; beta_reduce; auto
+  || eta_expand; eta_expand; beta_reduce; auto
+  || eta_expand; eta_expand; eta_expand; beta_reduce; auto).
+
 Lemma B_assoc: forall f g h, (f o g) o h = f o (g o h).
 Proof.
-  intros f g h.
-  eta_expand; beta_reduce; auto.
+  intros f g h; beta_eta.
 Qed.
 
 Lemma TOP_beta: forall x, TOP*x = TOP.
@@ -234,7 +240,7 @@ Proof.
   apply LESS_antisym.
   apply LESS_TOP.
   apply LESS_trans with (K*TOP*x).
-  beta_reduce; auto.
+  beta_eta.
   apply LESS_AP_left; auto.
 Qed.
 
@@ -244,7 +250,7 @@ Proof.
   apply LESS_antisym.
   apply LESS_trans with (K*BOT*x).
   apply LESS_AP_left; auto.
-  beta_reduce; auto.
+  beta_eta.
   apply LESS_BOT.
 Qed.
 
@@ -280,7 +286,7 @@ Hint Rewrite TOP_beta BOT_beta TOP_J_left TOP_J_right BOT_J_left BOT_J_right
 
 Lemma J_K_F : J = K || F.
 Proof.
-  eta_expand as x; eta_expand as y; beta_reduce; auto.
+  beta_eta.
 Qed.
 
 Lemma J_Join: J = Join (if b then K else F for b : bool).
@@ -305,6 +311,8 @@ Inductive definable : Ob -> Set :=
   | J_definable: definable J
   | AP_definable x y: definable x -> definable y -> definable (x*y).
 
+Hint Constructors definable.
+
 Axiom accessibility:
   forall x : Ob, x = Join (y for y : Ob if definable y).
 
@@ -312,6 +320,8 @@ Axiom accessibility:
 Inductive conv : Ob -> Set :=
   | conv_TOP : conv TOP
   | conv_AP_TOP x : conv (x * TOP) -> conv x.
+
+Hint Constructors conv.
 
 Axiom LESS_conv:
   forall x y, (forall f, definable f -> conv (f*x) -> conv (f*y)) -> x [= y.
