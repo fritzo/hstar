@@ -168,6 +168,10 @@ Section less_lemmas.
   Open Scope code.
   Lemma join_idem: forall x, x || x = x.
   Admitted.
+  Lemma join_assoc: forall x y z, x || (y || z) = (x || y) || z.
+  Admitted.
+  Lemma less_antisym: forall x y, (x [= y /\ y [= x) <-> x = y.
+  Admitted.
   Lemma less_refl: forall x, x [= x.
   Admitted.
   Lemma less_trans: forall x y z, x [= y -> y [= z -> x [= z.
@@ -247,7 +251,7 @@ Open Scope codex_scope.
 Delimit Scope codex_scope with codex.
 Bind Scope codex_scope with codex.
 
-(* Now we demonstrate the power of indexing over directed sets. *)
+(** Now we demonstrate the power of indexing over directed sets. *)
 
 Definition BOT' : code.
 Admitted.
@@ -258,16 +262,48 @@ Admitted.
 Definition pair : code -> code ->code.
 Admitted.
 
+Section pre_codex.
+  Open Scope code.
+  Definition pre_codex := {index : Type & index -> code}.
+
+  Fixpoint list_join {t : Type} (e : t -> code) (l : list t) : code :=
+    match l with
+    | nil => BOT'
+    | (i :: l')%list => e i || list_join e l'
+    end.
+
+  Lemma list_join_assoc:
+    forall (t : Type) (e : t -> code) (l l' : list t),
+      list_join e l || list_join e l' = list_join e (l ++ l').
+    intros t e.
+    induction l.
+    induction l'.
+  Admitted.
+
+  Definition make_codex (p : pre_codex) : codex.
+    destruct p as [index enum].
+    apply codex_intro with (index := list index) (enum := list_join enum).
+      intros i j.
+      exists (i ++ j)%list.
+      apply less_antisym.
+      symmetry.
+      apply list_join_assoc.
+    apply nil.
+  Defined.
+End pre_codex.
+
 (*  The simple implicit definition of A_implicit is not directed.
     One solution is to define arbitrary sets of codes,
-    and then their directed closure.
+    and then their directed closure. *)
 
-Definition A_implicit : codex := {|
-  index := { sr : (code * code)%type
-           | let (s,r) := sr in (compose r s [= I)%code};
-  enum := fun i => match i with exist (s, r) _ => pair s r end;
-  join := (* FIXME this cannot be defined *);
-  nonempty := (BOT', BOT')
-|}.
-
-*)
+Section A_implicit.
+  Let code2 := (code * code)%type.
+  Let index := {sr : code2 & let (s,r) := sr in (compose r s [= I)%code}.
+  Let enum (sr : index) : code := match sr with existT (s, r) _ => pair s r end.
+  Definition A_implicit' : codex.
+    apply make_codex; unfold pre_codex.
+    exists index; apply enum.
+  Defined.
+  Print A_implicit'.
+  Definition A_implicit : codex := make_codex (existT _ index enum).
+End A_implicit.
