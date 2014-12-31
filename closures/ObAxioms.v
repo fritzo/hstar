@@ -1,6 +1,8 @@
 (** * This follows the axiomatic treatment of reals
     in the Coq standard library. *)
 
+(* TODO try to replace these with the 5 axioms in ../extensionality.v *)
+
 (** ** Axioms *)
 
 Axiom Ob : Set.

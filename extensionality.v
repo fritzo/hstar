@@ -97,7 +97,7 @@ Bind Scope codes_scope with codes.
 Axiom point : Set.
 Axiom denote : codes -> point.
 Axiom access : point -> codes.
-Axiom denote_access : forall s, s = denote (access s).
+Axiom denote_access : forall p, p = denote (access p).
 Axiom denote_respect : forall s s', codes_eq s s' -> denote s = denote s'.
 
 Lemma denote_respect':
@@ -144,27 +144,130 @@ Notation "p * p'" := (point_ap p p')%point : point_scope.
 Notation "x || y" := (J * x * y)%point
   (at level 50, left associativity) : point_scope.
 
-(*  FIXME is it safe to use arbitrary [Type]s instead of [nat]?
-    It is very convenient to use arbitrarily indexed sets,
-    especially when defining joins using comprehension and products. *)
+(** ** Arbitrary indexed codes *)
 
 (*
-Definition code_set := {t : Type & t -> code}.
-Definition directed (xs : code_set) :=
-  let (t, e) := xs in
-  forall (p : t -> Type),
-  {i : t & forall ij : {i : t & p i}, let (i', j) := ij in e i' [= e i}.
-Definition code_dset := {xs : code_set & directed xs}.
+Record codex := {
+  index : Type;
+  enum : index -> code;
+  join : forall (p : index -> Type),
+    {i : index & forall i', p i' -> (enum i' [= enum i)%code}
+}.
+*)
 
-Definition exactly (x : code) : code_dset :=
-  existT (existT unit (fun _ => p)) (fun (p : Type) (e : t -> p) =>.
+(* We introduce directed sets of codes *)
 
-Definition codes_le (xs xs' : code_dset) :=
-  match xs with existT (existT t e) _ =>
-    match xs' with existT (existT t' e') _ =>
-      forall i : t, {i' : t' & code_le (e i) (e' i')}
-    end
-  end.
-Definition codes_eq (xs xs' : code_dset) : Type :=
-  (codes_le xs xs' * codes_le xs' xs)%type.
+Record codex := codex_intro {
+  index : Type;
+  enum : index -> code;
+  join i1 i2 : {i : index | (enum i1 || enum i2 [= enum i)%code};
+  nonempty : index
+}.
+
+Section less_lemmas.
+  Open Scope code.
+  Lemma join_idem: forall x, x || x = x.
+  Admitted.
+  Lemma less_refl: forall x, x [= x.
+  Admitted.
+  Lemma less_trans: forall x y z, x [= y -> y [= z -> x [= z.
+  Admitted.
+  Lemma less_ap: forall x x' y y', x [= x' -> y [= y' -> x * y [= x' * y'.
+  Admitted.
+  Lemma less_join: forall x y z, x || y [= z <-> x [= z /\ y [= z.
+  Admitted.
+End less_lemmas.
+
+Definition codex_inject (x : code) : codex.
+  eapply codex_intro with (index := unit) (enum := fun _ => x).
+    intros i1 i2; elim i1; elim i2.
+    exists tt.
+    rewrite join_idem.
+    apply less_refl.
+  apply tt.
+Defined.
+
+Section codex_ap.
+  Open Scope code.
+
+  Parameter s1 : codex.
+  Parameter s2 : codex.
+
+  Let index1 := s1.(index).
+  Let enum1 := s1.(enum).
+  Let join1 := s1.(join).
+  Let nonempty1 := s1.(nonempty).
+
+  Let index2 := s2.(index).
+  Let enum2 := s2.(enum).
+  Let join2 := s2.(join).
+  Let nonempty2 := s2.(nonempty).
+
+  Let index12 := (index1 * index2)%type.
+
+  Let enum12 (i : index12) : code :=
+    let (i1, i2) := i in
+    (enum1 i1) * (enum2 i2).
+
+  Let nonempty12 := (nonempty1, nonempty2).
+
+  Definition codex_ap : codex.
+    apply codex_intro with (index := index12) (enum := enum12).
+      intros i j.
+      destruct i as [i1 i2].
+      destruct j as [j1 j2].
+      assert (kp1 := join1 i1 j1); destruct kp1 as [k1 p1].
+      assert (kp2 := join2 i2 j2); destruct kp2 as [k2 p2].
+      exists (k1, k2).
+      unfold enum12.
+      apply less_join in p1.
+      apply less_join in p2.
+      apply less_join; split; apply less_ap; apply p1 || apply p2.
+    apply nonempty12.
+  Defined.
+End codex_ap.
+
+(* patently Pi02 *)
+Definition codex_le (s1 s2 : codex) : Prop :=
+  let (index1, enum1, _, _) := s1 in
+  let (index2, enum2, _, _) := s2 in
+  forall c : code,
+  forall i1 : index1, conv (c * (enum1 i1)) ->
+  exists i2 : index2, conv (c * (enum2 i2)).
+
+Definition codex_eq (s s' : codex) : Prop :=
+  (codex_le s s' * codex_le s' s)%type.
+
+Notation "x [= y" := (codex_le x y)
+  (at level 60, no associativity) : codex_scope.
+Notation "x [=] y" := (codex_eq x y)
+  (at level 60, no associativity) : codex_scope.
+
+Open Scope codex_scope.
+Delimit Scope codex_scope with codex.
+Bind Scope codex_scope with codex.
+
+(* Now we demonstrate the power of indexing over directed sets. *)
+
+Definition BOT' : code.
+Admitted.
+Definition I : code.
+Admitted.
+Definition compose : code -> code -> code.
+Admitted.
+Definition pair : code -> code ->code.
+Admitted.
+
+(*  The simple implicit definition of A_implicit is not directed.
+    One solution is to define arbitrary sets of codes,
+    and then their directed closure.
+
+Definition A_implicit : codex := {|
+  index := { sr : (code * code)%type
+           | let (s,r) := sr in (compose r s [= I)%code};
+  enum := fun i => match i with exist (s, r) _ => pair s r end;
+  join := (* FIXME this cannot be defined *);
+  nonempty := (BOT', BOT')
+|}.
+
 *)
