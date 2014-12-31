@@ -23,7 +23,7 @@ Axiom AP : Ob -> Ob -> Ob.
 Axiom LESS : Ob -> Ob -> Prop.
 Axiom Join : forall {s : Type}, (s -> Ob) -> Ob.
 
-(** We use combine replacement with comprehension as [(m for x : s if p)],
+(** We combine replacement with comprehension as [(m for x : s if p)],
     which is more flexible than comprehension alone [{x : s & p}].
     This will be especially useful for constructing [Join]s.  *)
 Notation "( m 'for' x1 : t1 )" :=
