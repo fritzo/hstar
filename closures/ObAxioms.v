@@ -23,6 +23,7 @@ Axiom R : Ob.
 Axiom J : Ob.
 Axiom AP : Ob -> Ob -> Ob.
 Axiom LESS : Ob -> Ob -> Prop.
+Axiom NLESS : Ob -> Ob -> Prop.
 Axiom Join : forall {s : Type}, (s -> Ob) -> Ob.
 
 (** We combine replacement with comprehension as [(m for x : s if p)],
@@ -65,14 +66,16 @@ Open Scope Ob_scope.
 Delimit Scope Ob_scope with Ob.
 Bind Scope Ob_scope with Ob.
 
-(** printing (+) $\oplus$ *)
-(** printing [= $\sqsubseteq$ *)
-(** printing =] $\sqsupseteq$ *)
+(** printing (+) $\ensuremath{\oplus}$ *)
+(** printing [= $\ensuremath{\sqsubseteq}$ *)
+(** printing [!= $\ensuremath{\,\boxleq\hspace{-0.9em}_/\hspace{0.4em}}$ *)
+(** printing =] $\ensuremath{\sqsupseteq}$ *)
 
 Notation "x 'o' y" := (B * x * y) (at level 30, right associativity) : Ob_scope.
 Notation "x || y" := (J * x * y) (at level 50, left associativity) : Ob_scope.
 Notation "x (+) y" := (R * x * y) (at level 45, no associativity) : Ob_scope.
 Notation "x [= y" := (LESS x y) (at level 60, no associativity) : Ob_scope.
+Notation "x [!= y" := (NLESS x y) (at level 60, no associativity) : Ob_scope.
 Notation "x =] y" := (LESS y x) (at level 60, no associativity, only parsing)
   : Ob_scope.
 
@@ -120,6 +123,10 @@ Axiom LESS_antisym: forall x y, x [= y -> y [= x -> x = y.
 Axiom LESS_trans: forall x y z, x [= y -> y [= z -> x [= z.
 Axiom LESS_AP_left: forall x x' y, x [= x' -> x*y [= x'*y.
 Axiom LESS_AP_right: forall x y y', y [= y' -> x*y [= x*y'.
+Axiom NLESS_def: forall x y, x [!= y <-> exists f, f * x = TOP /\ f * y = BOT.
+(*
+Axiom NLESS_def: forall x y, x [!= y <-> (x [= y -> TOP [= BOT).
+*)
 
 Hint Resolve LESS_TOP.
 Hint Resolve LESS_BOT.
