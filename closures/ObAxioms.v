@@ -68,7 +68,7 @@ Bind Scope Ob_scope with Ob.
 
 (** printing (+) $\ensuremath{\oplus}$ *)
 (** printing [= $\ensuremath{\sqsubseteq}$ *)
-(** printing [!= $\ensuremath{\,\boxleq\hspace{-0.9em}_/\hspace{0.4em}}$ *)
+(** printing [!= $\ensuremath{\not\sqsubseteq}$ *)
 (** printing =] $\ensuremath{\sqsupseteq}$ *)
 
 Notation "x 'o' y" := (B * x * y) (at level 30, right associativity) : Ob_scope.

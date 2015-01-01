@@ -125,6 +125,28 @@ Hint Resolve I_definable F_definable B_definable C_definable W_definable.
 
 (** ** A standard library *)
 
+Section Omega.
+  Let x := VAR 0.
+  Definition Omega := encode ((\x, x*x) * (\x, x*x)).
+End Omega.
+Lemma Omega_diverges : conv Omega -> Empty_set.
+Proof.
+  compute; intros H.
+  inversion H.
+    admit. (* TODO *)
+  admit. (* TODO *)
+Admitted.
+
+Lemma eq_Omega_BOT : Omega = BOT.
+Proof.
+  apply LESS_antisym.
+    apply LESS_conv; intros f Hdef Hconv.
+    inversion Hconv.
+      admit. (* TODO *)
+    admit. (* TODO *)
+  auto.
+Admitted.
+
 Section Y.
   Let x := VAR 0.
   Let y := VAR 1.
