@@ -1,0 +1,48 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fullpage}
+\usepackage[color]{coqdoc}
+\usepackage{amsmath,amssymb}
+
+\usepackage{hyperref}
+\usepackage{amsthm}
+\usepackage{verbatim}
+\usepackage{alltt}
+\usepackage{fullpage}
+\usepackage{graphicx}
+\usepackage{wrapfig}
+%\usepackage{stmaryrd} %for bigsqcap
+%\usepackage{mathpartir} % http://pauillac.inria.fr/~remy/latex/mathpartir.sty
+
+\newcommand \Hstar {{\ensuremath{\mathcal H^\ast}}}
+
+\newcommand \TODO [2] [TODO] {{\fbox{\textbf{\small #1} #2}}}
+%\newcommand \TODO [2] [] {}
+
+\begin{document}
+
+\title{ The Inadvertantly Typed Pure $\lambda$-join-Calculus }
+\author{ Fritz Obermeyer }
+
+\maketitle
+
+\begin{abstract}
+Typed $\lambda$-calculi enjoy a number of convenient properties not
+satisfied by untyped $\lambda$-calculi.
+We show that one family of untyped $\lambda$-calculi 
+Specifically we show that in pure untyped $\lambda$-calculi
+extended with a join operation
+and obeying Hyland and Wadsworth's \Hstar axiom,
+a rich but inconsistent type system is definable within the calculus
+using Dana Scott's types-as-closures idiom.
+We develop proofs in Coq of a number of well-typedness properties
+of two systems:
+the pure $\lambda$-join calculus modeling nondeterministic computation
+and the stochastic $\lambda$-join calculus modeling computaion with
+convex sets of probability distributions.
+\end{abstract}
+
+\input{body.tex}
+
+\end{document}

@@ -9,7 +9,6 @@ coq*/
 *.html
 *.log
 *.out
-*.tex
 *.pdf
 *.vo
 *.v.d
