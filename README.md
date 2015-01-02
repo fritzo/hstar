@@ -1,4 +1,4 @@
-# Inadvertently Typed &lambda;-join-Calculus in Coq
+# Inadvertently typed &lambda;-join-calculus
 
 This project is an attempt to formally reason about two untyped &lambda;-calculi
 that act like typed &lambda;-calculi in that they support Dana Scott's
