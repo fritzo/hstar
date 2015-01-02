@@ -274,7 +274,7 @@ Bind Scope codes_scope with codes.
 (** Now we demonstrate the power of indexing over directed sets. *)
 
 Section pre_codes.
-  Open Scope code.
+  Open Scope code_scope.
   Definition pre_codes := {index : Type & index -> code}.
 
   Fixpoint list_join {t : Type} (e : t -> code) (l : list t) : code :=
