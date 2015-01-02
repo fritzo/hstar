@@ -121,6 +121,14 @@ Section codes_ap.
   Defined.
 End codes_ap.
 
+(* does this require extensionality?
+Lemma codes_ap_comm :
+  forall x y, codes_ap (codes_code x) (codes_code y) = codes_code (x * y).
+Proof.
+  intros x y.
+  compute; auto.
+*)
+
 (** patently Pi02 *)
 Definition codes_le (s1 s2 : codes) : Prop :=
   let (index1, enum1, _, _) := s1 in
