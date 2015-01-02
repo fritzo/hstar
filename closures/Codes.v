@@ -28,6 +28,8 @@ Bind Scope code_scope with code.
 
 Notation "x || y" := (code_j * x * y)%code : code_scope.
 
+Definition code_join x y := x || y.
+
 Inductive red : code -> code -> Prop :=
   | red_ap_left x x' y: red x x' -> red (x * y) (x' * y)
   | red_ap_right x y y': red y y' -> red (x * y) (x * y')
@@ -65,7 +67,7 @@ Admitted.
 Lemma less_join: forall x y z, x || y [= z <-> x [= z /\ y [= z.
 Admitted.
 
-(** ** Indexed codes *)
+(** ** Dependently typed indexed codes *)
 
 (** We introduce directed sets of codes *)
 
@@ -197,3 +199,50 @@ Section A_implicit.
   Print A_implicit'.
   Definition A_implicit : codes := make_codes (existT _ index enum).
 End A_implicit.
+
+(** ** Indexed codes *)
+
+(** Dependently typed indexed codes require up-front work in
+    certifying an enumeration.
+    We can make code construction easier by omitting this certificate,
+    at the expense of more complicated uses of codes in
+    [codes_ap] and [codes_le].
+    *)
+
+Definition codes' := {index : Type & index -> code}.
+
+Inductive tree (a : Type) : Type :=
+  | tree_leaf (x : a) : tree a
+  | tree_pair (l r : tree a) : tree a.
+
+Hint Constructors tree.
+
+Fixpoint tree_reduce {a b : Type}
+  (f1 : a -> b) (f2 : b -> b -> b) (t :tree a) : b :=
+  match t with
+  | tree_leaf x => f1 x
+  | tree_pair l r => f2 (tree_reduce f1 f2 l) (tree_reduce f1 f2 r)
+  end.
+
+Definition finite_joins_of (x : codes') : codes' :=
+  let (index, enum) := x in
+  let index' := tree index in
+  let enum' := tree_reduce enum code_join in
+  existT _ index' enum'.
+
+Definition codes_ap' (s1 s2 : codes') : codes' :=
+  let (index1, enum1) := s1 in
+  let (index2, enum2) := finite_joins_of s2 in
+  let index12 := (index1 * index2)%type in
+  let enum12 (i : index12) :=
+    let (i1, i2) := i in (enum1 i1) * (enum2 i2)
+  in
+  existT _ index12 enum12.
+
+(** patently Pi02 *)
+Definition codes_le' (s1 s2 : codes') : Prop :=
+  let (index1, enum1) := finite_joins_of s1 in
+  let (index2, enum2) := finite_joins_of s2 in
+  forall c : code,
+  forall i1 : index1, conv (c * (enum1 i1)) ->
+  exists i2 : index2, conv (c * (enum2 i2)).
