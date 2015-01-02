@@ -1,5 +1,6 @@
 
 Require Import Setoid.
+Require Export Notations.
 
 (** * Extensional Combinatory Algebra
 
@@ -19,15 +20,13 @@ Inductive code : Set :=
   | code_c : code
   | code_s : code.
 
-Notation "x * y" := (code_ap x y)
-  (at level 40, left associativity) : code_scope.
+Notation "x * y" := (code_ap x y) : code_scope.
 
 Open Scope code_scope.
 Delimit Scope code_scope with code.
 Bind Scope code_scope with code.
 
-Notation "x || y" := (code_j * x * y)%code
-  (at level 50, left associativity) : code_scope.
+Notation "x || y" := (code_j * x * y)%code : code_scope.
 
 Inductive red : code -> code -> Prop :=
   | red_ap_left x x' y: red x x' -> red (x * y) (x' * y)
@@ -49,8 +48,7 @@ Inductive conv : code -> Prop :=
 Inductive code_le (x y : code) : Prop :=
   less_intro: (forall c, conv (c * x) -> conv (c * y)) -> code_le x y.
 
-Notation "x [= y" := (code_le x y)
-  (at level 60, no associativity) : code_scope.
+Notation "x [= y" := (code_le x y) : code_scope.
 
 Lemma join_idem: forall x, x || x = x.
 Admitted.
@@ -140,10 +138,8 @@ Definition codes_le (s1 s2 : codes) : Prop :=
 Definition codes_eq (s s' : codes) : Prop :=
   (codes_le s s' * codes_le s' s)%type.
 
-Notation "x [= y" := (codes_le x y)
-  (at level 60, no associativity) : codes_scope.
-Notation "x [=] y" := (codes_eq x y)
-  (at level 60, no associativity) : codes_scope.
+Notation "x [= y" := (codes_le x y) : codes_scope.
+Notation "x [=] y" := (codes_eq x y) : codes_scope.
 
 Open Scope codes_scope.
 Delimit Scope codes_scope with codes.
