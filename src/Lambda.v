@@ -86,7 +86,11 @@ Delimit Scope Lambda_scope with Lambda.
 Bind Scope Lambda_scope with Lambda.
 
 (* Bind Scope is not retroactive, so: *)
+(* Coq 8.4+
 Arguments encode _%Lambda.
+*)
+(* Coq <8.4 *)
+Arguments Scope encode [Lambda_scope].
 
 Close Scope Ob_scope.
 Open Scope Lambda_scope.
