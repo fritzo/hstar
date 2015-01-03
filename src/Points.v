@@ -45,6 +45,8 @@ Notation "'S'" := [code_s] : point_scope.
 Notation "p * p'" := (point_ap p p')%point : point_scope.
 Notation "x || y" := (J * x * y)%point : point_scope.
 
+Definition sup {i : Type} (e : i -> code) : point := denote (codes_sup e).
+
 Lemma point_ap_respect : forall x y, [x] * [y] = [x * y].
 Proof.
   intros x y.
