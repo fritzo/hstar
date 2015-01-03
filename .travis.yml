@@ -1,6 +1,6 @@
 before_install:
     - sudo apt-get update
-    - sudo apt-get install ocaml ocaml-native-compilers coq
+    - sudo apt-get install ocaml ocaml-native-compilers camlp5 coq
     - coqc --version
     - export COQPATH=$COQPATH:.
 script:
