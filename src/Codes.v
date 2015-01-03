@@ -146,7 +146,7 @@ Theorem code_le_apply :
   (forall a, conv (code_apply a x) -> conv (code_apply a y)).
 Proof.
   intros x y; split.
-  - intros Hl a Hc.
+    intros Hl a Hc.
 Admitted.
 
 (*
