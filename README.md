@@ -2,42 +2,51 @@
 
 # Inadvertently typed &lambda;-join-calculus
 
-This project is an attempt to formally reason about two untyped &lambda;-calculi
-that act like typed &lambda;-calculi in that they support Dana Scott's
-types-as-closures idiom <a href="#user-content-1">[1]</a>:
+This project is an attempt to formally reason about
+two untyped &lambda;-calculi that act like typed &lambda;-calculi.
 
-    I [= a   a = a o a    a : type   a x = x
-    ------------------    ------------------
-        a : type                x : a
+## Introduction
 
-with definable algebraic datatypes such as `a -> b := \f. b o f o a`
+In the mid 1970s Dana Scott developed an idiom
+<a href="#user-content-1">[1]</a>
+of embedding types as closure operators (nondecreasing idempotent functions)
+in a &lambda;-calculus extended by a join operator.
+His original work showed that this types-as-closures idiom
+leads to a rich type structure in D<sub>&infin</sub> models,
+although the type system is inconsistent under the Curry-Howard correspondence
+due to the presence of a top element that inhabits every type.
+More recently, <a href="#user-content-2">[2]</a> showed that many of the atomic
+datatypes are definable with only &lambda;-calculus and a binary join operator,
+after a suitable extensional collapse by
+Hyland and Wadsworth's axiom H<sup>&ast</sup>
+
+    H* |- M = N   iff   forall C[ ], C[M] converges <--> C[N] converges
+
+This Coq development attempts to formalize the proof in
+<a href="#user-content-2">[2]</a>
+and extend the result to probabilistic programming languages.
+Specifically, we develop type systems within two untyped universes
+and obtain algebraic such as `a -> b := \f. b o f o a`
+and case analysis theorems such as for the `bool` lattice, for example:
+
+    I [= a   a = a o a            a : type   a x = x
+    ------------------ closures   ------------------ fixedpoints
+        a : type                         x : a
 
     a : type   b : type    a : type   b : type
     -------------------    -------------------    -----------    ----------
        a -> b : type          a x b : type        bool : type    nat : type
 
-and case analysis theorems such as
-
                  x : bool
     ------------------------------------
     x = K    x = F    x = BOT    x = TOP
 
-The &lambda;-calculi are two extensions of pure untyped &lambda;-calculus
-under Hyland and Wadsworth's observational equivalence axiom H&ast;.
+The type system supports algebraic, dependent, polymorphic, and intersection
+types, as well as atomic types and a type of all types.
 
-    M = N  iff  forall C[ ], C[M] converges <--> C[N] converges
-
-The extensions are:
-
-1. pure untyped &lambda;-join-calculus modulo H&ast;,
-   providing a model of nondeterministic computation; and
-
-2. pure untyped stochastic &lambda;-join-calculus modulo &Hast;,
-   providing a model of computation with
-   convex sets of probability distributions.
-
-These &lambda;-calculi are described in <a href="#user-content-2">[2]</a>
-and <a href="#user-content-3">[3]</a>.
+The reasoning principles developed here are intended to be used in the
+[Pomagma](http://github.com/fritzo/pomagma)
+forward-chaining inference engine.
 
 - [1] <a name="1"/>
   Dana Scott (1976)
@@ -45,9 +54,6 @@ and <a href="#user-content-3">[3]</a>.
 - [2] <a name="2"/>
   Fritz Obermeyer (2009)
   [Automated Equational Reasoning in Nondeterministic &lambda;-Calculi Modulo Theories H&ast;](http://fritzo.org/thesis.pdf)
-- [3] <a name="3"/>
-  [Pomagma](http://github.com/fritzo/pomagma):
-  an inference engine for extensional &lambda;-calculus.
 
 ## Organization
 
