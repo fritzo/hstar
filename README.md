@@ -18,15 +18,18 @@ due to the presence of a top element that inhabits every type.
 More recently, <a href="#user-content-2">[2]</a> showed that many of the atomic
 datatypes are definable with only &lambda;-calculus and a binary join operator,
 after a suitable extensional collapse by
-Hyland and Wadsworth's axiom H<sup>&ast</sup>
+Hyland and Wadsworth's axiom H<sup>&ast;</sup>
 
     H* |- M = N   iff   forall C[ ], C[M] converges <--> C[N] converges
 
 This Coq development attempts to formalize the proof in
 <a href="#user-content-2">[2]</a>
 and extend the result to probabilistic programming languages.
-Specifically, we develop type systems within two untyped universes
-and obtain algebraic such as `a -> b := \f. b o f o a`
+We reason in a language of ordered combinatory algebras,
+treating the Scott ordering `[=` as the basic relation.
+
+Our main result is to develop type systems within two untyped universes
+and obtain algebraic types such as `a -> b := \f. b o f o a`
 and case analysis theorems such as for the `bool` lattice, for example:
 
     I [= a   a = a o a            a : type   a x = x
@@ -38,7 +41,7 @@ and case analysis theorems such as for the `bool` lattice, for example:
        a -> b : type          a x b : type        bool : type    nat : type
 
                  x : bool
-    ------------------------------------
+    ------------------------------------ bool induction principle
     x = K    x = F    x = BOT    x = TOP
 
 The type system supports algebraic, dependent, polymorphic, and intersection
