@@ -18,7 +18,7 @@ due to the presence of a top element that inhabits every type.
 More recently, <a href="#user-content-2">[2]</a> showed that many of the atomic
 datatypes are definable with only &lambda;-calculus and a binary join operator,
 after a suitable extensional collapse by
-Hyland and Wadsworth's axiom H&ast;
+Hyland and Wadsworth's axiom H&#42;
 
     H* |- M = N   iff   forall C[ ], C[M] converges <--> C[N] converges
 
@@ -56,7 +56,7 @@ forward-chaining inference engine.
   ["Datatypes as Lattices"](http://www.cs.ox.ac.uk/files/3287/PRG05.pdf)
 - [2] <a name="2"/>
   Fritz Obermeyer (2009)
-  [Automated Equational Reasoning in Nondeterministic &lambda;-Calculi Modulo Theories H*](http://fritzo.org/thesis.pdf)
+  [Automated Equational Reasoning in Nondeterministic &lambda;-Calculi Modulo Theories H&#42;](http://fritzo.org/thesis.pdf)
 
 ## Organization
 
