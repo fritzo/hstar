@@ -18,31 +18,65 @@ due to the presence of a top element that inhabits every type.
 More recently, <a href="#user-content-2">[2]</a> showed that many of the atomic
 datatypes are definable with only &lambda;-calculus and a binary join operator,
 after a suitable extensional collapse by
-Hyland and Wadsworth's axiom H&#42;
+Hyland and Wadsworth's axiom H&#42;:
 
-    H* |- M = N   iff   forall C[ ], C[M] converges <--> C[N] converges
+    M = N   iff   forall C[ ], C[M] converges <--> C[N] converges
 
 This Coq development attempts to formalize the proof in
 <a href="#user-content-2">[2]</a>
 and extend the result to probabilistic programming languages.
 We reason in a language of ordered combinatory algebras,
 treating the Scott ordering `[=` as the basic relation.
+We develop type systems within two untyped universes
+and obtain algebraic types such as `a -> b := \f. b o f o a`, for example
 
-Our main result is to develop type systems within two untyped universes
-and obtain algebraic types such as `a -> b := \f. b o f o a`
-and case analysis theorems such as for the `bool` lattice, for example:
+    I [= a    a = a o a            a : type    a x = x
+    =================== closures   ================== fixedpoints
+          a : type                        x : a
 
-    I [= a   a = a o a            a : type   a x = x
-    ------------------ closures   ------------------ fixedpoints
-        a : type                         x : a
+    forall x:a, f x [= g x
+    ======================== universal quantification
+              f o a [= g o a
 
-    a : type   b : type    a : type   b : type
-    -------------------    -------------------    -----------    ----------
-       a -> b : type          a x b : type        bool : type    nat : type
+    a : type    b : type    a : type    b : type    a : type    b : type
+    --------------------    --------------------    --------------------
+       a -> b : type            a * b : type            a + b : type
 
-                 x : bool
-    ------------------------------------ bool induction principle
-    x = K    x = F    x = BOT    x = TOP
+    ---------    -----------    ----------
+    TOP : typ    bool : type    nat : type
+
+Our main result is a set of induction principles supporting
+case analysis for well typed terms, for example:
+
+                              p TOP [= q TOP
+    forall x:a, forall y:b, p (x,y) [= q (x,y)
+    ------------------------------------------ product induction principle
+                forall xy:a*b, p xy [= q xy
+
+                    p TOP [= q TOP
+                    p BOT [= q BOT
+    forall x:a, p (inl x) [= q (inl x)
+    forall y:b, p (inr y) [= q (inr y)
+    ---------------------------------- sum induction principle
+      forall xy:a+b, p xy [= q xy
+
+                p TOP [= q TOP
+    -------------------------- TOP induction principle
+    forall x:TOP, p x [= q x
+
+                 p TOP [= q TOP
+                 p BOT [= q BOT
+                   p K [= q K    
+                   p F [= q F    
+    --------------------------- bool induction principle
+    forall b:bool, p b [= q b
+
+                       p TOP [= q TOP
+                       p BOT [= q BOT
+                      p zero [= q zero      
+    forall n:nat, p (succ n) [= q (succ n)
+    -------------------------------------- nat induction principle
+           forall n:nat, p n [= q n
 
 The type system supports algebraic, dependent, polymorphic, and intersection
 types, as well as atomic types and a type of all types.
@@ -50,6 +84,8 @@ types, as well as atomic types and a type of all types.
 The reasoning principles developed here are intended to be used in the
 [Pomagma](http://github.com/fritzo/pomagma)
 forward-chaining inference engine.
+
+## References
 
 - [1] <a name="1"/>
   Dana Scott (1976)
@@ -61,6 +97,12 @@ forward-chaining inference engine.
 ## Organization
 
 * [/src](/src) - Working draft of Coq development
+* [/src/Codes.v](/src/Codes.v) - Foundation of combinatory algebra
+* [/src/Points.v](/src/Points.v) - Points as limits of "rational" codes
+* [/src/ObAxioms.v](/src/ObAxioms.v) - Axiomatic development of points
+* [/src/Lambda.v](/src/Lambda.v) - &lambda;-calculus as notation for combinators
+* [/src/Constructor.v](/src/Constructor.v) - A constructor for polymorphic types
+* [/src/Types.v](/src/Types.v) - A library of definable types
 * [/sandbox](/sandbox) - Sketches in Coq and Isabelle
 
 ## License
