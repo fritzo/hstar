@@ -192,6 +192,53 @@ Admitted.
 Lemma less_antisym: forall x y, (x [= y /\ y [= x) <-> x = y.
 Admitted.
 
+(** ** Indexed codes *)
+
+(** Dependently typed indexed codes require up-front work in
+    certifying an enumeration.
+    We can make code construction easier by omitting this certificate,
+    at the expense of more complicated uses of codes in
+    [codes_ap] and [codes_le].
+    *)
+
+Definition precodes := {index : Type & index -> code}.
+
+Inductive tree (a : Type) : Type :=
+  | tree_none : tree a
+  | tree_leaf (x : a) : tree a
+  | tree_pair (l r : tree a) : tree a.
+
+Fixpoint tree_reduce {a b : Type}
+  (f0 : b) (f1 : a -> b) (f2 : b -> b -> b) (t :tree a) : b :=
+  match t with
+  | tree_none => f0
+  | tree_leaf x => f1 x
+  | tree_pair l r => f2 (tree_reduce f0 f1 f2 l) (tree_reduce f0 f1 f2 r)
+  end.
+
+Definition predirect (x : precodes) : precodes :=
+  let (index, enum) := x in
+  let index' := tree index in
+  let enum' := tree_reduce code_bot enum code_join in
+  existT _ index' enum'.
+
+Definition precodes_ap (s1 s2 : precodes) : precodes :=
+  let (index1, enum1) := s1 in
+  let (index2, enum2) := predirect s2 in
+  let index12 := (index1 * index2)%type in
+  let enum12 (i : index12) :=
+    let (i1, i2) := i in (enum1 i1) * (enum2 i2)
+  in
+  existT _ index12 enum12.
+
+(** patently Pi02 *)
+Definition precodes_le (s1 s2 : precodes) : Prop :=
+  let (index1, enum1) := predirect s1 in
+  let (index2, enum2) := predirect s2 in
+  forall c : code,
+  forall i1 : index1, conv (c * (enum1 i1)) ->
+  exists i2 : index2, conv (c * (enum2 i2)).
+
 (** ** Dependently typed indexed codes *)
 
 (** We introduce directed sets of codes *)
@@ -271,102 +318,27 @@ Open Scope codes_scope.
 Delimit Scope codes_scope with codes.
 Bind Scope codes_scope with codes.
 
-(** Now we demonstrate the power of indexing over directed sets. *)
+(** Now we demonstrate the power of indexing over directed sets.
+    The simple implicit definition of [A_implicit] is not directed. *)
 
-Section pre_codes.
+Definition direct (p : precodes) : codes.
+  destruct p as [index enum].
+  refine (codes_intro (tree index) (tree_reduce code_bot enum code_join) _ _).
+    intros i j.
+    exists (tree_pair _ i j).
+    apply less_antisym.
+    compute; auto.
+  apply tree_none.
+Defined.
+
+Definition codes_sup {index : Type} (enum : index -> code) : codes :=
+  direct (existT _ index enum).
+
+Section direct_example.
   Open Scope code_scope.
-  Definition pre_codes := {index : Type & index -> code}.
-
-  Fixpoint list_join {t : Type} (e : t -> code) (l : list t) : code :=
-    match l with
-    | nil => code_bot
-    | (i :: l')%list => e i || list_join e l'
-    end.
-
-  Lemma list_join_assoc:
-    forall (t : Type) (e : t -> code) (l l' : list t),
-      list_join e l || list_join e l' = list_join e (l ++ l').
-    intros t e.
-    induction l.
-    induction l'.
-  Admitted.
-
-  Definition make_codes (p : pre_codes) : codes.
-    destruct p as [index enum].
-    apply codes_intro with (index := list index) (enum := list_join enum).
-      intros i j.
-      exists (i ++ j)%list.
-      apply less_antisym.
-      symmetry.
-      apply list_join_assoc.
-    apply nil.
-  Defined.
-End pre_codes.
-
-(*  The simple implicit definition of A_implicit is not directed.
-    One solution is to define arbitrary sets of codes,
-    and then their directed closure. *)
-
-Section A_implicit.
-  Definition compose : code -> code -> code.
-  Admitted.
-  Definition pair : code -> code ->code.
-  Admitted.
-
-  Let code2 := (code * code)%type.
-  Let index := {sr : code2 & let (s,r) := sr in (compose r s [= code_i)%code}.
-  Let enum (sr : index) : code := match sr with existT (s, r) _ => pair s r end.
-  Definition A_implicit' : codes.
-    apply make_codes; unfold pre_codes.
-    exists index; apply enum.
-  Defined.
-  Print A_implicit'.
-  Definition A_implicit : codes := make_codes (existT _ index enum).
-End A_implicit.
-
-(** ** Indexed codes *)
-
-(** Dependently typed indexed codes require up-front work in
-    certifying an enumeration.
-    We can make code construction easier by omitting this certificate,
-    at the expense of more complicated uses of codes in
-    [codes_ap] and [codes_le].
-    *)
-
-Definition codes' := {index : Type & index -> code}.
-
-Inductive tree (a : Type) : Type :=
-  | tree_leaf (x : a) : tree a
-  | tree_pair (l r : tree a) : tree a.
-
-Hint Constructors tree.
-
-Fixpoint tree_reduce {a b : Type}
-  (f1 : a -> b) (f2 : b -> b -> b) (t :tree a) : b :=
-  match t with
-  | tree_leaf x => f1 x
-  | tree_pair l r => f2 (tree_reduce f1 f2 l) (tree_reduce f1 f2 r)
-  end.
-
-Definition finite_joins_of (x : codes') : codes' :=
-  let (index, enum) := x in
-  let index' := tree index in
-  let enum' := tree_reduce enum code_join in
-  existT _ index' enum'.
-
-Definition codes_ap' (s1 s2 : codes') : codes' :=
-  let (index1, enum1) := s1 in
-  let (index2, enum2) := finite_joins_of s2 in
-  let index12 := (index1 * index2)%type in
-  let enum12 (i : index12) :=
-    let (i1, i2) := i in (enum1 i1) * (enum2 i2)
-  in
-  existT _ index12 enum12.
-
-(** patently Pi02 *)
-Definition codes_le' (s1 s2 : codes') : Prop :=
-  let (index1, enum1) := finite_joins_of s1 in
-  let (index2, enum2) := finite_joins_of s2 in
-  forall c : code,
-  forall i1 : index1, conv (c * (enum1 i1)) ->
-  exists i2 : index2, conv (c * (enum2 i2)).
+  Let I := code_i.
+  Variable pair : code -> code ->code.
+  Notation "<< x , y >>" := (pair x y).
+  Let A_implicit :=
+    codes_sup (<<s, r>> for s : code for r : code if r o s [= I).
+End direct_example.
