@@ -2,7 +2,6 @@
 
 # Inadvertently typed &lambda;-join-calculus
 
-
 This project is an attempt to formally reason about two untyped &lambda;-calculi
 that act like typed &lambda;-calculi in that they support Dana Scott's
 types-as-closures idiom <a href="#user-content-1">[1]</a>:
@@ -11,12 +10,17 @@ types-as-closures idiom <a href="#user-content-1">[1]</a>:
     ------------------    ------------------
         a : type                x : a
 
-    a : type   b : type
-    -------------------    where a -> b  :=  \f. b o f o a
-       a -> b : type
+with definable algebraic datatypes such as `a -> b := \f. b o f o a`
 
-    -----------   where bool is &lambda;-join-definable
-    bool : type
+    a : type   b : type    a : type   b : type
+    -------------------    -------------------    -----------    ----------
+       a -> b : type          a x b : type        bool : type    nat : type
+
+and case analysis theorems such as
+
+                 x : bool
+    ------------------------------------
+    x = K    x = F    x = BOT    x = TOP
 
 The &lambda;-calculi are two extensions of pure untyped &lambda;-calculus
 under Hyland and Wadsworth's observational equivalence axiom H&ast;.
@@ -32,8 +36,8 @@ The extensions are:
    providing a model of computation with
    convex sets of probability distributions.
 
-These &lambda;-calculi are described in <a href="#user-content-2">[2]</a>,
-and <a href="#user-content-3">[3]</a>
+These &lambda;-calculi are described in <a href="#user-content-2">[2]</a>
+and <a href="#user-content-3">[3]</a>.
 
 - [1] <a name="1"/>
   Dana Scott (1976)
