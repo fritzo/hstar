@@ -130,15 +130,15 @@ Lemma code_apply_apply' :
   forall a x, beta' (code_apply' a * x) (code_apply a x).
 Proof.
   intros a; induction a; compute.
-  - intro x; apply beta_step; apply beta_i.
-  - intro x; compute; fold code_apply; fold code_apply'.
-    apply beta_trans with (code_apply' a0 * (code_c * code_i * a * x)).
-    apply beta_step; auto.
-    apply beta_trans with (code_apply' a0 * (code_i * x * a)).
-    apply beta_step; auto.
-    apply beta_trans with (code_apply' a0 * (x * a)).
-    apply beta_step; auto.
-    apply IHa.
+    intro x; apply beta_step; apply beta_i.
+  intro x; compute; fold code_apply; fold code_apply'.
+  apply beta_trans with (code_apply' a0 * (code_c * code_i * a * x)).
+  apply beta_step; auto.
+  apply beta_trans with (code_apply' a0 * (code_i * x * a)).
+  apply beta_step; auto.
+  apply beta_trans with (code_apply' a0 * (x * a)).
+  apply beta_step; auto.
+  apply IHa.
 Qed.
 
 Theorem code_le_apply :
