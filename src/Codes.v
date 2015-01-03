@@ -35,7 +35,7 @@ Inductive beta : code -> code -> Prop :=
   | beta_trans x y z : beta x y -> beta y z -> beta x z
   | beta_sym x y : beta x y -> beta y x
   | beta_ap_left x x' y : beta x x' -> beta (x * y) (x' * y)
-  | beta_ap_right x y y': beta y y' -> beta (x * y) (x * y')
+  | beta_ap_right x y y' : beta y y' -> beta (x * y) (x * y')
   | beta_div_in x : beta (code_div * x) (code_div * (x * code_top))
   | beta_div_out : beta (code_div * code_top) code_top
   | beta_j x y z : beta ((x || y) * z) (x * z || y * z)
@@ -86,7 +86,7 @@ Definition code_join x y := x || y.
 
 Inductive beta : code -> code -> Prop :=
   | beta_ap_left x x' y : beta x x' -> beta (x * y) (x' * y)
-  | beta_ap_right x y y': beta y y' -> beta (x * y) (x * y')
+  | beta_ap_right x y y' : beta y y' -> beta (x * y) (x * y')
   | beta_j x y z : beta ((x || y) * z) (x * z || y * z)
   | beta_j_left x : beta (code_top || x) code_top
   | beta_j_right x : beta (x || code_top) code_top
@@ -96,6 +96,11 @@ Inductive beta : code -> code -> Prop :=
   | beta_c x y z : beta (code_c * x * y * z) (x * z * y)
   | beta_s x y z : beta (code_s * x * y * z) (x * z * (y * z)).
 Hint Constructors beta.
+
+Inductive beta' : code -> code -> Prop :=
+  | beta_step x y : beta x y -> beta' x y
+  | beta_refl x : beta' x x
+  | beta_trans x y z : beta' x y -> beta' y z -> beta' x z.
 
 Inductive conv : code -> Prop :=
   | conv_top : conv code_top
@@ -108,6 +113,41 @@ Definition code_eq (x y : code) : Prop := code_le x y /\ code_le y x.
 
 Notation "x [= y" := (code_le x y) : code_scope.
 Notation "x [=] y" := (code_eq x y) : code_scope.
+
+Fixpoint code_apply (args : list code) (head : code) : code :=
+  match args with
+  | nil => head
+  | cons arg args' => code_apply args' (head * arg)
+  end.
+
+Fixpoint code_apply' (args : list code) : code :=
+  match args with
+  | nil => code_i
+  | cons arg args' => code_apply' args' o (code_c * code_i * arg)
+  end.
+
+Lemma code_apply_apply' :
+  forall a x, beta' (code_apply' a * x) (code_apply a x).
+Proof.
+  intros a; induction a; compute.
+  - intro x; apply beta_step; apply beta_i.
+  - intro x; compute; fold code_apply; fold code_apply'.
+    apply beta_trans with (code_apply' a0 * (code_c * code_i * a * x)).
+    apply beta_step; auto.
+    apply beta_trans with (code_apply' a0 * (code_i * x * a)).
+    apply beta_step; auto.
+    apply beta_trans with (code_apply' a0 * (x * a)).
+    apply beta_step; auto.
+    apply IHa.
+Qed.
+
+Theorem code_le_apply :
+  forall x y, x [= y <->
+  (forall a, conv (code_apply a x) -> conv (code_apply a y)).
+Proof.
+  intros x y; split.
+  - intros Hl a Hc.
+Admitted.
 
 (*
 Ltac abstract M x :=
@@ -165,6 +205,40 @@ Proof.
   apply less_ap_right; assumption.
   apply less_ap_left; assumption.
 Qed.
+
+Fixpoint probe (n : nat) (x : code) : code :=
+  match n with
+  | 0%nat => x
+  | (S n')%nat => (probe n' x) * code_top
+  end.
+
+Lemma probe_bot_top : forall n, probe n code_bot <> code_top.
+Proof.
+  intros n; induction n; compute; fold probe; discriminate.
+Qed.
+
+Lemma beta_probe_bot : forall n x, ~ beta (probe n code_bot) x.
+Proof.
+  intros n x H; induction n.
+    compute in H; inversion H.
+  compute in H; fold probe in H.
+  (* TODO *)
+Admitted.
+
+Lemma div_probe_bot : forall n : nat, ~ conv (probe n code_bot).
+Proof.
+  intros n H; inversion H.
+      symmetry in H1; eapply probe_bot_top; apply H1.
+Admitted.
+
+Lemma less_bot_x : forall x, code_bot [= x.
+Proof.
+  unfold code_le.
+  intros c H.
+  inversion H.
+  (* TODO *)
+Admitted.
+
 Lemma less_k_j : code_k [= code_j.
 Proof.
   unfold code_le.
@@ -172,11 +246,13 @@ Proof.
   inversion H.
   (* TODO *)
 Admitted.
+
 Lemma less_join_left : forall x y, x [= x || y.
 Proof.
   intros x y0; generalize y0 as y; clear y0.
   (* TODO *)
 Admitted.
+
 Lemma less_join : forall x y z, x || y [= z <-> x [= z /\ y [= z.
 Proof.
   intros x y z; split.
@@ -184,6 +260,7 @@ Proof.
     unfold code_le; intros c Hconv.
   (* TODO *)
 Admitted.
+
 Lemma join_idem : forall x, x || x [=] x.
 Admitted.
 Lemma join_assoc : forall x y z, x || (y || z) [=] (x || y) || z.
