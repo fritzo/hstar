@@ -2,7 +2,7 @@
 
 # Inadvertently typed &lambda;-join-calculus
 
-This project is an attempt to formally reason about
+This project attempts to formally reason in Coq about
 two untyped &lambda;-calculi that act like typed &lambda;-calculi.
 
 ## Introduction
