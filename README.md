@@ -7,12 +7,12 @@ two untyped &lambda;-calculi that act like typed &lambda;-calculi.
 
 ## Introduction
 
-In the mid 1970s Dana Scott developed an idiom
-<a href="#user-content-1">[1]</a>
-of embedding types as closure operators (nondecreasing idempotent functions)
-in a &lambda;-calculus extended by a join operator.
+In the mid 1970's Dana Scott <a href="#user-content-1">[1]</a>
+developed an idiom of embedding types as closure operators
+(nondecreasing idempotent functions)
+in lattice models of &lambda;-calculus.
 His original work showed that this types-as-closures idiom
-leads to a rich type structure in D<sub>&infin</sub> models,
+leads to a rich type structure in D<sub>&infin;</sub> models,
 although the type system is inconsistent under the Curry-Howard correspondence
 due to the presence of a top element that inhabits every type.
 More recently, <a href="#user-content-2">[2]</a> showed that many of the atomic
