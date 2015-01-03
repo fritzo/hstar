@@ -31,26 +31,26 @@ Notation "x 'o' y" := (code_b * x * y)%code : code_scope.
 Notation "x || y" := (code_j * x * y)%code : code_scope.
 
 Inductive beta : code -> code -> Prop :=
-  | beta_refl x: beta x x
-  | beta_trans x y z: beta x y -> beta y z -> beta x z
-  | beta_sym x y: beta x y -> beta y x
-  | beta_ap_left x x' y: beta x x' -> beta (x * y) (x' * y)
+  | beta_refl x : beta x x
+  | beta_trans x y z : beta x y -> beta y z -> beta x z
+  | beta_sym x y : beta x y -> beta y x
+  | beta_ap_left x x' y : beta x x' -> beta (x * y) (x' * y)
   | beta_ap_right x y y': beta y y' -> beta (x * y) (x * y')
-  | beta_div_in x: beta (code_div * x) (code_div * (x * code_top))
-  | beta_div_out: beta (code_div * code_top) code_top
-  | beta_j x y z: beta ((x || y) * z) (x * z || y * z)
-  | beta_j_left x: beta (code_top || x) code_top
-  | beta_j_right x: beta (x || code_top) code_top
-  | beta_i x: beta (code_i * x) x
-  | beta_k x y: beta (code_k * x * y) x
-  | beta_b x y z: beta (code_b * x * y * z) (x * (y * z))
-  | beta_c x y z: beta (code_c * x * y * z) (x * z * y)
-  | beta_s x y z: beta (code_s * x * y * z) (x * z * (y * z)).
+  | beta_div_in x : beta (code_div * x) (code_div * (x * code_top))
+  | beta_div_out : beta (code_div * code_top) code_top
+  | beta_j x y z : beta ((x || y) * z) (x * z || y * z)
+  | beta_j_left x : beta (code_top || x) code_top
+  | beta_j_right x : beta (x || code_top) code_top
+  | beta_i x : beta (code_i * x) x
+  | beta_k x y : beta (code_k * x * y) x
+  | beta_b x y z : beta (code_b * x * y * z) (x * (y * z))
+  | beta_c x y z : beta (code_c * x * y * z) (x * z * y)
+  | beta_s x y z : beta (code_s * x * y * z) (x * z * (y * z)).
 Hint Constructors beta.
 
 Definition conv x := beta (code_div * x) code_top.
 
-Lemma conv_beta: forall x y, beta x y -> conv x -> conv y.
+Lemma conv_beta : forall x y, beta x y -> conv x -> conv y.
 Proof.
   unfold conv; intros x y Hbeta Hx.
   apply beta_trans with (code_div * x).
@@ -85,22 +85,22 @@ Notation "x || y" := (code_j * x * y)%code : code_scope.
 Definition code_join x y := x || y.
 
 Inductive beta : code -> code -> Prop :=
-  | beta_ap_left x x' y: beta x x' -> beta (x * y) (x' * y)
+  | beta_ap_left x x' y : beta x x' -> beta (x * y) (x' * y)
   | beta_ap_right x y y': beta y y' -> beta (x * y) (x * y')
-  | beta_j x y z: beta ((x || y) * z) (x * z || y * z)
-  | beta_j_left x: beta (code_top || x) code_top
-  | beta_j_right x: beta (x || code_top) code_top
-  | beta_i x: beta (code_i * x) x
-  | beta_k x y: beta (code_k * x * y) x
-  | beta_b x y z: beta (code_b * x * y * z) (x * (y * z))
-  | beta_c x y z: beta (code_c * x * y * z) (x * z * y)
-  | beta_s x y z: beta (code_s * x * y * z) (x * z * (y * z)).
+  | beta_j x y z : beta ((x || y) * z) (x * z || y * z)
+  | beta_j_left x : beta (code_top || x) code_top
+  | beta_j_right x : beta (x || code_top) code_top
+  | beta_i x : beta (code_i * x) x
+  | beta_k x y : beta (code_k * x * y) x
+  | beta_b x y z : beta (code_b * x * y * z) (x * (y * z))
+  | beta_c x y z : beta (code_c * x * y * z) (x * z * y)
+  | beta_s x y z : beta (code_s * x * y * z) (x * z * (y * z)).
 Hint Constructors beta.
 
 Inductive conv : code -> Prop :=
-  | conv_top: conv code_top
-  | conv_ap x: conv (x * code_top) -> conv x
-  | conv_beta x y: beta x y -> conv y -> conv x.
+  | conv_top : conv code_top
+  | conv_ap x : conv (x * code_top) -> conv x
+  | conv_beta x y : beta x y -> conv y -> conv x.
 Hint Constructors conv.
 
 Definition code_le (x y : code) := forall c, conv (c * x) -> conv (c * y).
@@ -132,15 +132,15 @@ Proof.
   (* TODO *)
 Admitted.
 
-Lemma less_refl: forall x, x [= x.
+Lemma less_refl : forall x, x [= x.
 Proof.
   unfold code_le; intros x f; auto.
 Qed.
-Lemma less_trans: forall x y z, x [= y -> y [= z -> x [= z.
+Lemma less_trans : forall x y z, x [= y -> y [= z -> x [= z.
 Proof.
   unfold code_le; intros x y z f g; auto.
 Qed.
-Lemma less_ap_left: forall x x' y, x [= x' -> x * y [= x' * y.
+Lemma less_ap_left : forall x x' y, x [= x' -> x * y [= x' * y.
 Proof.
   unfold code_le; intros x x' y Hless c Hconv.
   apply conv_beta' with (c * (code_i * x' * y)); auto.
@@ -151,23 +151,22 @@ Proof.
   apply conv_beta with (c * (code_i * x * y)); auto.
   apply conv_beta with (c * (x * y)); auto.
 Qed.
-Lemma less_ap_right: forall x y y', y [= y' -> x * y [= x * y'.
+Lemma less_ap_right : forall x y y', y [= y' -> x * y [= x * y'.
 Proof.
   unfold code_le; intros x y y' Hless c Hconv.
   apply conv_beta' with (code_b * c * x * y'); auto.
   apply Hless.
   apply conv_beta with (c * (x * y)); auto.
 Qed.
-Lemma less_ap: forall x x' y y', x [= x' -> y [= y' -> x * y [= x' * y'.
+Lemma less_ap : forall x x' y y', x [= x' -> y [= y' -> x * y [= x' * y'.
 Proof.
   intros x x' y y' Hx Hy.
   apply less_trans with (x * y').
   apply less_ap_right; assumption.
   apply less_ap_left; assumption.
 Qed.
-Lemma less_k_j: code_k [= code_j.
+Lemma less_k_j : code_k [= code_j.
 Proof.
-  unfold code_le.
   unfold code_le.
   intros c H.
   inversion H.
@@ -178,18 +177,18 @@ Proof.
   intros x y0; generalize y0 as y; clear y0.
   (* TODO *)
 Admitted.
-Lemma less_join: forall x y z, x || y [= z <-> x [= z /\ y [= z.
+Lemma less_join : forall x y z, x || y [= z <-> x [= z /\ y [= z.
 Proof.
   intros x y z; split.
     intros Hxy; split.
     unfold code_le; intros c Hconv.
   (* TODO *)
 Admitted.
-Lemma join_idem: forall x, x || x [=] x.
+Lemma join_idem : forall x, x || x [=] x.
 Admitted.
-Lemma join_assoc: forall x y z, x || (y || z) [=] (x || y) || z.
+Lemma join_assoc : forall x y z, x || (y || z) [=] (x || y) || z.
 Admitted.
-Lemma less_antisym: forall x y, (x [= y /\ y [= x) <-> x = y.
+Lemma less_antisym : forall x y, (x [= y /\ y [= x) <-> x = y.
 Admitted.
 
 (** ** Indexed codes *)

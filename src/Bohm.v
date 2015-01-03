@@ -1,6 +1,6 @@
 (** * Bohm's theorem for SKJ *)
 
-(** Bohm's theorem for lambda-calculus shows separability:
+(** Bohm's theorem for lambda-calculus shows separability :
     for every pairs of distinct normal forms [x,y],
     there is a context in which they reduce to [K,F].
     SKJ lacks a normal form predicate,

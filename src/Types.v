@@ -14,7 +14,7 @@ Notation "x :: a" := (fixes a x) : Ob_scope.
 
 (** ** Atomic types *)
 
-Lemma I_closure: closure I.
+Lemma I_closure : closure I.
 Proof.
   unfold closure; split.
   apply LESS_refl.
@@ -27,7 +27,7 @@ Proof.
   beta_reduce; firstorder.
 Qed.
 
-Lemma V_closure: closure V.
+Lemma V_closure : closure V.
 Proof.
   unfold closure.
   split.
@@ -46,7 +46,7 @@ Proof.
   (* TODO *)
 Admitted.
 
-Corollary fixes_V_V: fixes V V.
+Corollary fixes_V_V : fixes V V.
 Proof.
   apply V_inhab.
   apply V_closure.
@@ -58,7 +58,7 @@ Section semi.
   Definition semi := encode (\\a,a'; a --> a').
 End semi.
 
-Lemma semi_closure: closure semi.
+Lemma semi_closure : closure semi.
 Proof.
   (* TODO *)
 Admitted.
@@ -78,7 +78,7 @@ Section boool.
   Definition boool := encode (\\a,a'; a --> a --> a').
 End boool.
 
-Lemma boool_closure: closure semi.
+Lemma boool_closure : closure semi.
 Proof.
   (* TODO *)
 Admitted.

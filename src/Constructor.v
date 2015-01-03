@@ -17,20 +17,20 @@ Notation "<< x , y >>" := (pair * x * y)%Ob : Ob_scope.
 Notation "<< x , y >>" := ([pair] * x * y)%Lambda : Lambda_scope.
 
 Definition is_pair (x : Ob) := x = <<x * K, x * F>>.
-Lemma pair_is_pair: forall x y, is_pair <<x, y>>.
+Lemma pair_is_pair : forall x y, is_pair <<x, y>>.
 Proof.
   intros x y. compute. beta_reduce; auto.
 Qed.
 
 Definition sub_pair (x : Ob) := x [= <<TOP, TOP>>.
-Lemma sub_pair_pair: forall x y, sub_pair <<x, y>>.
+Lemma sub_pair_pair : forall x y, sub_pair <<x, y>>.
 Proof.
   intros x y. compute. beta_reduce.
   apply LESS_trans with (C*(C*I*TOP)*y);
   monotonicity; auto.
 Qed.
 
-Definition sub_pair_elim_intro: forall x, sub_pair x -> x [= <<x*K, x*F>>.
+Definition sub_pair_elim_intro : forall x, sub_pair x -> x [= <<x*K, x*F>>.
 Proof.
   unfold sub_pair; unfold pair; compute.
   intros x H.
@@ -102,7 +102,7 @@ Section compose.
 End compose.
 
 (*
-Lemma A_compose: forall a, A_prop a -> A_prop (compose * a).
+Lemma A_compose : forall a, A_prop a -> A_prop (compose * a).
 Proof.
   intros a H.
   unfold A_prop in H; destruct H as [Hpair Hless].
@@ -115,7 +115,7 @@ Proof.
     monotonicity; eta_expand in Hless; apply Hless.
 Qed.
 
-Lemma A_conjugate: forall a, A_prop a -> A_prop (conjugate * a).
+Lemma A_conjugate : forall a, A_prop a -> A_prop (conjugate * a).
 Proof.
   intros a H.
   unfold A_prop in H; destruct H as [Hpair Hless].
@@ -136,7 +136,7 @@ Definition A_def :=
      || compose
      || conjugate).
 
-Lemma A_sound: A_def [= A.
+Lemma A_sound : A_def [= A.
 Proof.
   (*
   unfold A.
@@ -151,7 +151,7 @@ Proof.
   (* TODO *)
 Admitted.
 
-Lemma A_complete: A [= A_def.
+Lemma A_complete : A [= A_def.
 Proof.
   unfold A.
   apply Join_lub; unfold is_upper_bound.
@@ -162,7 +162,7 @@ Proof.
   (* TODO *)
 Admitted.
 
-Theorem A_definable: A = A_def.
+Theorem A_definable : A = A_def.
 Proof.
   apply LESS_antisym ; apply A_sound || apply A_complete.
 Qed.
