@@ -231,6 +231,15 @@ Proof.
       symmetry in H1; eapply probe_bot_top; apply H1.
 Admitted.
 
+(*  TODO
+
+    This is very difficult to prove given the definitions of
+    [code], [beta], and [conv].
+
+    See sandbox/hoas.v which adds substitution and
+    attempts to strengthen [conv] to get induction to work.
+*)
+
 Lemma less_bot_x : forall x, code_bot [= x.
 Proof.
   unfold code_le.
