@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/fritzo/hstar.svg?branch=master)](https://travis-ci.org/fritzo/hstar)
+[proofs | incomplete]
 
 # Inadvertently typed &lambda;-join-calculus
 
@@ -28,7 +29,9 @@ and extend the result to probabilistic programming languages.
 We reason in a language of ordered combinatory algebras,
 treating the Scott ordering `[=` as the basic relation.
 We develop type systems within two untyped universes
-and obtain algebraic types such as `a -> b := \f. b o f o a`, for example
+and obtain algebraic types such as `a -> b := \f. b o f o a`.
+The type system supports algebraic, dependent, polymorphic, and intersection
+types, as well as atomic types and a type of all types, for example
 
     I [= a    a = a o a            a : type    a x = x
     =================== closures   ================== fixedpoints
@@ -45,7 +48,7 @@ and obtain algebraic types such as `a -> b := \f. b o f o a`, for example
     ---------    -----------    ----------
     TOP : typ    bool : type    nat : type
 
-Our main result is a set of induction principles supporting
+The main goal is to prove a set of induction principles supporting
 case analysis for well typed terms, for example:
 
                               p TOP [= q TOP
@@ -77,9 +80,6 @@ case analysis for well typed terms, for example:
     forall n:nat, p (succ n) [= q (succ n)
     -------------------------------------- nat induction principle
            forall n:nat, p n [= q n
-
-The type system supports algebraic, dependent, polymorphic, and intersection
-types, as well as atomic types and a type of all types.
 
 The reasoning principles developed here are intended to be used in the
 [Pomagma](http://github.com/fritzo/pomagma)
