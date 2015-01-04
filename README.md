@@ -8,11 +8,10 @@ two untyped &lambda;-calculi that act like typed &lambda;-calculi.
 
 ## Introduction
 
-In the mid 1970's Dana Scott <a href="#user-content-1">[1]</a>
-developed an idiom of embedding types as closure operators
-(nondecreasing idempotent functions)
-in lattice models of &lambda;-calculus.
-His original work showed that this types-as-closures idiom
+In the early 1970's Dana Scott <a href="#user-content-1">[1]</a>
+developed an idiom of treating nondecreasing idempotent functions ('closures')
+as data types in lattice models of untyped &lambda;-calculus.
+Scott's original work showed that this types-as-closures idiom
 leads to a rich type structure in D<sub>&infin;</sub> models,
 although the type system is inconsistent under the Curry-Howard correspondence
 due to the presence of a top element that inhabits every type.
@@ -23,7 +22,7 @@ Hyland and Wadsworth's axiom H&#42;:
 
     M = N   iff   forall C[ ], C[M] converges <--> C[N] converges
 
-This Coq development attempts to formalize the proof in
+The Coq developments in this project attempt to formalize the construction in
 <a href="#user-content-2">[2]</a>
 and extend the result to probabilistic programming languages.
 We reason in a language of ordered combinatory algebras,
@@ -31,7 +30,7 @@ treating the Scott ordering `[=` as the basic relation.
 We develop type systems within two untyped universes
 and obtain algebraic types such as `a -> b := \f. b o f o a`.
 The type system supports algebraic, dependent, polymorphic, and intersection
-types, as well as atomic types and a type of all types, for example
+types, as well as atomic types and a type of all types; for example
 
     I [= a    a = a o a            a : type    a x = x
     =================== closures   ================== fixedpoints
