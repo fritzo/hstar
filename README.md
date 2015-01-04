@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/fritzo/hstar.svg?branch=master)](https://travis-ci.org/fritzo/hstar)
-[proofs | incomplete]
+![Proof Status](https://img.shields.io/badge/proofs-incomplete-red.svg?style=flat)
 
 # Inadvertently typed &lambda;-join-calculus
 
