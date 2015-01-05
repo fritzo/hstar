@@ -57,34 +57,40 @@ Proof.
 Admitted.
 
 (* Tait's hereditary termination predicate *)
-Inductive hterminates : forall {a}, term a -> Prop :=
-  | hterminates_nat: forall (x : term tp_nat),
-    terminates x -> hterminates x
-  | hterminates_exp: forall {a b} (f : term (a -o b)),
- (* FIXME *)
- (* terminates f -> (forall x, hterminates x -> hterminates (f*x)) -> *)
-    terminates f -> (forall x, terminates x -> hterminates (f*x)) ->
-    hterminates f.
-Hint Constructors hterminates.
+Fixpoint ht a (x : term a) : Prop :=
+  match a, x with
+  | tp_nat, x => terminates x
+  | tp_exp b c, x => terminates x /\ forall y, ht b y -> ht c (x * y)
+  end.
 
-Lemma hterminates_ap: forall {a b} (x : term (a -o b)) (y : term a),
-  hterminates x -> hterminates y -> hterminates (x * y).
+Lemma ht_terminates a (x : term a) : ht a x -> terminates x.
+Proof.
+  intros H; unfold ht in H; induction a; compute; apply H.
+Qed.
+
+Lemma ht_ap:
+  forall {a b} (x : term (a -o b)) (y : term a),
+  ht _ x -> ht _ y -> ht _ (x * y).
 Proof.
   intros.
   inversion H.
-  (* TODO get rid of existT in hypothesis *)
-Admitted.
-Hint Resolve hterminates_ap.
+  apply H2.
+  apply H0.
+Qed.
+Hint Resolve ht_ap.
 
-Theorem hereditary_termination: forall a (x : term a), hterminates x.
+Theorem hereditary_termination: forall a (x : term a), ht a x.
 Proof.
   induction x.
-  inversion IHx1.
-  apply hterminates_ap; assumption.
-  assert (terminates (@sub a b c)).
-  apply terminates_intro.
-  intros.
-  inversion H.
-  destruct 1.
-  (* TODO *)
-Qed.
+            inversion IHx1; apply ht_ap; assumption.
+          admit.
+        unfold ht; fold ht; split.
+          apply const_val.
+        fold ht; intros y H; split.
+          apply const_x_val.
+          apply ht_terminates; assumption.
+        intros z IH.
+        induction a; compute; fold ht.
+        apply terminates_intro; intros y' Hs; inversion Hs.
+        (* TODO *)
+Admitted.
