@@ -9,10 +9,11 @@ two untyped &lambda;-calculi that act like typed &lambda;-calculi.
 ## Introduction
 
 In the early 1970's Dana Scott <a href="#user-content-1">[1]</a>
-developed an idiom of treating nondecreasing idempotent functions ('closures')
-as data types in lattice models of untyped &lambda;-calculus.
+developed an idiom of implementing data types as
+nondecreasing idempotent functions
+in lattice models of untyped &lambda;-calculus.
 Scott's original work showed that this types-as-closures idiom
-leads to a rich type structure in D<sub>&infin;</sub> models,
+leads to a rich type structure in D<sub>&infin;</sub> and P(&omega;) models,
 although the type system is inconsistent under the Curry-Howard correspondence
 due to the presence of a top element that inhabits every type.
 More recently, <a href="#user-content-2">[2]</a> showed that many of the atomic
@@ -20,11 +21,13 @@ datatypes are definable with only &lambda;-calculus and a binary join operator,
 after a suitable extensional collapse by
 Hyland and Wadsworth's axiom H&#42;:
 
-    M = N   iff   forall C[ ], C[M] converges <--> C[N] converges
+    M = N   iff   forall context C[ ], C[M] converges <--> C[N] converges
 
 The Coq developments in this project attempt to formalize the construction in
 <a href="#user-content-2">[2]</a>
-and extend the result to probabilistic programming languages.
+and extend the result to probabilistic programming languages,
+similar to Jean Goubault-Larrecq's recent full-abstraction result
+<a href="#user-content-3">[3]</a>.
 We reason in a language of ordered combinatory algebras,
 treating the Scott ordering `[=` as the basic relation.
 We develop type systems within two untyped universes
@@ -88,10 +91,14 @@ forward-chaining inference engine.
 
 - [1] <a name="1"/>
   Dana Scott (1976)
-  ["Datatypes as Lattices"](http://www.cs.ox.ac.uk/files/3287/PRG05.pdf)
+  [Datatypes as Lattices](http://www.cs.ox.ac.uk/files/3287/PRG05.pdf)
 - [2] <a name="2"/>
   Fritz Obermeyer (2009)
   [Automated Equational Reasoning in Nondeterministic &lambda;-Calculi Modulo Theories H&#42;](http://fritzo.org/thesis.pdf)
+- [3] <a name="3"/>
+  Jean Goubault-Larrecq
+  [Full abstraction for non-deterministic and probabilistic extensions of PCF I: The angelic cases]
+  (http://www.lsv.ens-cachan.fr/Publis/PAPERS/PDF/jgl-jlap14.pdf)
 
 ## Organization
 
