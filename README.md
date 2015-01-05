@@ -96,7 +96,7 @@ forward-chaining inference engine.
   Fritz Obermeyer (2009)
   [Automated Equational Reasoning in Nondeterministic &lambda;-Calculi Modulo Theories H&#42;](http://fritzo.org/thesis.pdf)
 - [3] <a name="3"/>
-  Jean Goubault-Larrecq
+  Jean Goubault-Larrecq (2015)
   [Full abstraction for non-deterministic and probabilistic extensions of PCF I: The angelic cases]
   (http://www.lsv.ens-cachan.fr/Publis/PAPERS/PDF/jgl-jlap14.pdf)
 
