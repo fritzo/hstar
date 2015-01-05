@@ -5,6 +5,7 @@
 
 This project attempts to formally reason in Coq about
 two untyped &lambda;-calculi that act like typed &lambda;-calculi.
+The proofs are currently incomplete.
 
 ## Introduction
 
