@@ -110,7 +110,7 @@ Ltac red_step_ try_red_step :=
 Ltac red_step := red_step_ @try_red_step.
 
 Definition code_div {Var : Set} : Code Var := V * (C * I * TOP).
-Lemma red_div {Var : Set} (x : Code Var) :
+Lemma red_div (Var : Set) (x : Code Var) :
   red (code_div * x) (x || code_div * x * TOP).
 Proof.
   unfold code_div.
@@ -182,7 +182,7 @@ Proof.
 Qed.
 Hint Rewrite var_monad_assoc.
 
-Lemma code_sub_ext {Var Var' : Set}
+Lemma code_sub_ext (Var Var' : Set)
   (f g : Var -> Code Var') (fg : forall v, f v = g v) x :
   x @ f = x @ g.
 Proof.
@@ -190,7 +190,7 @@ Proof.
   rewrite IHx1; rewrite IHx2; auto.
 Qed.
 
-Lemma red_sub_left {Var Var' : Set}
+Lemma red_sub_left (Var Var' : Set)
   (f g : Var -> Code Var') (fg : forall v, red (f v) (g v))
   (x : Code Var) : red (x @ f) (x @ g).
 Proof.
@@ -201,7 +201,7 @@ Proof.
 Qed.
 Hint Resolve red_sub_left.
 
-Lemma beta_sub_right {Var Var' : Set}
+Lemma beta_sub_right (Var Var' : Set)
   (f : Var -> Code Var') (x y : Code Var)
   (xy : beta x y) : beta (x @ f) (y @ f).
 Proof.
@@ -209,7 +209,7 @@ Proof.
 Qed.
 Hint Resolve beta_sub_right.
 
-Lemma pi_sub_right {Var Var' : Set}
+Lemma pi_sub_right (Var Var' : Set)
   (f : Var -> Code Var') (x y : Code Var)
   (xy : pi x y) : pi (x @ f) (y @ f).
 Proof.
@@ -217,7 +217,7 @@ Proof.
 Qed.
 Hint Resolve pi_sub_right.
 
-Lemma red_sub_right {Var Var' : Set}
+Lemma red_sub_right (Var Var' : Set)
   (f : Var -> Code Var') (x y : Code Var)
   (xy : red x y) : red (x @ f) (y @ f).
 Proof.
@@ -226,9 +226,9 @@ Proof.
 Qed.
 Hint Resolve red_sub_right.
 
-Lemma red_sub {Var Var' : Set}
-  {f g : Var -> Code Var'} (fg : forall v, red (f v) (g v))
-  {x y : Code Var} (xy : red x y) :
+Lemma red_sub (Var Var' : Set)
+  (f g : Var -> Code Var') (fg : forall v, red (f v) (g v))
+  (x y : Code Var) (xy : red x y) :
   red (code_sub f x) (code_sub g y).
 Proof.
   red_to (code_sub g x).
@@ -243,20 +243,20 @@ Definition code_le {Var : Set} (x y : Code Var) :=
 
 Notation "x [= y" := (code_le x y)%code : code_scope.
 
-Lemma code_le_refl {Var : Set} (x : Code Var) : x [= x.
+Lemma code_le_refl (Var : Set) (x : Code Var) : x [= x.
 Proof.
   unfold code_le; auto.
 Qed.
 Hint Resolve code_le_refl.
 
-Lemma code_le_trans {Var : Set} (x y z : Code Var) :
+Lemma code_le_trans (Var : Set) (x y z : Code Var) :
   x [= y -> y [= z -> x [= z .
 Proof.
   unfold code_le; auto.
 Qed.
 Hint Resolve code_le_trans.
 
-Lemma code_le_ap_right {Var : Set} {x y y' : Code Var} :
+Lemma code_le_ap_right (Var : Set) (x y y' : Code Var) :
   y [= y' -> x * y [= x * y'.
 Proof.
   unfold code_le; unfold conv; intros H Var' c f.
@@ -268,7 +268,7 @@ Proof.
 Qed.
 Hint Resolve code_le_ap_right.
 
-Lemma code_le_ap_left {Var : Set} {x x' y : Code Var} :
+Lemma code_le_ap_left (Var : Set) (x x' y : Code Var) :
   x [= x' -> x * y [= x' * y.
 Proof.
   unfold code_le; unfold conv; intros H Var' c f.
@@ -284,7 +284,7 @@ Proof.
 Qed.
 Hint Resolve code_le_ap_left.
 
-Lemma code_le_ap {Var : Set} {x x' y y': Code Var} :
+Lemma code_le_ap (Var : Set) (x x' y y': Code Var) :
   code_le x x' -> code_le y y' -> code_le (x * y) (x' * y').
 Proof.
   intros Hx Hy.
@@ -292,7 +292,7 @@ Proof.
 Qed.
 Hint Resolve code_le_ap.
 
-Lemma code_le_red_left {Var : Set} (x x' y : Code Var) :
+Lemma code_le_red_left (Var : Set) (x x' y : Code Var) :
   red x x' -> x [= y -> x' [= y.
 Proof.
   unfold code_le; intros Hred Hxy Var' c f Hconv.
@@ -303,7 +303,7 @@ Proof.
 Qed.
 Hint Resolve code_le_red_left.
 
-Lemma code_le_red_right {Var : Set} (x y y' : Code Var) :
+Lemma code_le_red_right (Var : Set) (x y y' : Code Var) :
   red y' y -> x [= y -> x [= y'.
 Proof.
   unfold code_le; intros Hred Hxy Var' c f Hconv.
@@ -314,7 +314,7 @@ Proof.
 Qed.
 Hint Resolve code_le_red_right.
 
-Lemma code_le_red {Var : Set} (x x' y y' : Code Var) :
+Lemma code_le_red (Var : Set) (x x' y y' : Code Var) :
   red x x' -> red y' y -> x [= y -> x' [= y'.
 Proof.
   intros Hx Hy Hxy.
@@ -323,7 +323,7 @@ Proof.
 Qed.
 Hint Resolve code_le_red.
 
-Lemma code_le_top {Var : Set} (x : Code Var) : x [= TOP.
+Lemma code_le_top (Var : Set) (x : Code Var) : x [= TOP.
 Proof.
   unfold code_le; intros Var' c f Hred.
   red_to (code_div o c * TOP).
@@ -332,7 +332,7 @@ Proof.
 Qed.
 Hint Resolve code_le_top.
 
-Lemma code_le_bot {Var : Set} (x : Code Var) : BOT [= x.
+Lemma code_le_bot (Var : Set) (x : Code Var) : BOT [= x.
 Proof.
   unfold code_le; intros Var' c f Hred.
   red_to (code_div o c * (x @ f)).
@@ -341,21 +341,21 @@ Proof.
 Qed.
 Hint Resolve code_le_bot.
 
-Lemma code_le_j_left {Var : Set} (x y : Code Var) : x [= x || y.
+Lemma code_le_j_left (Var : Set) (x y : Code Var) : x [= x || y.
 Proof.
   unfold code_le; intros Var' c f Hred.
   red_to (code_div * (c * (x @ f))).
 Qed.
 Hint Resolve code_le_j_left.
 
-Lemma code_le_j_right {Var : Set} (x y : Code Var) : y [= x || y.
+Lemma code_le_j_right (Var : Set) (x y : Code Var) : y [= x || y.
 Proof.
   unfold code_le; intros Var' c f Hred.
   red_to (code_div * (c * (y @ f))).
 Qed.
 Hint Resolve code_le_j_right.
 
-Lemma code_le_j_ub {Var : Set} (x y z : Code Var) :
+Lemma code_le_j_ub (Var : Set) (x y z : Code Var) :
   x [= z -> y [= z -> x || y [= z.
 Proof.
   unfold code_le; unfold conv; intros Hx Hy Var' c f Hconv.
@@ -363,7 +363,7 @@ Proof.
 Admitted.
 Hint Resolve code_le_j_ub.
 
-Lemma code_le_ext {Var : Set} (x x' : Code Var) :
+Lemma code_le_ext (Var : Set) (x x' : Code Var) :
   (forall y, x * y [= x' * y) -> x [= x'.
 Proof.
   (* TODO implement via abstraction algorithm *)
@@ -375,7 +375,7 @@ Hint Resolve code_le_ext.
 Definition code_eq {Var : Set} (x y : Code Var) := x [= y /\ y [= x.
 Notation "x [=] y" := (code_eq x y)%code : code_scope.
 
-Lemma code_eq_beta {Var : Set} (x y : Code Var) : beta x y -> x [=] y.
+Lemma code_eq_beta (Var : Set) (x y : Code Var) : beta x y -> x [=] y.
 Proof.
   unfold code_eq; intros Hbeta; split.
   assert (Hxy : red x y); auto; apply code_le_red_left with y; auto.
@@ -383,7 +383,7 @@ Proof.
 Qed.
 Hint Resolve code_eq_beta.
 
-Lemma code_eq_ext {Var : Set} (x x' : Code Var) :
+Lemma code_eq_ext (Var : Set) (x x' : Code Var) :
   (forall y, x * y [=] x' * y) -> x [=] x'.
 Proof.
   unfold code_eq; intro H; split; apply code_le_ext; intro y; apply H.
