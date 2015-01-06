@@ -144,7 +144,6 @@ Fixpoint code_sub {Var Var' : Set}
   | Y => Y
   | V => V
   end.
-Hint Resolve code_sub.
 
 Notation "x @ f" := (code_sub f x)%code : code_scope.
 
