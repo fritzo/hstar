@@ -16,9 +16,6 @@ Inductive code {Var : Set} : Set :=
   | code_var : Var -> code
   | code_ap : code -> code -> code
   | code_top : code
-(*
-  | code_div : code
-*)
   | code_bot : code
   | code_j : code
   | code_i : code
@@ -33,9 +30,6 @@ Definition Code (Var : Set) := @code Var.
 
 Notation "x * y" := (code_ap x y) : code_scope.
 Notation "'TOP'" := code_top : code_scope.
-(*
-Notation "'DIV'" := code_div : code_scope.
-*)
 Notation "'BOT'" := code_bot : code_scope.
 Notation "'J'" := code_j : code_scope.
 Notation "'I'" := code_i : code_scope.
@@ -59,10 +53,6 @@ Inductive beta {Var : Set} : Code Var -> Code Var -> Prop :=
   | beta_ap_left x x' y : beta x x' -> beta (x * y) (x' * y)
   | beta_ap_right x y y' : beta y y' -> beta (x * y) (x * y')
   | beta_top x : beta TOP x
-(*
-  | beta_div_push x : beta (DIV * x) (DIV * x * TOP)
-  | beta_div_read x : beta (DIV * x) x
-*)
   | beta_bot x : beta x BOT
   | beta_j x y z : beta ((x || y) * z) (x * z || y * z)
   | beta_j_left x y : beta (x || y) x
@@ -75,30 +65,64 @@ Inductive beta {Var : Set} : Code Var -> Code Var -> Prop :=
   | beta_y x : beta (Y * x) (x * (Y * x))
   | beta_v x : beta (V * x) (I || x o (V * x)).
 Hint Constructors beta.
-(* Notation "x ->> y" := (beta x y) : code_scope. *)
+
+Fixpoint try_beta_step {Var : Set} (u : Code Var) : option (Code Var) :=
+  match u with
+  | I * x => Some x
+  | K * x * y => Some x
+  | J * x * y * z => Some (x * z || y * z)
+  | B * x * y * z => Some (x * (y * z))
+  | C * x * y * z => Some (x * z * y)
+  | S * x * y * z => Some (x * z * (y * z))
+  | Y * x => Some (x * (Y * x))
+  | V * x => Some (I || x o (V * x))
+  | x * y =>
+      match try_beta_step x with
+      | Some x' => Some (x' * y)
+      | None =>
+          match try_beta_step y with
+          | Some y' => Some (x * y')
+          | None => None
+          end
+      end
+  | _ => None
+  end.
+
+Section try_beta_step.
+  Variable Var : Set.
+  Variable x : Code Var.
+  Eval compute in
+    (try_beta_step ((x || (C * I * TOP) o (V * (C * I * TOP)) * x))).
+End try_beta_step.
 
 Ltac beta_to x := apply beta_trans with x; auto.
+
+Ltac beta_step_ try_beta_step :=
+  match goal with
+  | [|- @beta ?v ?x ?y] =>
+      match eval compute in (try_beta_step v x) with
+      | Some ?z => beta_to z
+      | _ => fail
+      end
+  | _ => fail
+  end.
+
+Ltac beta_step := beta_step_ @try_beta_step.
 
 Definition code_div {Var : Set} : Code Var := V * (C * I * TOP).
 Lemma beta_div {Var : Set} (x : Code Var) :
   beta (code_div * x) (x || code_div * x * TOP).
 Proof.
   unfold code_div.
-  beta_to ((I || (C * I * TOP) o (V * (C * I * TOP))) * x).
-  beta_to (I * x || (C * I * TOP) o (V * (C * I * TOP)) * x).
-  beta_to (x || (C * I * TOP) o (V * (C * I * TOP)) * x).
-  beta_to (x || (C * I * TOP) * (V * (C * I * TOP) * x)).
-  beta_to (x || I * (V * (C * I * TOP) * x) * TOP).
+  beta_step.
+  beta_step.
+  beta_step.
+  apply beta_ap_right. (* FIXME allow variables in beta_step *)
+  beta_step.
+  beta_step.
 Qed.
 
 Definition conv {Var : Set} (x : Code Var) := beta (code_div * x) TOP.
-
-(*
-Inductive conv {Var : Set} : Code Var -> Prop :=
-  | conv_ap x : conv (x * code_top) -> conv x
-  | conv_beta x : beta x code_top -> conv x.
-Hint Constructors conv.
-*)
 
 (** ** Substitution and abstraction *)
 
@@ -186,11 +210,21 @@ Fixpoint context_eval {Var Var' : Set}
   let f v := match v with None => x' | Some v' => code_var v' end in
   code_sub f c2.
 
-Notation "c @ x" := (context_eval c x) (at level 60, no associativity).
+Notation "c @ x" := (context_eval c x)
+  (at level 60, no associativity) : code_scope.
+Notation "( c1 , c2 ) @ x" := (context_intro c1 c2 @ x)
+  (at level 60, no associativity) : code_scope.
+
+Lemma context_beta_right {Var Var' : Set}
+  (c : Context Var Var') (x y : Code Var) (xy : beta x y) :
+  beta (c @ x) (c @ y).
+Proof.
+  (* TODO *)
+Admitted.
 
 Definition conv_in {Var Var' : Set}
   (c : Context Var Var') (x : Code Var) : Prop :=
-  conv (context_eval c x).
+  conv (c @ x).
 
 Definition code_le {Var : Set} (x y : Code Var) : Prop :=
   forall (Var' : Set) (c : Context Var Var'), conv_in c x -> conv_in c y.
@@ -198,8 +232,7 @@ Definition code_le {Var : Set} (x y : Code Var) : Prop :=
 Definition context_div {Var Var' : Set}
   (c1 : Var -> Code Var') (c2 : Code (option Var'))
   (x : Code Var) :
-  code_div * context_eval (context_intro c1 c2) x =
-    context_eval (context_intro (fun v => code_div * c1 v) c2) x.
+  code_div * ((c1, c2) @ x) = (fun v => code_div * c1 v, c2) @ x.
 Proof.
   unfold context_eval at 2; simpl.
 Admitted.
@@ -213,21 +246,28 @@ Qed.
 Lemma code_le_x_top {Var : Set} (x : Code Var) : code_le x code_top.
 Proof.
   unfold code_le; unfold conv_in; unfold conv; intros Var' c.
-  intros Hbeta.
   destruct c as [c1 c2].
-  rewrite context_div in Hbeta; rewrite context_div.
-  beta_to (context_eval (context_intro (fun v : Var => code_div * c1 v) c2) x).
-  (*
-  apply beta_sub_right with (y := TOP).
-  *)
-Admitted.
+  repeat rewrite context_div.
+  intros Hbeta.
+  beta_to ((fun v : Var => code_div * c1 v, c2) @ x).
+  apply context_beta_right; auto.
+Defined.
+
+Lemma code_le_bot_x' {Var : Set} (c x : Code Var) :
+  beta (c * BOT) TOP -> beta (c * x) TOP.
+Proof.
+  apply beta_trans; auto.
+Qed.
 
 Lemma code_le_bot_x {Var : Set} (x : Code Var) : code_le code_bot x.
 Proof.
-  unfold code_le; intros Var' c Hconv.
-  induction c; simpl; auto.
-  induction Hconv.
-Admitted.
+  unfold code_le; unfold conv_in; unfold conv; intros Var' c.
+  destruct c as [c1 c2].
+  repeat rewrite context_div.
+  intros Hbeta.
+  beta_to ((fun v : Var => code_div * c1 v, c2) @ BOT).
+  apply context_beta_right; auto.
+Defined.
 
 Lemma code_le_k_j {Var : Set} : @code_le Var code_k code_j.
 Proof.
