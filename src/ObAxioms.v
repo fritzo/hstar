@@ -3,7 +3,7 @@
 
 Require Export Notations.
 
-(* TODO try to replace these with the 5 axioms in ../extensionality.v *)
+(* TODO replace these with the 5 axioms in Points.v *)
 
 (** ** Axioms *)
 

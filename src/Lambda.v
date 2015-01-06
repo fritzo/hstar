@@ -6,9 +6,10 @@
     in lambda Lambdas via a [OB] constructor.
     *)
 
-Require Import ObAxioms.
 Require Import EqNat.
 Require Import Setoid.
+Require Import ObAxioms.
+Require Import Notations.
 
 Open Scope Ob_scope.
 
@@ -96,16 +97,11 @@ Close Scope Ob_scope.
 Open Scope Lambda_scope.
 Open Scope Ob_scope.
 
-Notation "x * y" := (APP x y)%Lambda
-  (at level 40, left associativity) : Lambda_scope.
-Notation "\ x , y" := (abs x y)%Lambda
-  (at level 60, right associativity) : Lambda_scope.
-Notation "x 'o' y" := ([B] * x * y)%Lambda
-  (at level 30, right associativity) : Lambda_scope.
-Notation "x || y" := ([J] * x * y)%Lambda
-  (at level 50, left associativity) : Lambda_scope.
-Notation "x (+) y" := ([R] * x * y)%Lambda
-  (at level 45, no associativity) : Lambda_scope.
+Notation "x * y" := (APP x y)%Lambda : Lambda_scope.
+Notation "\ x , y" := (abs x y)%Lambda : Lambda_scope.
+Notation "x 'o' y" := ([B] * x * y)%Lambda : Lambda_scope.
+Notation "x || y" := ([J] * x * y)%Lambda : Lambda_scope.
+Notation "x (+) y" := ([R] * x * y)%Lambda : Lambda_scope.
 
 Section I_def.
   Let x := VAR 0.
@@ -228,7 +224,6 @@ Section exp.
   Let f := VAR 2.
   Definition exp := encode (\a, \b, \f, b o f o a).
 End exp.
-Notation "x --> y" := ([exp] * x * y)%Lambda
-  (at level 55, right associativity) : Lambda_scope.
+Notation "x --> y" := ([exp] * x * y)%Lambda : Lambda_scope.
 Lemma exp_I_I : exp * I * I = I.
 Proof. beta_eta. Qed.
