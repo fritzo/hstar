@@ -1,5 +1,5 @@
 
-Require Import Codes.
+Require Import IndexedCodes.
 
 (** ** Points as quotients of indexed codes *)
 
