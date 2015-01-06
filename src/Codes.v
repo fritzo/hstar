@@ -147,24 +147,27 @@ Fixpoint code_sub {Var Var' : Set}
 
 Notation "x @ f" := (code_sub f x)%code : code_scope.
 
-Lemma var_monad_unit (Var : Set) (x : Code Var) : x @ code_var = x.
+Lemma var_monad_unit_right (Var : Set) (x : Code Var) : x @ code_var = x.
 Proof.
   induction x; auto.
   unfold code_sub; fold (@code_sub Var Var).
   rewrite IHx1; rewrite IHx2; auto.
 Qed.
+Hint Rewrite var_monad_unit_right.
 
 Lemma var_monad_unit_left (Var Var' : Set) (f : Var -> Code Var') x :
   (code_var x) @ f = f x.
 Proof.
   compute; auto.
 Qed.
+Hint Rewrite var_monad_unit_left.
 
 Lemma code_sub_ap (Var Var' : Set)
   (x y : Code Var) (f : Var -> Code Var') : (x * y @ f) = (x @ f) * (y @ f).
 Proof.
   simpl; auto.
 Qed.
+Hint Rewrite code_sub_ap.
 
 Lemma var_monad_assoc
   (Var Var' Var'' : Set)
@@ -177,6 +180,7 @@ Proof.
   repeat rewrite code_sub_ap.
   rewrite IHx1; rewrite IHx2; auto.
 Qed.
+Hint Rewrite var_monad_assoc.
 
 Lemma code_sub_ext {Var Var' : Set}
   (f g : Var -> Code Var') (fg : forall v, f v = g v) x :
@@ -187,7 +191,7 @@ Proof.
 Qed.
 
 Lemma red_sub_left {Var Var' : Set}
-  {f g : Var -> Code Var'} (fg : forall v, red (f v) (g v))
+  (f g : Var -> Code Var') (fg : forall v, red (f v) (g v))
   (x : Code Var) : red (x @ f) (x @ g).
 Proof.
   induction x; auto.
