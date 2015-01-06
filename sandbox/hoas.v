@@ -11,38 +11,43 @@ Reserved Notation "x [!= y" (at level 60, no associativity).
 Reserved Notation "x ->> y" (at level 60, no associativity).
 Reserved Notation "\ x , y" (at level 0, right associativity).
 
-Section Code.
-  Variable Var : Set.
-  Inductive Code : Set :=
-    | Code_var : Var -> Code
-    | Code_ap : Code -> Code -> Code
-    | Code_top : Code
-    | Code_bot : Code
-    | Code_j : Code
-    | Code_i : Code
-    | Code_k : Code
-    | Code_b : Code
-    | Code_c : Code
-    | Code_s : Code.
-End Code.
-Hint Constructors Code.
-
-Definition code_var {Var : Set} := Code_var Var.
-Definition code_ap {Var : Set} := Code_ap Var.
-Definition code_top {Var : Set} := Code_top Var.
-Definition code_bot {Var : Set} := Code_bot Var.
-Definition code_j {Var : Set} := Code_j Var.
-Definition code_i {Var : Set} := Code_i Var.
-Definition code_k {Var : Set} := Code_k Var.
-Definition code_b {Var : Set} := Code_b Var.
-Definition code_c {Var : Set} := Code_c Var.
-Definition code_s {Var : Set} := Code_s Var.
+Inductive code {Var : Set} : Set :=
+  | code_var : Var -> code
+  | code_ap : code -> code -> code
+  | code_top : code
+(*
+  | code_div : code
+*)
+  | code_bot : code
+  | code_j : code
+  | code_i : code
+  | code_k : code
+  | code_b : code
+  | code_c : code
+  | code_s : code
+  | code_y : code
+  | code_v : code.
+Hint Constructors code.
+Definition Code (Var : Set) := @code Var.
 
 Notation "x * y" := (code_ap x y) : code_scope.
+Notation "'TOP'" := code_top : code_scope.
+(*
+Notation "'DIV'" := code_div : code_scope.
+*)
+Notation "'BOT'" := code_bot : code_scope.
+Notation "'J'" := code_j : code_scope.
+Notation "'I'" := code_i : code_scope.
+Notation "'K'" := code_k : code_scope.
+Notation "'B'" := code_b : code_scope.
+Notation "'C'" := code_c : code_scope.
+Notation "'S'" := code_s : code_scope.
+Notation "'Y'" := code_y : code_scope.
+Notation "'V'" := code_v : code_scope.
 
 Open Scope code_scope.
 Delimit Scope code_scope with code.
-Bind Scope code_scope with Code.
+Bind Scope code_scope with code.
 
 Notation "x 'o' y" := (code_b * x * y)%code : code_scope.
 Notation "x || y" := (code_j * x * y)%code : code_scope.
@@ -52,22 +57,42 @@ Inductive beta {Var : Set} : Code Var -> Code Var -> Prop :=
   | beta_trans x y z : beta x y -> beta y z -> beta x z
   | beta_ap_left x x' y : beta x x' -> beta (x * y) (x' * y)
   | beta_ap_right x y y' : beta y y' -> beta (x * y) (x * y')
-  | beta_top x : beta code_top x
-  | beta_bot x : beta x code_bot
-  | beta_j x y z : beta ((x || y) * z) (x * z || y * z)
+  | beta_top x : beta TOP x
 (*
-  | beta_j_left x : beta (code_top || x) code_top
-  | beta_j_right x : beta (x || code_top) code_top
+  | beta_div_push x : beta (DIV * x) (DIV * x * TOP)
+  | beta_div_read x : beta (DIV * x) x
 *)
+  | beta_bot x : beta x BOT
+  | beta_j x y z : beta ((x || y) * z) (x * z || y * z)
   | beta_j_left x y : beta (x || y) x
   | beta_j_right x y : beta (x || y) y
-  | beta_i x : beta (code_i * x) x
-  | beta_k x y : beta (code_k * x * y) x
-  | beta_b x y z : beta (code_b * x * y * z) (x * (y * z))
-  | beta_c x y z : beta (code_c * x * y * z) (x * z * y)
-  | beta_s x y z : beta (code_s * x * y * z) (x * z * (y * z)).
+  | beta_i x : beta (I * x) x
+  | beta_k x y : beta (K * x * y) x
+  | beta_b x y z : beta (B * x * y * z) (x * (y * z))
+  | beta_c x y z : beta (C * x * y * z) (x * z * y)
+  | beta_s x y z : beta (S * x * y * z) (x * z * (y * z))
+  | beta_y x : beta (Y * x) (x * (Y * x))
+  | beta_v x : beta (V * x) (I || x o (V * x)).
 Hint Constructors beta.
 (* Notation "x ->> y" := (beta x y) : code_scope. *)
+
+Ltac beta_to x := apply beta_trans with x; auto.
+
+(*
+Definition code_div {Var : Set} : Code Var := V * (C * I * TOP).
+Lemma beta_div {Var : Set} (x : Code Var) :
+  beta (code_div * x) (x || code_div * x * TOP).
+Proof.
+  unfold code_div.
+  beta_to ((I || (C * I * TOP) o (V * (C * I * TOP))) * x).
+  beta_to (I * x || (C * I * TOP) o (V * (C * I * TOP)) * x).
+  beta_to (x || (C * I * TOP) o (V * (C * I * TOP)) * x).
+  beta_to (x || (C * I * TOP) * (V * (C * I * TOP) * x)).
+  beta_to (x || I * (V * (C * I * TOP) * x) * TOP).
+Qed.
+
+Definition conv {Var : Set} (x : Code Var) := beta (code_div * x) TOP.
+*)
 
 Inductive conv {Var : Set} : Code Var -> Prop :=
   | conv_ap x : conv (x * code_top) -> conv x
@@ -79,16 +104,18 @@ Hint Constructors conv.
 Fixpoint code_sub {Var Var' : Set}
   (f : Var -> Code Var') (x : Code Var) : Code Var' :=
   match x with
-  | Code_var v => f v
-  | Code_ap l r => (code_sub f l) * (code_sub f r)
-  | Code_top => code_top
-  | Code_bot => code_bot
-  | Code_j => code_j
-  | Code_i => code_i
-  | Code_k => code_k
-  | Code_b => code_b
-  | Code_c => code_c
-  | Code_s => code_s
+  | code_var v => f v
+  | l * r => (code_sub f l) * (code_sub f r)
+  | TOP => TOP
+  | BOT => BOT
+  | J => J
+  | I => I
+  | K => K
+  | B => B
+  | C => C
+  | S => S
+  | Y => Y
+  | V => V
   end.
 Hint Resolve code_sub.
 
@@ -115,99 +142,42 @@ Proof.
   (* TODO *)
 Admitted.
 
-Fixpoint code_abs {Var Var' : Set} (b : Var -> option Var') (x : Code Var) :
-  Code Var' :=
-  match x with
-  | Code_var v =>
-      match b v with
-      | None => code_i
-      | Some v' => code_k * (code_var v')
-      end
-  | Code_ap l r => code_s * (code_abs b l) * (code_abs b r)
-  | Code_top => code_k * code_top
-  | Code_bot => code_k * code_bot
-  | Code_j => code_k * code_j
-  | Code_i => code_k * code_i
-  | Code_k => code_k * code_k
-  | Code_b => code_k * code_b
-  | Code_c => code_k * code_c
-  | Code_s => code_k * code_s
-  end.
-
-Lemma abs_sub_beta {Var Var' : Set}
-  (b : Var -> option Var') (x : Code Var) (y : Code Var') :
-  beta (code_abs b x * y)
-       (code_sub (fun v => match b v with None => y
-                                        | Some v' => code_var v' end) x).
+Lemma beta_sub_left {Var Var' : Set}
+  {f g : Var -> Code Var'} (fg : forall v, beta (f v) (g v))
+  (x : Code Var) : beta (code_sub f x) (code_sub g x).
 Proof.
-  induction x; simpl; auto.
-    case (b v); [intro v'; auto | auto].
-  apply beta_trans with (code_abs b x1 * y * (code_abs b x2 * y)); auto.
-  apply beta_trans with
-    (code_abs b x1 * y
-    * (code_sub (fun v => match b v with None => y
-                                       | Some v' => code_var v' end) x2)); auto.
-Qed.
+  induction x; auto.
+    compute; auto.
+  unfold code_sub; fold (@code_sub Var Var').
+  beta_to (code_sub f x1 * code_sub g x2).
+Defined.
+Hint Resolve beta_sub_left.
 
-(*
-Definition beta_sub :
-  forall {Var Var' : Set} (f : Var -> Code Var') {u v : Code Var},
-  beta u v -> beta (code_sub f u) (code_sub f v)
-.
-  intros Var Var' f u v beta.
-  induction beta; auto.
-*)
-
-Fixpoint beta_sub {Var Var' : Set}
-  (f : Var -> Code Var') {u v : Code Var} (b : beta u v) :
-  beta (code_sub f u) (code_sub f v)
-.
+Lemma beta_sub_right {Var Var' : Set}
+  (f : Var -> Code Var') {x y : Code Var} (xy : beta x y) :
+  beta (code_sub f x) (code_sub f y).
+Proof.
+  induction x; inversion xy; auto.
+  (* TODO *)
 Admitted.
-(* FIXME Coq is having trouble typing this
-  :=
-  let s := code_sub f in
-  let f1 c x := c (s x) in
-  let f2 c x y := c (s x) (s y) in
-  let f3 c x y z := c (s x) (s y) (s z) in
-  let s' := beta_sub f in
-  match b, (s u, s v) return beta (s u) (s v) with
-  | beta_refl x, _ => f1 beta_refl x
-  | beta_trans x y z b1 b2, t =>
-      f3 beta_trans x y z (beta_sub f b1) (beta_sub f b2)
-  | beta_ap_left x x' y b1, t => f3 beta_ap_left x x' y (s' b1)
-  | beta_ap_right x y y' b1, t => f3 beta_ap_right x y y' (s' b1)
-  | beta_top x, t => f1 beta_top x
-  | beta_bot x, t => f1 beta_bot x
-  | beta_j x y z, t => f3 beta_j x y z
-  | beta_j_left x y, t => f2 beta_j_left x y
-  | beta_j_right x y, t => f2 beta_j_right x y
-  | beta_i x, t => f1 beta_i x
-  | beta_k x y, t => f2 beta_k x y
-  | beta_b x y z, t => f3 beta_b x y z
-  | beta_c x y z, t => f3 beta_c x y z
-  | beta_s x y z, t => f3 beta_s x y z
-  end.
-*)
+Hint Resolve beta_sub_right.
 
-(** Sloppy lambda notation specialized to [Code nat] *)
-
-Definition nat_match (m n : nat) : option nat :=
-  if beq_nat m n then None else Some m.
-
-Definition code_lambda (v : Code nat) (x : Code nat) : Code nat :=
-  match v with
-  | Code_var n => code_abs (nat_match n) x
-  | _ => code_top (* TODO implement pattern matching here*)
-  end.
-
-Notation "\ x , y" := (code_lambda x y)%code : code_scope.
+Lemma beta_sub {Var Var' : Set}
+  {f g : Var -> Code Var'} (fg : forall v, beta (f v) (g v))
+  {x y : Code Var} (xy : beta x y) :
+  beta (code_sub f x) (code_sub g y).
+Proof.
+  beta_to (code_sub g x).
+Defined.
+Hint Resolve beta_sub.
 
 (** Contexts, convergence, and information ordering *)
 
+(** Contexts represent linear functions of code *)
 Inductive context (Var Var' : Set) : Set :=
   context_intro : (Var -> Code Var') -> Code (option Var') -> context Var Var'.
 
-Fixpoint context_sub {Var Var' : Set}
+Fixpoint context_eval {Var Var' : Set}
   (c : context Var Var') (x : Code Var) : Code Var' :=
   let (c1, c2) := c in
   let x' := code_sub c1 x in
@@ -216,23 +186,15 @@ Fixpoint context_sub {Var Var' : Set}
 
 Definition conv_in {Var Var' : Set}
   (c : context Var Var') (x : Code Var) : Prop :=
-  conv (context_sub c x).
+  conv (context_eval c x).
 
 Definition code_le {Var : Set} (x y : Code Var) : Prop :=
   forall (Var' : Set) (c : context Var Var'), conv_in c x -> conv_in c y.
 
-(*  TODO
-
-    Strengthen the definitions of [beta] [conv] and [code_le]
-    so that the following lemmas follow by induction.
-*)
-
 Lemma code_le_x_top {Var : Set} (x : Code Var) : code_le x code_top.
 Proof.
   unfold code_le; unfold conv_in; intros Var' c Hconv.
-  elim Hconv; simpl; auto.
-  intros x' Hbeta.
-  induction Hbeta; auto.
+  inversion Hconv.
 Admitted.
 
 Lemma code_le_bot_x {Var : Set} (x : Code Var) : code_le code_bot x.
@@ -266,3 +228,54 @@ Lemma code_le_subs {Var : Set} (d : Var -> bool) (x y y' : Code Var) :
   code_le (code_sub (fun v => if d v then y else code_var v) x)
           (code_sub (fun v => if d v then y' else code_var v) x).
 Admitted.
+
+(** ** Curry's abstraction algorithm *)
+
+Fixpoint code_abs {Var Var' : Set} (b : Var -> option Var') (x : Code Var) :
+  Code Var' :=
+  match x with
+  | code_var v =>
+      match b v with
+      | None => I
+      | Some v' => K * (code_var v')
+      end
+  | l * r => S * (code_abs b l) * (code_abs b r)
+  | TOP => K * TOP
+  | BOT => K * BOT
+  | J => K * J
+  | I => K * I
+  | K => K * K
+  | B => K * B
+  | C => K * C
+  | S => K * S
+  | Y => K * Y
+  | V => K * V
+  end.
+
+Lemma abs_sub_beta {Var Var' : Set}
+  (b : Var -> option Var') (x : Code Var) (y : Code Var') :
+  beta (code_abs b x * y)
+       (code_sub (fun v => match b v with None => y
+                                        | Some v' => code_var v' end) x).
+Proof.
+  induction x; simpl; auto.
+    case (b v); [intro v'; auto | auto].
+  beta_to (code_abs b x1 * y * (code_abs b x2 * y)).
+  beta_to
+    (code_abs b x1 * y
+    * (code_sub (fun v => match b v with None => y
+                                       | Some v' => code_var v' end) x2)).
+Qed.
+
+(** Sloppy lambda notation specialized to [Code nat] *)
+
+Definition nat_match (m n : nat) : option nat :=
+  if beq_nat m n then None else Some m.
+
+Definition code_lambda (v : Code nat) (x : Code nat) : Code nat :=
+  match v with
+  | code_var n => code_abs (nat_match n) x
+  | _ => code_top (* TODO implement pattern matching here*)
+  end.
+
+Notation "\ x , y" := (code_lambda x y)%code : code_scope.
