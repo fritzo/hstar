@@ -1,4 +1,5 @@
 
+Require Import Setoid.
 Require Import EqNat.
 
 Reserved Notation "x * y" (at level 40, left associativity).
@@ -78,7 +79,6 @@ Hint Constructors beta.
 
 Ltac beta_to x := apply beta_trans with x; auto.
 
-(*
 Definition code_div {Var : Set} : Code Var := V * (C * I * TOP).
 Lemma beta_div {Var : Set} (x : Code Var) :
   beta (code_div * x) (x || code_div * x * TOP).
@@ -92,12 +92,13 @@ Proof.
 Qed.
 
 Definition conv {Var : Set} (x : Code Var) := beta (code_div * x) TOP.
-*)
 
+(*
 Inductive conv {Var : Set} : Code Var -> Prop :=
   | conv_ap x : conv (x * code_top) -> conv x
   | conv_beta x : beta x code_top -> conv x.
 Hint Constructors conv.
+*)
 
 (** ** Substitution and abstraction *)
 
@@ -154,7 +155,7 @@ Defined.
 Hint Resolve beta_sub_left.
 
 Lemma beta_sub_right {Var Var' : Set}
-  (f : Var -> Code Var') {x y : Code Var} (xy : beta x y) :
+  (f : Var -> Code Var') (x y : Code Var) (xy : beta x y) :
   beta (code_sub f x) (code_sub f y).
 Proof.
   induction x; inversion xy; auto.
@@ -174,27 +175,51 @@ Hint Resolve beta_sub.
 (** Contexts, convergence, and information ordering *)
 
 (** Contexts represent linear functions of code *)
-Inductive context (Var Var' : Set) : Set :=
-  context_intro : (Var -> Code Var') -> Code (option Var') -> context Var Var'.
+Inductive Context (Var Var' : Set) : Set :=
+  Context_intro : (Var -> Code Var') -> Code (option Var') -> Context Var Var'.
+Definition context_intro {Var Var' : Set} := Context_intro Var Var'.
 
 Fixpoint context_eval {Var Var' : Set}
-  (c : context Var Var') (x : Code Var) : Code Var' :=
+  (c : Context Var Var') (x : Code Var) : Code Var' :=
   let (c1, c2) := c in
   let x' := code_sub c1 x in
   let f v := match v with None => x' | Some v' => code_var v' end in
   code_sub f c2.
 
+Notation "c @ x" := (context_eval c x) (at level 60, no associativity).
+
 Definition conv_in {Var Var' : Set}
-  (c : context Var Var') (x : Code Var) : Prop :=
+  (c : Context Var Var') (x : Code Var) : Prop :=
   conv (context_eval c x).
 
 Definition code_le {Var : Set} (x y : Code Var) : Prop :=
-  forall (Var' : Set) (c : context Var Var'), conv_in c x -> conv_in c y.
+  forall (Var' : Set) (c : Context Var Var'), conv_in c x -> conv_in c y.
+
+Definition context_div {Var Var' : Set}
+  (c1 : Var -> Code Var') (c2 : Code (option Var'))
+  (x : Code Var) :
+  code_div * context_eval (context_intro c1 c2) x =
+    context_eval (context_intro (fun v => code_div * c1 v) c2) x.
+Proof.
+  unfold context_eval at 2; simpl.
+Admitted.
+
+Lemma code_le_x_top' {Var : Set} (c x : Code Var) :
+  beta (c * x) TOP -> beta (c * TOP) TOP.
+Proof.
+  apply beta_trans; auto.
+Qed.
 
 Lemma code_le_x_top {Var : Set} (x : Code Var) : code_le x code_top.
 Proof.
-  unfold code_le; unfold conv_in; intros Var' c Hconv.
-  inversion Hconv.
+  unfold code_le; unfold conv_in; unfold conv; intros Var' c.
+  intros Hbeta.
+  destruct c as [c1 c2].
+  rewrite context_div in Hbeta; rewrite context_div.
+  beta_to (context_eval (context_intro (fun v : Var => code_div * c1 v) c2) x).
+  (*
+  apply beta_sub_right with (y := TOP).
+  *)
 Admitted.
 
 Lemma code_le_bot_x {Var : Set} (x : Code Var) : code_le code_bot x.
@@ -266,6 +291,43 @@ Proof.
     * (code_sub (fun v => match b v with None => y
                                        | Some v' => code_var v' end) x2)).
 Qed.
+
+Fixpoint code_abs' {Var Var' : Set} (b : Var -> option Var') (x : Code Var) :
+  Code Var' :=
+  match x with
+  | code_var v =>
+      match b v with
+      | None => I
+      | Some v' => K * (code_var v')
+      end
+  | l * r => 
+      match code_abs' b l, code_abs' b r with
+      | K * l', I => l'
+      | K * l', K * r' => K * (l' * r')
+      | K * l', r' => B * l' * r'
+      | l', K * r' => C * l' * r'
+      | l', r' => S * l' * r'
+      end
+  | TOP => K * TOP
+  | BOT => K * BOT
+  | J => K * J
+  | I => K * I
+  | K => K * K
+  | B => K * B
+  | C => K * C
+  | S => K * S
+  | Y => K * Y
+  | V => K * V
+  end.
+
+Lemma abs_sub_beta' {Var Var' : Set}
+  (b : Var -> option Var') (x : Code Var) (y : Code Var') :
+  beta (code_abs' b x * y)
+       (code_sub (fun v => match b v with None => y
+                                        | Some v' => code_var v' end) x).
+Proof.
+  (* TODO *)
+Admitted.
 
 (** Sloppy lambda notation specialized to [Code nat] *)
 
