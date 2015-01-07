@@ -1,6 +1,7 @@
-
 Require Import Setoid.
-Require Import Notations.
+Require Export Notations.
+
+(** * Combinatory algebra with parametric variables *)
 
 Inductive code {Var : Set} : Set :=
   | code_var : Var -> code
@@ -8,6 +9,7 @@ Inductive code {Var : Set} : Set :=
   | code_top : code
   | code_bot : code
   | code_j : code
+  | code_r : code
   | code_i : code
   | code_k : code
   | code_b : code
@@ -19,9 +21,15 @@ Hint Constructors code.
 Definition Code (Var : Set) := @code Var.
 
 Notation "x * y" := (code_ap x y) : code_scope.
+
+Open Scope code_scope.
+Delimit Scope code_scope with code.
+Bind Scope code_scope with code.
+
 Notation "'TOP'" := code_top : code_scope.
 Notation "'BOT'" := code_bot : code_scope.
 Notation "'J'" := code_j : code_scope.
+Notation "'R'" := code_r : code_scope.
 Notation "'I'" := code_i : code_scope.
 Notation "'K'" := code_k : code_scope.
 Notation "'B'" := code_b : code_scope.
@@ -29,23 +37,24 @@ Notation "'C'" := code_c : code_scope.
 Notation "'S'" := code_s : code_scope.
 Notation "'Y'" := code_y : code_scope.
 Notation "'V'" := code_v : code_scope.
-
-Open Scope code_scope.
-Delimit Scope code_scope with code.
-Bind Scope code_scope with code.
-
 Notation "x 'o' y" := (code_b * x * y)%code : code_scope.
 Notation "x || y" := (code_j * x * y)%code : code_scope.
+Notation "x (+) y" := (code_r * x * y)%code : code_scope.
 
 Inductive beta {Var : Set} : Code Var -> Code Var -> Prop :=
-  | beta_j x y z : beta ((x || y) * z) (x * z || y * z)
   | beta_i x : beta (I * x) x
   | beta_k x y : beta (K * x * y) x
   | beta_b x y z : beta (B * x * y * z) (x * (y * z))
   | beta_c x y z : beta (C * x * y * z) (x * z * y)
   | beta_s x y z : beta (S * x * y * z) (x * z * (y * z))
   | beta_y x : beta (Y * x) (x * (Y * x))
-  | beta_v x : beta (V * x) (I || x o (V * x)).
+  | beta_v x : beta (V * x) (I || x o (V * x))
+  | beta_j_ap x y z : beta ((x || y) * z) (x * z || y * z)
+  | beta_r_ap x y z : beta ((x (+) y) * z) (x * z (+) y * z)
+  | beta_r_idem x : beta (x (+) x) x
+  | beta_r_sym x y : beta (x (+) y) (y (+) x)
+  | beta_r_sym_sym w x y z : beta ((w(+)x) (+) (y(+)z))
+                                  ((x(+)y) (+) (z(+)w)).
 
 Inductive pi {Var : Set} : Code Var -> Code Var -> Prop :=
   | pi_top x : pi TOP x
@@ -62,15 +71,22 @@ Inductive red {Var : Set} : Code Var -> Code Var -> Prop :=
   | red_beta' x y : beta y x -> red x y
   | red_pi x y : pi x y -> red x y.
 
+Inductive prob {Var : Set} : Code Var -> Prop :=
+  | prob_top : prob TOP
+  | prob_bot : prob BOT
+  | prob_r p q : prob p -> prob q -> prob (p (+) q).
+
 Hint Constructors beta.
 Hint Constructors pi.
 Hint Constructors red.
+Hint Constructors prob.
 
 Fixpoint try_red_step {Var : Set} (u : Code Var) : option (Code Var) :=
   match u with
   | I * x => Some x
   | K * x * y => Some x
   | J * x * y * z => Some (x * z || y * z)
+  | R * x * y * z => Some (x * z (+) y * z)
   | B * x * y * z => Some (x * (y * z))
   | C * x * y * z => Some (x * z * y)
   | S * x * y * z => Some (x * z * (y * z))
@@ -124,9 +140,10 @@ Qed.
 
 Definition conv {Var : Set} (x : Code Var) := red (code_div * x) TOP.
 
-Ltac conv_to x := unfold conv; red_to x; fold conv.
+Definition pconv {Var : Set} (x : Code Var) (pp : {p : Code Var | prob p}) :=
+    let (p, _) := pp in red (code_div * x) p.
 
-(** ** Substitution and abstraction *)
+(** ** Substitution *)
 
 Fixpoint code_sub {Var Var' : Set}
   (f : Var -> Code Var') (x : Code Var) : Code Var' :=
@@ -136,6 +153,7 @@ Fixpoint code_sub {Var Var' : Set}
   | TOP => TOP
   | BOT => BOT
   | J => J
+  | R => R
   | I => I
   | K => K
   | B => B
@@ -235,7 +253,100 @@ Proof.
 Qed.
 Hint Resolve red_sub.
 
-(** Contexts, convergence, and information ordering *)
+(** ** Abstraction *)
+
+Fixpoint code_abs {Var Var' : Set} (b : Var -> option Var') (x : Code Var) :
+  Code Var' :=
+  match x with
+  | code_var v =>
+      match b v with
+      | None => I
+      | Some v' => K * (code_var v')
+      end
+  | l * r => S * (code_abs b l) * (code_abs b r)
+  | TOP => K * TOP
+  | BOT => K * BOT
+  | J => K * J
+  | R => K * R
+  | I => K * I
+  | K => K * K
+  | B => K * B
+  | C => K * C
+  | S => K * S
+  | Y => K * Y
+  | V => K * V
+  end.
+
+Section red_abs_sub.
+  Variable Var Var' : Set.
+  Variable b : Var -> option Var'.
+  Variable x : Code Var.
+  Variable y : Code Var'.
+  Let f v := match b v with None => y | Some v' => code_var v' end.
+
+  Lemma red_abs_sub : red (code_abs b x * y) (code_sub f x).
+  Proof.
+    unfold f; induction x; simpl; auto.
+      case (b v);  [intro v'; auto | auto].
+    red_to (code_abs b c1 * y * (code_abs b c2 * y)).
+    red_to (code_abs b c1 * y * (code_sub f c2)).
+  Qed.
+
+  Lemma red_sub_abs : red (code_sub f x) (code_abs b x * y).
+  Proof.
+    unfold f; induction x; simpl; auto.
+      case (b v);  [intro v'; auto | auto].
+    red_to (code_abs b c1 * y * (code_abs b c2 * y)).
+    red_to (code_abs b c1 * y * (code_sub f c2)).
+  Qed.
+End red_abs_sub.
+Hint Resolve red_abs_sub red_sub_abs.
+
+Fixpoint code_abs' {Var Var' : Set} (b : Var -> option Var') (x : Code Var) :
+  Code Var' :=
+  match x with
+  | code_var v =>
+      match b v with
+      | None => I
+      | Some v' => K * (code_var v')
+      end
+  | l * r => 
+      match code_abs' b l, code_abs' b r with
+      | K * l', I => l'
+      | K * l', K * r' => K * (l' * r')
+      | K * l', r' => B * l' * r'
+      | l', K * r' => C * l' * r'
+      | l', r' => S * l' * r'
+      end
+  | TOP => K * TOP
+  | BOT => K * BOT
+  | J => K * J
+  | R => K * R
+  | I => K * I
+  | K => K * K
+  | B => K * B
+  | C => K * C
+  | S => K * S
+  | Y => K * Y
+  | V => K * V
+  end.
+
+Section red_abs_sub'.
+  Variable Var Var' : Set.
+  Variable b : Var -> option Var'.
+  Variable x : Code Var.
+  Variable y : Code Var'.
+  Let f v := match b v with None => y | Some v' => code_var v' end.
+  Lemma red_abs_sub' : red (code_abs' b x * y) (code_sub f x).
+  Proof.
+    (* TODO
+    unfold f; induction x; simpl; auto.
+    *)
+  Admitted.
+End red_abs_sub'.
+Hint Resolve red_abs_sub'.
+
+(** ** Contexts, convergence, and information ordering *)
 
 Definition code_le {Var : Set} (x y : Code Var) :=
   forall {Var' : Set} (c : Code Var') (f : Var -> Code Var'),
@@ -366,9 +477,71 @@ Hint Resolve code_le_j_ub.
 Lemma code_le_ext (Var : Set) (x x' : Code Var) :
   (forall y, x * y [= x' * y) -> x [= x'.
 Proof.
+  unfold code_le; intros H Var' c f Hconv.
   (* TODO implement via abstraction algorithm *)
 Admitted.
 Hint Resolve code_le_ext.
+
+Fixpoint code_apply {Var : Set} (x : Code Var) (ys : list (Code Var)) :
+  Code Var :=
+  match ys with
+  | nil => x
+  | (y ::ys')%list => code_apply (x * y) ys'
+  end.
+
+Notation "x ** y" := (code_apply x y)%code : code_scope.
+
+Fixpoint code_tuple {Var : Set} (ys : list (Code Var)) : Code Var :=
+  match ys with
+  | nil => I
+  | (y ::ys')%list => code_tuple ys' o (C * I * y)
+  end.
+
+Lemma red_tuple_apply (Var : Set) (ys : list (Code Var)) :
+  forall x : Code Var, red (code_tuple ys * x) (x ** ys).
+Proof.
+  induction ys; simpl; auto.
+  intro x.
+  red_to (code_tuple ys * (C * I * a * x)).
+  red_to (code_tuple ys * (I * x * a)).
+  red_to (code_tuple ys * (x * a)).
+Qed.
+Hint Resolve red_tuple_apply.
+
+Lemma red_apply_tuple (Var : Set) (ys : list (Code Var)) :
+  forall x : Code Var, red (x ** ys) (code_tuple ys * x).
+Proof.
+  induction ys; simpl; auto.
+  intro x.
+  red_to (code_tuple ys * (C * I * a * x)).
+  red_to (code_tuple ys * (I * x * a)).
+  red_to (code_tuple ys * (x * a)).
+Qed.
+Hint Resolve red_apply_tuple.
+
+Lemma code_le_apply_easy (Var : Set) (x x' : Code Var) :
+  x [= x' ->
+  forall (Var' : Set) (ys : list (Code Var')) (f : Var -> Code Var'),
+  conv ((x @ f) ** ys) -> conv ((x' @ f) ** ys).
+Proof.
+  unfold code_le; intros H Var' ys f Hconv.
+  red_to (code_div * (code_tuple ys * (x' @ f))).
+  apply H.
+  red_to (code_div * ((x @ f) ** ys)).
+Qed.
+
+Lemma code_le_apply_hard (Var : Set) (x x' : Code Var) :
+  (forall (Var' : Set) (ys : list (Code Var')) (f : Var -> Code Var'),
+    conv ((x @ f) ** ys) -> conv ((x' @ f) ** ys)) ->
+  x [= x'.
+Proof.
+  unfold code_le; intros H Var' c f Hconv.
+  assert (forall (ys : list (Code Var')),
+    conv ((x @ f) ** ys) -> conv ((x' @ f) ** ys)) as H'; auto; clear H.
+  set (y := x @ f) in *; set (y' := x' @ f) in *.
+  inversion Hconv; simpl; auto.
+  admit. (* TODO *)
+Admitted.
 
 (** ** Observational equivalence *)
 
