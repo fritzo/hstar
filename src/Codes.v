@@ -1,4 +1,5 @@
 Require Import Setoid.
+Require Import EqNat.
 Require Export Notations.
 
 Definition Succ := S%nat. (* an alias for later *)
@@ -350,11 +351,35 @@ Section red_abs_sub'.
 End red_abs_sub'.
 Hint Resolve red_abs_sub'.
 
+(** Sloppy lambda notation specialized to [Code nat] *)
+
+Definition open {Var : Set} (x : Code Var) : Code (nat + Var) :=
+  code_sub (fun v => code_var (inr v)) x.
+Definition close {Var : Set} (x : Code (nat + Var)) : Code Var :=
+  code_sub (fun v => match v with inr v' => code_var v' | _ => code_top end) x.
+Definition make_var (Var : Set) (n : nat) : Code (nat + Var) :=
+  code_var (inl n).
+
+Definition code_lambda {Var : Set} (x y : Code (nat + Var)) : Code (nat + Var)
+  :=
+  let beq_var (v1 v2 : nat + Var) : bool :=
+    match v1, v2 with
+    | inl n1, inl n2 => beq_nat n1 n2
+    | _, _ => false
+    end
+  in
+  match x with
+  | code_var v => code_abs (fun v' => if beq_var v v' then None else Some v') y
+  | _ => code_top (* TODO implement pattern matching here*)
+  end.
+
+(*
 Definition code_lambda {Var : Set} (v x : Code (option Var)) : Code Var :=
   match v with
   | code_var n => code_abs (fun v => v) x
   | _ => code_top (* TODO implement pattern matching here*)
   end.
+*)
 
 Notation "\ x , y" := (code_lambda x y)%code : code_scope.
 
@@ -502,7 +527,7 @@ Admitted.
 
 Section Omega.
   Variable Var : Set.
-  Let x : Code (option Var) := code_var None.
+  Let x := make_var Var 0.
   Definition Omega := (\x, x * x) * (\x, x * x).
 End Omega.
 

@@ -13,7 +13,7 @@ Require Export Codes.
     We begin with codes indexed by undirected sets,
     i.e. sets without proof certificates of directedness. *)
 
-Definition precodes (Var : Set) := {index : Type & index -> Code Var}.
+Definition Precodes (Var : Set) := {index : Type & index -> Code Var}.
 
 Inductive tree (a : Type) : Type :=
   | tree_none : tree a
@@ -28,13 +28,13 @@ Fixpoint tree_reduce {a b : Type}
   | tree_pair l r => f2 (tree_reduce f0 f1 f2 l) (tree_reduce f0 f1 f2 r)
   end.
 
-Definition predirect {Var : Set} (x : precodes Var) : precodes Var :=
+Definition predirect {Var : Set} (x : Precodes Var) : Precodes Var :=
   let (index, enum) := x in
   let index' := tree index in
   let enum' := tree_reduce code_bot enum code_join in
   existT _ index' enum'.
 
-Definition precodes_ap {Var : Set} (s1 s2 : precodes Var) : precodes Var :=
+Definition precodes_ap {Var : Set} (s1 s2 : Precodes Var) : Precodes Var :=
   let (index1, enum1) := s1 in
   let (index2, enum2) := predirect s2 in
   let index12 := (index1 * index2)%type in
@@ -44,7 +44,7 @@ Definition precodes_ap {Var : Set} (s1 s2 : precodes Var) : precodes Var :=
   existT _ index12 enum12.
 
 (** patently Pi02 *)
-Definition precodes_le {Var : Set} (s1 s2 : precodes Var) : Prop :=
+Definition precodes_le {Var : Set} (s1 s2 : Precodes Var) : Prop :=
   let (index1, enum1) := predirect s1 in
   let (index2, enum2) := predirect s2 in
   forall c : code,
@@ -61,9 +61,6 @@ Record codes {Var : Set} := codes_intro {
 }.
 
 Definition Codes (Var : Set) := @codes Var.
-(*
-Definition codes {Var : Set} := Codes Var.
-*)
 
 Definition codes_code {Var : Set} (x : Code Var) : Codes Var.
   refine (codes_intro Var unit (fun _  => x) (fun _ _ => _) tt).
@@ -140,7 +137,7 @@ Notation "x [=] y" := (codes_eq x y)%codes : codes_scope.
 (** Now we demonstrate the power of indexing over directed sets.
     The simple implicit definition of [A_implicit] is not directed. *)
 
-Definition direct {Var : Set} (p : precodes Var) : Codes Var.
+Definition direct {Var : Set} (p : Precodes Var) : Codes Var.
   destruct p as [index enum].
   refine (codes_intro _ (tree index) (tree_reduce BOT enum code_join) _ _).
     intros i j.
@@ -154,9 +151,13 @@ Definition codes_sup {Var : Set} {index : Type} (enum : index -> Code Var) :
   direct (existT _ index enum).
 
 Section direct_example.
-  Variable Var : Set.
   Open Scope code_scope.
-  Notation "<< x , y >>" := (code_tuple (x::y::nil)%list).
+  Variable Var : Set.
+  Let x := make_var Var 0.
+  Let y := make_var Var 1.
+  Let z := make_var Var 2.
+  Let pair := close (\x, \y, \z, z * x * y).
+  Notation "<< x , y >>" := (pair * x * y).
   Let A_implicit : Codes Var :=
     codes_sup (<<s, r>> for s : code for r : code if r o s [= I).
 End direct_example.
