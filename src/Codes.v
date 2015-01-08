@@ -1,6 +1,8 @@
 Require Import Setoid.
 Require Export Notations.
 
+Definition Succ := S%nat. (* an alias for later *)
+
 (** * Combinatory algebra with parametric variables *)
 
 Inductive code {Var : Set} : Set :=
@@ -40,6 +42,8 @@ Notation "'V'" := code_v : code_scope.
 Notation "x 'o' y" := (code_b * x * y)%code : code_scope.
 Notation "x || y" := (code_j * x * y)%code : code_scope.
 Notation "x (+) y" := (code_r * x * y)%code : code_scope.
+
+Definition code_join {Var : Set} x y : Code Var := x || y.
 
 Inductive beta {Var : Set} : Code Var -> Code Var -> Prop :=
   | beta_i x : beta (I * x) x
@@ -346,6 +350,14 @@ Section red_abs_sub'.
 End red_abs_sub'.
 Hint Resolve red_abs_sub'.
 
+Definition code_lambda {Var : Set} (v x : Code (option Var)) : Code Var :=
+  match v with
+  | code_var n => code_abs (fun v => v) x
+  | _ => code_top (* TODO implement pattern matching here*)
+  end.
+
+Notation "\ x , y" := (code_lambda x y)%code : code_scope.
+
 (** ** Contexts, convergence, and information ordering *)
 
 Definition code_le {Var : Set} (x y : Code Var) :=
@@ -353,6 +365,7 @@ Definition code_le {Var : Set} (x y : Code Var) :=
   conv (c * (x @ f)) -> conv (c * (y @ f)).
 
 Notation "x [= y" := (code_le x y)%code : code_scope.
+Notation "x [=] y" := (x [= y /\ y [= x)%code : code_scope.
 
 Lemma code_le_refl (Var : Set) (x : Code Var) : x [= x.
 Proof.
@@ -443,6 +456,8 @@ Proof.
 Qed.
 Hint Resolve code_le_top.
 
+(** *** Proving divergence *)
+
 Lemma code_le_bot (Var : Set) (x : Code Var) : BOT [= x.
 Proof.
   unfold code_le; intros Var' c f Hred.
@@ -451,6 +466,53 @@ Proof.
   red_to (code_div * (c * BOT)).
 Qed.
 Hint Resolve code_le_bot.
+
+Fixpoint probe {Var : Set} (n : nat) (x : Code Var) : Code Var :=
+  match n with
+  | 0%nat => x
+  | (Succ n')%nat => (probe n' x) * code_top
+  end.
+
+Lemma probe_bot_top (Var : Set) : forall n, probe n (@code_bot Var) <> TOP.
+Proof.
+  intros n; induction n; compute; fold (@probe Var); discriminate.
+Qed.
+
+Lemma red_probe_bot_top (Var : Set) :
+  forall n, ~ red (probe n (@code_bot Var)) TOP.
+Proof.
+  intros n H; induction n; auto.
+  (* TODO *)
+Admitted.
+
+Lemma div_probe_bot (Var : Set) :
+  forall n : nat, ~ conv (probe n (@code_bot Var)).
+Proof.
+  intros n H; inversion H.
+Admitted.
+
+(*  TODO
+
+    This is very difficult to prove given the definitions of
+    [code], [beta], and [conv].
+
+    See sandbox/hoas.v which adds substitution and
+    attempts to strengthen [conv] to get induction to work.
+*)
+
+Section Omega.
+  Variable Var : Set.
+  Let x : Code (option Var) := code_var None.
+  Definition Omega := (\x, x * x) * (\x, x * x).
+End Omega.
+
+Lemma code_le_omega_bot (Var : Set) : Omega Var [= BOT.
+Proof.
+  compute.
+  (* TODO *)
+Admitted.
+
+(** *** Proving information ordering *)
 
 Lemma code_le_j_left (Var : Set) (x y : Code Var) : x [= x || y.
 Proof.
@@ -474,6 +536,46 @@ Proof.
 Admitted.
 Hint Resolve code_le_j_ub.
 
+Lemma code_le_join (Var : Set) (x y z : Code Var) :
+  x || y [= z <-> x [= z /\ y [= z.
+Proof.
+  split; intro H.
+    split; apply code_le_trans with (x || y); auto.
+  destruct H as [Hx Hy]; auto.
+Qed.
+
+Lemma code_le_j_idem (Var : Set) (x : Code Var) : x||x [=] x.
+Proof.
+  split; auto.
+Qed.
+
+Lemma code_le_j_sym (Var : Set) (x y : Code Var) : x||y [=] y||x.
+Proof.
+  split; auto.
+Qed.
+
+Lemma code_le_j_assoc (Var : Set) (x y z : Code Var) : x||(y||z) [=] (x||y)||z.
+Proof.
+  split; auto.
+  (* TODO *)
+Admitted.
+
+(*
+Ltac abstract M x :=
+  match m with
+  | x => code_ap code_i x
+  | code_ap ?M1 ?M2 =>
+    let code_ap N1 _ := abstract M1 x in
+    let code_ap N2 _ := abstract M2 x in
+    code_ap (code_ap (code_ap code_s N1) N2) x
+  | _ => code_ap code_k x
+  end.
+
+Ltac beta_subs :=
+  match goal with
+  | beta x y
+*)
+
 Lemma code_le_ext (Var : Set) (x x' : Code Var) :
   (forall y, x * y [= x' * y) -> x [= x'.
 Proof.
@@ -481,6 +583,8 @@ Proof.
   (* TODO implement via abstraction algorithm *)
 Admitted.
 Hint Resolve code_le_ext.
+
+(** *** A head-normalized definition of convergence *)
 
 Fixpoint code_apply {Var : Set} (x : Code Var) (ys : list (Code Var)) :
   Code Var :=
@@ -494,14 +598,13 @@ Notation "x ** y" := (code_apply x y)%code : code_scope.
 Fixpoint code_tuple {Var : Set} (ys : list (Code Var)) : Code Var :=
   match ys with
   | nil => I
-  | (y ::ys')%list => code_tuple ys' o (C * I * y)
+  | (y :: ys')%list => code_tuple ys' o (C * I * y)
   end.
 
 Lemma red_tuple_apply (Var : Set) (ys : list (Code Var)) :
   forall x : Code Var, red (code_tuple ys * x) (x ** ys).
 Proof.
-  induction ys; simpl; auto.
-  intro x.
+  induction ys; simpl; auto; intro x.
   red_to (code_tuple ys * (C * I * a * x)).
   red_to (code_tuple ys * (I * x * a)).
   red_to (code_tuple ys * (x * a)).
@@ -511,8 +614,7 @@ Hint Resolve red_tuple_apply.
 Lemma red_apply_tuple (Var : Set) (ys : list (Code Var)) :
   forall x : Code Var, red (x ** ys) (code_tuple ys * x).
 Proof.
-  induction ys; simpl; auto.
-  intro x.
+  induction ys; simpl; auto; intro x.
   red_to (code_tuple ys * (C * I * a * x)).
   red_to (code_tuple ys * (I * x * a)).
   red_to (code_tuple ys * (x * a)).

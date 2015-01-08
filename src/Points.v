@@ -1,18 +1,23 @@
 
-Require Import IndexedCodes.
+Require Export IndexedCodes.
 
-(** ** Points as quotients of indexed codes *)
+(** * Points as quotients of indexed codes.
 
-Axiom point : Set.
-Axiom denote : codes -> point.
-Axiom access : point -> codes.
-Axiom denote_access : forall p, p = denote (access p).
-Axiom denote_respect : forall s s', codes_eq s s' -> denote s = denote s'.
+    This development implements a quotient construction
+    using five retraction axioms.
+*)
 
-Lemma denote_respect':
-  forall p p' : point, codes_eq (access p) (access p') -> p = p'.
+Axiom Point : Set -> Set.
+Axiom denote : forall {Var : Set}, Codes Var -> Point Var.
+Axiom access : forall {Var : Set}, Point Var -> Codes Var.
+Axiom denote_access : forall (Var : Set) (p : Point Var), p = denote (access p).
+Axiom denote_respect :
+  forall (Var : Set) (s s' : Codes Var), codes_eq s s' -> denote s = denote s'.
+
+Lemma denote_respect' (Var : Set) (p p' : Point Var) :
+    codes_eq (access p) (access p') -> p = p'.
 Proof.
-  intros p p' H.
+  intro H.
   rewrite denote_access.
   rewrite denote_access at 1.
   apply denote_respect.
@@ -21,17 +26,20 @@ Qed.
 
 Notation "[ x ]" := (denote (codes_code x)) : point_scope.
 
-Definition point_le p p' := codes_le (access p) (access p').
-Definition point_eq p p' := codes_eq (access p) (access p').
+Definition point_le {Var : Set} (p p' : Point Var) :=
+  codes_le (access p) (access p').
+Definition point_eq {Var : Set} (p p' : Point Var) :=
+  codes_eq (access p) (access p').
 
 Notation "x [= y" := (point_le x y) : point_scope.
 Notation "x [=] y" := (point_eq x y) : point_scope.
 
 Open Scope point_scope.
 Delimit Scope point_scope with point.
-Bind Scope point_scope with point.
+Bind Scope point_scope with Point.
 
-Definition point_ap p p' := denote (codes_ap (access p) (access p')).
+Definition point_ap {Var : Set} (p p' : Point Var) :=
+  denote (codes_ap (access p) (access p')).
 Infix "*" := point_ap : point_scope.
 
 Notation "'TOP'" := [code_top] : point_scope.
@@ -45,20 +53,18 @@ Notation "'S'" := [code_s] : point_scope.
 Notation "p * p'" := (point_ap p p')%point : point_scope.
 Notation "x || y" := (J * x * y)%point : point_scope.
 
-Definition sup {i : Type} (e : i -> code) : point := denote (codes_sup e).
+Definition sup {Var : Set} {i : Type} (e : i -> Code Var) : Point Var :=
+  denote (codes_sup e).
 
-Lemma point_ap_respect : forall x y, [x] * [y] = [x * y].
+Lemma point_ap_respect (Var : Set) (x y : Code Var) : [x] * [y] = [x * y]%code.
 Proof.
-  intros x y.
-  unfold point_ap.
-  unfold codes_ap.
+  unfold point_ap; unfold codes_ap.
   (* TODO *)
 Admitted.
 
-Theorem consistency : ~ [code_top] = [code_bot].
+Theorem consistency (Var : Set) : [@code_top Var] <> [@code_bot Var].
 Proof.
   (* TODO apply access_denote. *)
 Admitted.
 
-Definition definable (p : point) := {x : code & p = [x]}.
-
+Definition definable {Var : Set} (p : Point Var) := {x : code & p = [x]}.
