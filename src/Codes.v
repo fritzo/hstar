@@ -354,6 +354,11 @@ Hint Resolve red_abs_sub'.
 
 (** Sloppy lambda notation specialized to [Code nat] *)
 
+(* FIXME [inl] and [inr] apparently changed between Coq 8.3 and 8.4 *)
+SearchAbout sum.
+Print inr.
+Print inl.
+
 Definition open {Var : Set} (x : Code Var) : Code (nat + Var) :=
   code_sub (fun v => code_var (inr v)) x.
 Definition close {Var : Set} (x : Code (nat + Var)) : Code Var :=
