@@ -1,4 +1,3 @@
-
 Require Import Setoid.
 Require Export Codes.
 
@@ -105,12 +104,50 @@ Section Codes_ap.
 End Codes_ap.
 
 Definition codes_ap {Var : Set} := Codes_ap Var.
-
 Notation "x * y" := (codes_ap x y) : codes_scope.
 
 Open Scope codes_scope.
 Delimit Scope codes_scope with codes.
 Bind Scope codes_scope with codes.
+
+Section Codes_sub.
+  Variable Var Var' : Set.
+  Variable fs : Var -> Codes Var'.
+  Variable xs : Codes Var.
+
+  Let index := prod (forall v : Var, (fs v).(index)) xs.(index).
+
+  Let enum (i : index) : code :=
+    let (fi, xi) := i in
+    let f v := (fs v).(enum) (fi v) in
+    let x := xs.(enum) xi in
+    code_sub f x.
+
+  (*
+  Let nonempty : index := (fs.(nonempty), xs.(nonempty))%type.
+  *)
+
+  Definition Codes_sub : Codes Var'.
+    refine (codes_intro _ index enum _ _).
+      intros i j.
+      destruct i as [i1 i2].
+      destruct j as [j1 j2].
+      (* FIXME
+      assert (kp1 := fs.(join) i1 j1); destruct kp1 as [k1 p1].
+      assert (kp2 := xs.(join) i2 j2); destruct kp2 as [k2 p2].
+      exists (k1, k2).
+      unfold enum12.
+      apply code_le_join in p1.
+      apply code_le_join in p2.
+      apply code_le_join; split; apply code_le_ap; apply p1 || apply p2.
+     *)
+     admit.
+   admit.
+  Defined.
+End Codes_sub.
+
+Definition codes_sub {Var Var' : Set} := Codes_sub Var Var'.
+Notation "x @ f" := (codes_sub x f) : codes_scope.
 
 (* does this require extensionality?
 Lemma codess_ap_comm :
@@ -124,12 +161,12 @@ Proof.
 Definition codes_le {Var : Set} (s1 s2 : Codes Var) : Prop :=
   let (index1, enum1, _, _) := s1 in
   let (index2, enum2, _, _) := s2 in
-  forall c : code,
-  forall i1 : index1, conv (c * (enum1 i1))%code ->
-  exists i2 : index2, conv (c * (enum2 i2))%code.
+  forall {Var' : Set} (c : Code Var') (f : Var -> Code Var'),
+  forall i1 : index1, conv (c * (enum1 i1 @ f))%code ->
+  exists i2 : index2, conv (c * (enum2 i2 @ f))%code.
 
-Definition codes_eq {Var : Set} (s s' : Codes Var) : Prop :=
-  (codes_le s s' * codes_le s' s)%type.
+Definition codes_eq {Var : Set} (x y : Codes Var) : Prop :=
+  codes_le x y /\ codes_le y x.
 
 Notation "x [= y" := (codes_le x y)%codes : codes_scope.
 Notation "x [=] y" := (codes_eq x y)%codes : codes_scope.
