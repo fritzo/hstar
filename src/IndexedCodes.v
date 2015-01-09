@@ -66,6 +66,12 @@ Definition codes_code {Var : Set} (x : Code Var) : Codes Var.
   exists tt; auto.
 Defined.
 
+Notation "[ x ]" := (codes_code x) : codes_scope.
+
+Open Scope codes_scope.
+Delimit Scope codes_scope with codes.
+Bind Scope codes_scope with codes.
+
 Section Codes_ap.
   Variable Var : Set.
   Variable s1 s2 : Codes Var.
@@ -104,11 +110,7 @@ Section Codes_ap.
 End Codes_ap.
 
 Definition codes_ap {Var : Set} := Codes_ap Var.
-Notation "x * y" := (codes_ap x y) : codes_scope.
-
-Open Scope codes_scope.
-Delimit Scope codes_scope with codes.
-Bind Scope codes_scope with codes.
+Notation "x * y" := (codes_ap x y)%codes : codes_scope.
 
 Section Codes_sub.
   Variable Var Var' : Set.
@@ -148,6 +150,55 @@ End Codes_sub.
 
 Definition codes_sub {Var Var' : Set} := Codes_sub Var Var'.
 Notation "x @ f" := (codes_sub x f) : codes_scope.
+
+Section Codes_abs.
+  Variable Var Var' : Set.
+  Variable b : Var -> option Var'.
+  Variable x : Codes Var.
+
+  Let enum i := code_abs b (x.(enum) i).
+
+  Definition Codes_abs : Codes Var'.
+    refine (codes_intro _ x.(index) enum _ x.(nonempty)).
+    intros i1 i2.
+    assert (j := x.(join) i1 i2); destruct j as [i12 H]; exists i12.
+    unfold enum; simpl.
+    apply code_le_join in H; destruct H as [H1 H2].
+    apply code_le_join; split; apply code_le_abs; auto.
+  Defined.
+End Codes_abs.
+
+Definition codes_abs {Var Var' : Set} := Codes_abs Var Var'.
+
+Section Codes_lambda.
+  Variable Var : Set.
+  Variable x y : Codes (nat + Var).
+
+  Let index := (x.(index) * y.(index))%type.
+
+  Let enum (i : index) : Code (nat + Var) :=
+    let (i1, i2) := i in
+    code_lambda (x.(enum) i1) (y.(enum) i2).
+
+  Let nonempty := (x.(nonempty), y.(nonempty)).
+
+  Definition Codes_lambda : Codes (nat + Var).
+    refine (codes_intro _ index enum _ nonempty).
+    intros i1 i2.
+    admit. (* TODO fix [code_lambda] to work here *)
+  Defined.
+End Codes_lambda.
+
+Definition codes_close {Var : Set} (x : Codes (nat + Var)) : Codes Var.
+  refine (codes_intro _ x.(index) (fun i => close (x.(enum) i)) _ x.(nonempty)).
+  intros i1 i2.
+  assert (j := x.(join) i1 i2); destruct j as [i12 H]; exists i12.
+  apply code_le_join in H; destruct H as [H1 H2].
+  apply code_le_join; split; auto.
+Defined.
+
+Definition codes_lambda {Var : Set} := Codes_lambda Var.
+Notation "\ x , y" := (codes_lambda x y)%codes : codes_scope.
 
 (* does this require extensionality?
 Lemma codess_ap_comm :
@@ -193,7 +244,7 @@ Section direct_example.
   Let x := make_var Var 0.
   Let y := make_var Var 1.
   Let z := make_var Var 2.
-  Let pair := close (\x, \y, \z, z * x * y).
+  Let pair := Eval compute in close (\x, \y, \z, z * x * y).
   Notation "<< x , y >>" := (pair * x * y).
   Let A_implicit : Codes Var :=
     codes_sup (<<s, r>> for s : code for r : code if r o s [= I).

@@ -13,6 +13,12 @@ Axiom denote_access : forall (Var : Set) (p : Point Var), p = denote (access p).
 Axiom denote_respect :
   forall (Var : Set) (s s' : Codes Var), codes_eq s s' -> denote s = denote s'.
 
+(* Should we add a variable identifiability axiom:
+Axiom access_var : forall {Var : Set} (v : Var),
+  let v' := codes_code (code_var v) in
+  access (denote v') = v'.
+*)
+
 Lemma denote_respect' (Var : Set) (p p' : Point Var) :
     codes_eq (access p) (access p') -> p = p'.
 Proof.
@@ -43,6 +49,17 @@ Definition point_sub {Var Var' : Set} (f : Var -> Point Var') (x : Point Var)
   : Point Var' :=
   denote (codes_sub (fun v => access (f v)) (access x)).
 
+Definition point_abs {Var Var' : Set} (b : Var -> option Var') (x : Point Var)
+  : Point Var' :=
+  denote (codes_abs b (access x)).
+
+Definition point_lambda {Var : Set} (x y : Point (nat + Var)) :
+  Point (nat + Var) :=
+  denote (codes_lambda (access x) (access y)).
+
+Definition point_close {Var : Set} (x : Point (nat + Var)) : Point Var :=
+  denote (codes_close (access x)).
+
 Definition point_sup {Var : Set} {i : Type} (e : i -> Point Var) : Point Var.
 Proof.
   apply denote; apply direct; unfold Precodes.
@@ -64,13 +81,14 @@ Notation "x 'o' y" := (B * x * y)%point : point_scope.
 Notation "x || y" := (J * x * y)%point : point_scope.
 Notation "x (+) y" := (R * x * y)%point : point_scope.
 Notation "x @ f" := (point_sub f x)%point : point_scope.
+Notation "\ x , y" := (point_lambda x y)%point : point_scope.
 
 Definition point_nle {Var : Set} (x y : Point Var) : Prop :=
   exists (Var' : Set) (c : Point Var') (f : Var -> Point Var'),
     c * (x @ f) = TOP /\ c * (y @ f) = BOT.
 Notation "x [!= y" := (point_nle x y)%point : point_scope.
 
-Lemma point_ap_respect (Var : Set) (x y : Code Var) : [x] * [y] = [x * y]%code.
+Lemma point_ap_respect (Var : Set) (x y : Code Var) : [x * y]%code = [x] * [y].
 Proof.
   unfold point_ap; unfold codes_ap.
   (* TODO *)
@@ -131,8 +149,13 @@ Hint Rewrite
   point_s_beta point_j_beta point_r_beta point_r_idem point_sup_beta
   : beta.
 
-Tactic Notation "beta_reduce" := autorewrite with beta.
-Tactic Notation "beta_reduce" "in" hyp(H) := autorewrite with beta in H.
+Tactic Notation "beta_reduce" :=
+  repeat rewrite point_ap_respect;
+  autorewrite with beta.
+Tactic Notation "beta_reduce" "in" hyp(H) :=
+  repeat rewrite point_ap_respect in H;
+  autorewrite with beta;
+  autorewrite with beta in H.
 
 (** To avoid nontermination in [beta_reduce],
     we provide a mechanism to "freeze" terms during reduction. *)

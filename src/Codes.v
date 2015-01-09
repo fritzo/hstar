@@ -307,6 +307,7 @@ Section red_abs_sub.
 End red_abs_sub.
 Hint Resolve red_abs_sub red_sub_abs.
 
+(* TODO switch to this more efficient lambda abstraction once proof passes *)
 Fixpoint code_abs' {Var Var' : Set} (b : Var -> option Var') (x : Code Var) :
   Code Var' :=
   match x with
@@ -360,8 +361,8 @@ Definition close {Var : Set} (x : Code (nat + Var)) : Code Var :=
 Definition make_var (Var : Set) (n : nat) : Code (nat + Var) :=
   code_var (inl n).
 
-Definition code_lambda {Var : Set} (x y : Code (nat + Var)) : Code (nat + Var)
-  :=
+Definition code_lambda {Var : Set} (x y : Code (nat + Var)) :
+  Code (nat + Var) :=
   let beq_var (v1 v2 : nat + Var) : bool :=
     match v1, v2 with
     | inl n1, inl n2 => beq_nat n1 n2
@@ -370,7 +371,7 @@ Definition code_lambda {Var : Set} (x y : Code (nat + Var)) : Code (nat + Var)
   in
   match x with
   | code_var v => code_abs (fun v' => if beq_var v v' then None else Some v') y
-  | _ => code_top (* TODO implement pattern matching here*)
+  | _ => BOT (* TODO implement pattern matching here*)
   end.
 
 (*
@@ -472,6 +473,19 @@ Proof.
 Qed.
 Hint Resolve code_le_red.
 
+Lemma code_le_abs (Var Var' : Set) (b : Var -> option Var')
+  (x y : Code Var) : x [= y -> code_abs b x [= code_abs b y.
+Proof.
+  intros H; induction x; auto.
+Admitted.
+Hint Resolve code_le_abs.
+
+Lemma code_le_close {Var : Set} (x y : Code (nat + Var)) :
+  x [= y -> close x [= close y.
+Proof.
+Admitted.
+Hint Resolve code_le_close.
+
 Lemma code_le_top (Var : Set) (x : Code Var) : x [= TOP.
 Proof.
   unfold code_le; intros Var' c f Hred.
@@ -536,6 +550,11 @@ Proof.
   compute.
   (* TODO *)
 Admitted.
+
+Lemma code_eq_omega_bot (Var : Set) : Omega Var [=] BOT.
+Proof.
+  split ; (apply code_le_omega_bot || auto).
+Qed.
 
 (** *** Proving information ordering *)
 

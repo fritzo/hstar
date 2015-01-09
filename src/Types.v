@@ -2,7 +2,7 @@
 
 Require Import ObAxioms.
 Require Import Lambda.
-Require Import Constructor.
+Require Import ConstructorOld. (* TODO migrate to new Constructor.v *)
 
 Open Scope Ob_scope.
 
