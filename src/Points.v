@@ -84,8 +84,10 @@ Notation "x @ f" := (point_sub f x)%point : point_scope.
 Notation "\ x , y" := (point_lambda x y)%point : point_scope.
 
 Definition point_nle {Var : Set} (x y : Point Var) : Prop :=
-  exists (Var' : Set) (c : Point Var') (f : Var -> Point Var'),
-    c * (x @ f) = TOP /\ c * (y @ f) = BOT.
+  exists Var' : Set,
+  exists c : Point Var',
+  exists f : Var -> Point Var',
+  c * (x @ f) = TOP /\ c * (y @ f) = BOT.
 Notation "x [!= y" := (point_nle x y)%point : point_scope.
 
 Lemma point_ap_respect (Var : Set) (x y : Code Var) : [x * y]%code = [x] * [y].
