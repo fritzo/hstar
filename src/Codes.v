@@ -480,7 +480,7 @@ Proof.
 Admitted.
 Hint Resolve code_le_abs.
 
-Lemma code_le_close {Var : Set} (x y : Code (nat + Var)) :
+Lemma code_le_close (Var : Set) (x y : Code (nat + Var)) :
   x [= y -> close x [= close y.
 Proof.
 Admitted.
