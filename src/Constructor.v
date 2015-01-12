@@ -86,6 +86,9 @@ Section compose.
 End compose.
 
 Definition A {Var : Set} : Code Var :=
+  (* TODO  Get eta,I,K,B,C,S-abstraction working.
+  Eval compute in
+  *)
   Y * ( K * <<I, I>>
      || K * <<raise _, lower _>>
      || K * <<pull _, push _>>
