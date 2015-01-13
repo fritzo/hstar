@@ -1,9 +1,9 @@
 #!/bin/sh
 
-HOL=Isabelle2014_linux.tar.gz
-test -e $HOL \
-  || wget http://isabelle.in.tum.de/dist/$HOL \
-  && tar -xzf $HOL
+#HOL=Isabelle2014_linux.tar.gz
+#test -e $HOL \
+#  || wget http://isabelle.in.tum.de/dist/$HOL \
+#  && tar -xzf $HOL
 
 COQ=coq-8.4pl5.tar.gz
 test -e $COQ \

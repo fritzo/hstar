@@ -1,10 +1,15 @@
-Require Import Setoid.
+(** * Combinatory algebra with parametric variables *)
+
+Require Import Coq.Program.Basics.
+(* Require Import Coq.Program.Tactics. *)
+Require Import Coq.Setoids.Setoid.
+Require Import Coq.Classes.RelationClasses.
+Require Import Coq.Classes.Morphisms.
+Require Import Coq.Classes.Morphisms_Prop.
 Require Import EqNat.
 Require Export Notations.
 
 Definition Succ := S%nat. (* an alias for later *)
-
-(** * Combinatory algebra with parametric variables *)
 
 Inductive code {Var : Set} : Set :=
   | code_var : Var -> code
@@ -47,6 +52,9 @@ Notation "x (+) y" := (code_r * x * y)%code : code_scope.
 Definition code_join {Var : Set} x y : Code Var := x || y.
 
 Inductive beta {Var : Set} : Code Var -> Code Var -> Prop :=
+  | beta_refl x : beta x x
+  | beta_sym x y : beta x y -> beta y x
+  | beta_trans x y z : beta x y -> beta y z -> beta x z
   | beta_i x : beta (I * x) x
   | beta_k x y : beta (K * x * y) x
   | beta_b x y z : beta (B * x * y * z) (x * (y * z))
@@ -85,6 +93,18 @@ Hint Constructors beta.
 Hint Constructors pi.
 Hint Constructors red.
 Hint Constructors prob.
+
+Instance beta_equivalence (Var : Set) : Equivalence (@beta Var).
+Proof.
+  split; auto.
+  unfold Transitive; intros x y z; apply beta_trans.
+Qed.
+
+Instance red_preorder (Var : Set) : PreOrder (@red Var).
+Proof.
+  split; auto.
+  unfold Transitive; intros x y z; apply red_trans.
+Qed.
 
 Fixpoint try_red_step {Var : Set} (u : Code Var) : option (Code Var) :=
   match u with
@@ -148,6 +168,12 @@ Definition conv {Var : Set} (x : Code Var) := red (code_div * x) TOP.
 Definition pconv {Var : Set} (x : Code Var) (pp : {p : Code Var | prob p}) :=
     let (p, _) := pp in red (code_div * x) p.
 
+Lemma conv_proper (Var : Set) : Proper (beta ++> iff) (@conv Var).
+Proof.
+  compute; intros; split; intros; auto.
+  (* TODO *)
+Admitted.
+
 (** ** Substitution *)
 
 Fixpoint code_sub {Var Var' : Set}
@@ -169,6 +195,13 @@ Fixpoint code_sub {Var Var' : Set}
   end.
 
 Notation "x @ f" := (code_sub f x)%code : code_scope.
+
+Lemma code_sub_beta (Var Var' : Set) :
+  Proper (eq ++> beta ++> beta) (@code_sub Var Var').
+Proof.
+  unfold Proper; unfold "++>"; intros f g Hfg x y Hxy.
+  (* TODO *)
+Admitted.
 
 Lemma var_monad_unit_right (Var : Set) (x : Code Var) : x @ code_var = x.
 Proof.
@@ -229,6 +262,7 @@ Lemma beta_sub_right (Var Var' : Set)
   (xy : beta x y) : beta (x @ f) (y @ f).
 Proof.
   induction xy; repeat rewrite code_sub_ap; simpl; auto.
+  apply beta_trans with (y @ f); auto.
 Qed.
 Hint Resolve beta_sub_right.
 
@@ -393,6 +427,14 @@ Definition code_le {Var : Set} (x y : Code Var) :=
 Notation "x [= y" := (code_le x y)%code : code_scope.
 Notation "x [=] y" := (x [= y /\ y [= x)%code : code_scope.
 
+Lemma code_le_beta (Var : Set) : Proper (beta ++> beta ++> iff) (@code_le Var).
+Proof.
+Admitted.
+
+Lemma code_le_red (Var : Set) : Proper (red ++> red --> impl) (@code_le Var).
+Proof.
+Admitted.
+
 Lemma code_le_refl (Var : Set) (x : Code Var) : x [= x.
 Proof.
   unfold code_le; auto.
@@ -405,6 +447,12 @@ Proof.
   unfold code_le; auto.
 Qed.
 Hint Resolve code_le_trans.
+
+Instance code_le_preorder (Var : Set) : PreOrder (@code_le Var).
+Proof.
+  split; auto.
+  unfold Transitive; intros x y z; apply code_le_trans.
+Qed.
 
 Lemma code_le_ap_right (Var : Set) (x y y' : Code Var) :
   y [= y' -> x * y [= x * y'.
@@ -464,14 +512,14 @@ Proof.
 Qed.
 Hint Resolve code_le_red_right.
 
-Lemma code_le_red (Var : Set) (x x' y y' : Code Var) :
+Lemma code_le_red' (Var : Set) (x x' y y' : Code Var) :
   red x x' -> red y' y -> x [= y -> x' [= y'.
 Proof.
   intros Hx Hy Hxy.
     apply code_le_red_right with y; auto.
   apply code_le_red_left with x; auto.
 Qed.
-Hint Resolve code_le_red.
+Hint Resolve code_le_red'.
 
 Lemma code_le_abs (Var Var' : Set) (b : Var -> option Var')
   (x y : Code Var) : x [= y -> code_abs b x [= code_abs b y.
@@ -691,12 +739,9 @@ Admitted.
 
 (** ** Observational equivalence *)
 
-Definition code_eq {Var : Set} (x y : Code Var) := x [= y /\ y [= x.
-Notation "x [=] y" := (code_eq x y)%code : code_scope.
-
 Lemma code_eq_beta (Var : Set) (x y : Code Var) : beta x y -> x [=] y.
 Proof.
-  unfold code_eq; intros Hbeta; split.
+  intros Hbeta; split.
   assert (Hxy : red x y); auto; apply code_le_red_left with y; auto.
   assert (Hyx : red y x); auto; apply code_le_red_right with y; auto.
 Qed.
@@ -705,6 +750,6 @@ Hint Resolve code_eq_beta.
 Lemma code_eq_ext (Var : Set) (x x' : Code Var) :
   (forall y, x * y [=] x' * y) -> x [=] x'.
 Proof.
-  unfold code_eq; intro H; split; apply code_le_ext; intro y; apply H.
+  intro H; split; apply code_le_ext; intro y; apply H.
 Qed.
 Hint Resolve code_eq_ext.

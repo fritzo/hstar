@@ -194,3 +194,9 @@ Proof.
   *)
   (* TODO *)
 Admitted.
+
+Theorem A_implicit (Var : Set) (x f : Code Var) :
+  x [= A * f <-> (forall s r : Code Var, r o s [= I -> x [= f * s * r).
+Proof.
+  (* TODO *)
+Admitted.
