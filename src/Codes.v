@@ -6,7 +6,7 @@ Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
 Require Import Coq.Classes.Morphisms_Prop.
-Require Import EqNat.
+Require Import Coq.Arith.EqNat.
 Require Export Notations.
 
 Definition Succ := S%nat. (* an alias for later *)
@@ -55,6 +55,8 @@ Inductive beta {Var : Set} : Code Var -> Code Var -> Prop :=
   | beta_refl x : beta x x
   | beta_sym x y : beta x y -> beta y x
   | beta_trans x y z : beta x y -> beta y z -> beta x z
+  | beta_ap_left x x' y : beta x x' -> beta (x * y) (x' * y)
+  | beta_ap_right x y y' : beta y y' -> beta (x * y) (x * y')
   | beta_i x : beta (I * x) x
   | beta_k x y : beta (K * x * y) x
   | beta_b x y z : beta (B * x * y * z) (x * (y * z))
@@ -70,43 +72,72 @@ Inductive beta {Var : Set} : Code Var -> Code Var -> Prop :=
                                   ((x(+)y) (+) (z(+)w)).
 
 Inductive pi {Var : Set} : Code Var -> Code Var -> Prop :=
+  | pi_refl x : pi x x
+  | pi_trans x y z : pi x y -> pi y z -> pi x z
+  | pi_ap_left x x' y : pi x x' -> pi (x * y) (x' * y)
+  | pi_ap_right x y y' : pi y y' -> pi (x * y) (x * y')
   | pi_top x : pi TOP x
   | pi_bot x : pi x BOT
   | pi_j_left x y : pi (x || y) x
   | pi_j_right x y : pi (x || y) y.
 
-Inductive red {Var : Set} : Code Var -> Code Var -> Prop :=
-  | red_refl x : red x x
-  | red_trans x y z : red x y -> red y z -> red x z
-  | red_ap_left x x' y : red x x' -> red (x * y) (x' * y)
-  | red_ap_right x y y' : red y y' -> red (x * y) (x * y')
-  | red_beta x y : beta x y -> red x y
-  | red_beta' x y : beta y x -> red x y
-  | red_pi x y : pi x y -> red x y.
-
-Inductive prob {Var : Set} : Code Var -> Prop :=
-  | prob_top : prob TOP
-  | prob_bot : prob BOT
-  | prob_r p q : prob p -> prob q -> prob (p (+) q).
+Inductive approx {Var : Set} : Code Var -> Code Var -> Prop :=
+  approx_intro x y z : beta x y -> pi y z -> approx x z.
 
 Hint Constructors beta.
 Hint Constructors pi.
-Hint Constructors red.
-Hint Constructors prob.
+Hint Constructors approx.
 
-Instance beta_equivalence (Var : Set) : Equivalence (@beta Var).
+Instance beta_reflexive (Var : Set) : Reflexive (@beta Var).
+Proof. auto. Qed.
+
+Instance beta_symmetric (Var : Set) : Symmetric (@beta Var).
+Proof. auto. Qed.
+
+Instance beta_transitive (Var : Set) : Transitive (@beta Var).
 Proof.
-  split; auto.
   unfold Transitive; intros x y z; apply beta_trans.
 Qed.
 
-Instance red_preorder (Var : Set) : PreOrder (@red Var).
+Instance beta_equivalence (Var : Set) : Equivalence (@beta Var).
 Proof.
-  split; auto.
-  unfold Transitive; intros x y z; apply red_trans.
+  split; [apply beta_reflexive | apply beta_symmetric | apply beta_transitive].
 Qed.
 
-Fixpoint try_red_step {Var : Set} (u : Code Var) : option (Code Var) :=
+Instance pi_transitive (Var : Set) : Transitive (@pi Var).
+Proof.
+  unfold Transitive; intros x y z Hxy Hyz; apply pi_trans with y; auto.
+Qed.
+
+Instance pi_reflexive (Var : Set) : Reflexive (@pi Var).
+Proof.
+  auto.
+Qed.
+
+Instance pi_preorder (Var : Set) : PreOrder (@pi Var).
+Proof.
+  split; [apply pi_reflexive | apply pi_transitive].
+Qed.
+
+Instance approx_transitive (Var : Set) : Transitive (@approx Var).
+Proof.
+  unfold Transitive; intros x y z Hxy Hyz.
+  destruct Hxy as [Hxb Hxa Hxp].
+  destruct Hyz as [Hyb Hya Hyp].
+  (* TODO *)
+Admitted.
+
+Instance approx_reflexive (Var : Set) : Reflexive (@approx Var).
+Proof.
+  unfold Reflexive; intro x; apply approx_intro with x; auto.
+Qed.
+
+Instance approx_preorder (Var : Set) : PreOrder (@approx Var).
+Proof.
+  split; [apply approx_reflexive | apply approx_transitive].
+Qed.
+
+Fixpoint try_beta_step {Var : Set} (u : Code Var) : option (Code Var) :=
   match u with
   | I * x => Some x
   | K * x * y => Some x
@@ -118,10 +149,10 @@ Fixpoint try_red_step {Var : Set} (u : Code Var) : option (Code Var) :=
   | Y * x => Some (x * (Y * x))
   | V * x => Some (I || x o (V * x))
   | x * y =>
-      match try_red_step x with
+      match try_beta_step x with
       | Some x' => Some (x' * y)
       | None =>
-          match try_red_step y with
+          match try_beta_step y with
           | Some y' => Some (x * y')
           | None => None
           end
@@ -129,50 +160,55 @@ Fixpoint try_red_step {Var : Set} (u : Code Var) : option (Code Var) :=
   | _ => None
   end.
 
-Section try_red_step.
+Section try_beta_step.
   Variable Var : Set.
   Variable x : Code Var.
   Eval compute in
-    (try_red_step ((x || (C * I * TOP) o (V * (C * I * TOP)) * x))).
-End try_red_step.
+    (try_beta_step ((x || (C * I * TOP) o (V * (C * I * TOP)) * x))).
+End try_beta_step.
 
-Ltac red_to x := apply red_trans with x; auto.
+Ltac beta_to x := apply beta_trans with x; auto.
 
-Ltac red_step_ try_red_step :=
+Ltac beta_step_ try_beta_step :=
   match goal with
-  | [|- @red ?v ?x ?y] =>
-      match eval compute in (try_red_step v x) with
-      | Some ?z => red_to z
+  | [|- @beta ?v ?x ?y] =>
+      match eval compute in (try_beta_step v x) with
+      | Some ?z => beta_to z
       | _ => fail
       end
   | _ => fail
   end.
 
-Ltac red_step := red_step_ @try_red_step.
+Ltac beta_step := beta_step_ @try_beta_step.
 
 Definition code_div {Var : Set} : Code Var := V * (C * I * TOP).
-Lemma red_div (Var : Set) (x : Code Var) :
-  red (code_div * x) (x || code_div * x * TOP).
+Lemma beta_div (Var : Set) (x : Code Var) :
+  beta (code_div * x) (x || code_div * x * TOP).
 Proof.
   unfold code_div.
-  red_step.
-  red_step.
-  red_step.
-  apply red_ap_right. (* FIXME allow variables in red_step *)
-  red_step.
-  red_step.
+  beta_step.
+  beta_step.
+  beta_step.
+  apply beta_ap_right. (* FIXME allow variables in beta_step *)
+  beta_step.
+  beta_step.
 Qed.
 
-Definition conv {Var : Set} (x : Code Var) := red (code_div * x) TOP.
-
-Definition pconv {Var : Set} (x : Code Var) (pp : {p : Code Var | prob p}) :=
-    let (p, _) := pp in red (code_div * x) p.
+Definition conv {Var : Set} (x : Code Var) := approx (code_div * x) TOP.
 
 Lemma conv_proper (Var : Set) : Proper (beta ++> iff) (@conv Var).
 Proof.
   compute; intros; split; intros; auto.
   (* TODO *)
 Admitted.
+
+Inductive prob {Var : Set} : Code Var -> Prop :=
+  | prob_top : prob TOP
+  | prob_bot : prob BOT
+  | prob_r p q : prob p -> prob q -> prob (p (+) q).
+
+Definition pconv {Var : Set} (x : Code Var) (p : Code Var) :=
+  approx (code_div * x) p.
 
 (** ** Substitution *)
 
@@ -246,16 +282,16 @@ Proof.
   rewrite IHx1; rewrite IHx2; auto.
 Qed.
 
-Lemma red_sub_left (Var Var' : Set)
-  (f g : Var -> Code Var') (fg : forall v, red (f v) (g v))
-  (x : Code Var) : red (x @ f) (x @ g).
+Lemma beta_sub_left (Var Var' : Set)
+  (f g : Var -> Code Var') (fg : forall v, beta (f v) (g v))
+  (x : Code Var) : beta (x @ f) (x @ g).
 Proof.
   induction x; auto.
     compute; auto.
   unfold code_sub; fold (@code_sub Var Var').
-  red_to ((x1 @ f) * (x2 @ g)).
+  beta_to ((x1 @ f) * (x2 @ g)).
 Qed.
-Hint Resolve red_sub_left.
+Hint Resolve beta_sub_left.
 
 Lemma beta_sub_right (Var Var' : Set)
   (f : Var -> Code Var') (x y : Code Var)
@@ -271,26 +307,30 @@ Lemma pi_sub_right (Var Var' : Set)
   (xy : pi x y) : pi (x @ f) (y @ f).
 Proof.
   induction xy; repeat rewrite code_sub_ap; simpl; auto.
+  transitivity (y @ f); auto.
 Qed.
 Hint Resolve pi_sub_right.
 
-Lemma red_sub_right (Var Var' : Set)
+Lemma approx_sub_right (Var Var' : Set)
   (f : Var -> Code Var') (x y : Code Var)
-  (xy : red x y) : red (x @ f) (y @ f).
+  (xy : approx x y) : approx (x @ f) (y @ f).
 Proof.
   induction xy; repeat rewrite code_sub_ap; simpl; auto.
-  apply red_trans with (y @ f); auto.
+  apply approx_intro with (y @ f); auto.
 Qed.
-Hint Resolve red_sub_right.
+Hint Resolve approx_sub_right.
 
-Lemma red_sub (Var Var' : Set)
-  (f g : Var -> Code Var') (fg : forall v, red (f v) (g v))
-  (x y : Code Var) (xy : red x y) :
-  red (code_sub f x) (code_sub g y).
+Lemma approx_sub (Var Var' : Set)
+  (f g : Var -> Code Var') (fg : forall v, approx (f v) (g v))
+  (x y : Code Var) (xy : approx x y) :
+  approx (code_sub f x) (code_sub g y).
 Proof.
-  red_to (code_sub g x).
+  (* FIXME
+  beta_to (code_sub g x).
+  *)
+  admit.
 Qed.
-Hint Resolve red_sub.
+Hint Resolve approx_sub.
 
 (** ** Abstraction *)
 
@@ -327,16 +367,16 @@ Section red_abs_sub.
   Proof.
     unfold f; induction x; simpl; auto.
       case (b v);  [intro v'; auto | auto].
-    red_to (code_abs b c1 * y * (code_abs b c2 * y)).
-    red_to (code_abs b c1 * y * (code_sub f c2)).
+    beta_to (code_abs b c1 * y * (code_abs b c2 * y)).
+    beta_to (code_abs b c1 * y * (code_sub f c2)).
   Qed.
 
   Lemma red_sub_abs : red (code_sub f x) (code_abs b x * y).
   Proof.
     unfold f; induction x; simpl; auto.
       case (b v);  [intro v'; auto | auto].
-    red_to (code_abs b c1 * y * (code_abs b c2 * y)).
-    red_to (code_abs b c1 * y * (code_sub f c2)).
+    beta_to (code_abs b c1 * y * (code_abs b c2 * y)).
+    beta_to (code_abs b c1 * y * (code_sub f c2)).
   Qed.
 End red_abs_sub.
 Hint Resolve red_abs_sub red_sub_abs.
@@ -474,9 +514,9 @@ Proof.
   unfold code_le; unfold conv; intros H Var' c f.
   repeat rewrite code_sub_ap.
   intros Hconv.
-  red_to (code_div * ((c o (x @ f)) * (y' @ f))).
+  beta_to (code_div * ((c o (x @ f)) * (y' @ f))).
   apply H.
-  red_to (code_div * (c * ((x @ f) * (y @ f)))).
+  beta_to (code_div * (c * ((x @ f) * (y @ f)))).
 Qed.
 Hint Resolve code_le_ap_right.
 
@@ -486,13 +526,13 @@ Proof.
   unfold code_le; unfold conv; intros H Var' c f.
   repeat rewrite code_sub_ap.
   intros Hconv.
-  red_to (code_div * (c * (I * (x' @ f) * (y @ f)))).
-  red_to (code_div * (c * (C * I * (y @ f) * (x' @ f)))).
-  red_to (code_div * (c o (C * I * (y @ f)) * (x' @ f))).
+  beta_to (code_div * (c * (I * (x' @ f) * (y @ f)))).
+  beta_to (code_div * (c * (C * I * (y @ f) * (x' @ f)))).
+  beta_to (code_div * (c o (C * I * (y @ f)) * (x' @ f))).
   apply H.
-  red_to (code_div * (c * (C * I * (y @ f) * (x @ f)))).
-  red_to (code_div * (c * (I * (x @ f) * (y @ f)))).
-  red_to (code_div * (c * ((x @ f) * (y @ f)))).
+  beta_to (code_div * (c * (C * I * (y @ f) * (x @ f)))).
+  beta_to (code_div * (c * (I * (x @ f) * (y @ f)))).
+  beta_to (code_div * (c * ((x @ f) * (y @ f)))).
 Qed.
 Hint Resolve code_le_ap_left.
 
@@ -509,9 +549,9 @@ Lemma code_le_red_left (Var : Set) (x x' y : Code Var) :
 Proof.
   unfold code_le; intros Hred Hxy Var' c f Hconv.
   apply Hxy.
-  red_to (code_div o c * (x @ f)).
-  red_to (code_div o c * (x' @ f)).
-  red_to (code_div * (c * (x' @ f))).
+  beta_to (code_div o c * (x @ f)).
+  beta_to (code_div o c * (x' @ f)).
+  beta_to (code_div * (c * (x' @ f))).
 Qed.
 Hint Resolve code_le_red_left.
 
@@ -519,9 +559,9 @@ Lemma code_le_red_right (Var : Set) (x y y' : Code Var) :
   red y' y -> x [= y -> x [= y'.
 Proof.
   unfold code_le; intros Hred Hxy Var' c f Hconv.
-  red_to (code_div o c * (y' @ f)).
-  red_to (code_div o c * (y @ f)).
-  red_to (code_div * (c * (y @ f))).
+  beta_to (code_div o c * (y' @ f)).
+  beta_to (code_div o c * (y @ f)).
+  beta_to (code_div * (c * (y @ f))).
   apply Hxy; auto.
 Qed.
 Hint Resolve code_le_red_right.
@@ -551,9 +591,9 @@ Hint Resolve code_le_close.
 Lemma code_le_top (Var : Set) (x : Code Var) : x [= TOP.
 Proof.
   unfold code_le; intros Var' c f Hred.
-  red_to (code_div o c * TOP).
-  red_to (code_div o c * (x @ f)).
-  red_to (code_div * (c * (x @ f))).
+  beta_to (code_div o c * TOP).
+  beta_to (code_div o c * (x @ f)).
+  beta_to (code_div * (c * (x @ f))).
 Qed.
 Hint Resolve code_le_top.
 
@@ -562,9 +602,9 @@ Hint Resolve code_le_top.
 Lemma code_le_bot (Var : Set) (x : Code Var) : BOT [= x.
 Proof.
   unfold code_le; intros Var' c f Hred.
-  red_to (code_div o c * (x @ f)).
-  red_to (code_div o c * BOT).
-  red_to (code_div * (c * BOT)).
+  beta_to (code_div o c * (x @ f)).
+  beta_to (code_div o c * BOT).
+  beta_to (code_div * (c * BOT)).
 Qed.
 Hint Resolve code_le_bot.
 
@@ -623,14 +663,14 @@ Qed.
 Lemma code_le_j_left (Var : Set) (x y : Code Var) : x [= x || y.
 Proof.
   unfold code_le; intros Var' c f Hred.
-  red_to (code_div * (c * (x @ f))).
+  beta_to (code_div * (c * (x @ f))).
 Qed.
 Hint Resolve code_le_j_left.
 
 Lemma code_le_j_right (Var : Set) (x y : Code Var) : y [= x || y.
 Proof.
   unfold code_le; intros Var' c f Hred.
-  red_to (code_div * (c * (y @ f))).
+  beta_to (code_div * (c * (y @ f))).
 Qed.
 Hint Resolve code_le_j_right.
 
@@ -711,9 +751,9 @@ Lemma red_tuple_apply (Var : Set) (ys : list (Code Var)) :
   forall x : Code Var, red (code_tuple ys * x) (x ** ys).
 Proof.
   induction ys; simpl; auto; intro x.
-  red_to (code_tuple ys * (C * I * a * x)).
-  red_to (code_tuple ys * (I * x * a)).
-  red_to (code_tuple ys * (x * a)).
+  beta_to (code_tuple ys * (C * I * a * x)).
+  beta_to (code_tuple ys * (I * x * a)).
+  beta_to (code_tuple ys * (x * a)).
 Qed.
 Hint Resolve red_tuple_apply.
 
@@ -721,9 +761,9 @@ Lemma red_apply_tuple (Var : Set) (ys : list (Code Var)) :
   forall x : Code Var, red (x ** ys) (code_tuple ys * x).
 Proof.
   induction ys; simpl; auto; intro x.
-  red_to (code_tuple ys * (C * I * a * x)).
-  red_to (code_tuple ys * (I * x * a)).
-  red_to (code_tuple ys * (x * a)).
+  beta_to (code_tuple ys * (C * I * a * x)).
+  beta_to (code_tuple ys * (I * x * a)).
+  beta_to (code_tuple ys * (x * a)).
 Qed.
 Hint Resolve red_apply_tuple.
 
@@ -733,9 +773,9 @@ Lemma code_le_apply_easy (Var : Set) (x x' : Code Var) :
   conv ((x @ f) ** ys) -> conv ((x' @ f) ** ys).
 Proof.
   unfold code_le; intros H Var' ys f Hconv.
-  red_to (code_div * (code_tuple ys * (x' @ f))).
+  beta_to (code_div * (code_tuple ys * (x' @ f))).
   apply H.
-  red_to (code_div * ((x @ f) ** ys)).
+  beta_to (code_div * ((x @ f) ** ys)).
 Qed.
 
 Lemma code_le_apply_hard (Var : Set) (x x' : Code Var) :
