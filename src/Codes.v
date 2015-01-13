@@ -197,9 +197,9 @@ Fixpoint code_sub {Var Var' : Set}
 Notation "x @ f" := (code_sub f x)%code : code_scope.
 
 Lemma code_sub_beta (Var Var' : Set) :
-  Proper (eq ++> beta ++> beta) (@code_sub Var Var').
+  Proper ((eq ++> beta) ++> beta ++> beta) (@code_sub Var Var').
 Proof.
-  unfold Proper; unfold "++>"; intros f g Hfg x y Hxy.
+  unfold Proper, "++>"; intros f g Hfg x y Hxy.
   (* TODO *)
 Admitted.
 
@@ -427,12 +427,26 @@ Definition code_le {Var : Set} (x y : Code Var) :=
 Notation "x [= y" := (code_le x y)%code : code_scope.
 Notation "x [=] y" := (x [= y /\ y [= x)%code : code_scope.
 
-Lemma code_le_beta (Var : Set) : Proper (beta ++> beta ++> iff) (@code_le Var).
+Lemma code_le_beta_proper (Var : Set) : Proper (beta ++> beta ++> iff) (@code_le Var).
 Proof.
+Admitted.
+
+Lemma code_le_beta_subrelation (Var : Set) : subrelation beta (@code_le Var).
+Proof.
+  (* simpl_relation. *)
+  unfold subrelation, predicate_implication, pointwise_lifting.
+  intros x y H.
 Admitted.
 
 Lemma code_le_red (Var : Set) : Proper (red ++> red --> impl) (@code_le Var).
 Proof.
+Admitted.
+
+Lemma code_le_red_subrelation (Var : Set) :
+  subrelation (inverse red) (@code_le Var).
+Proof.
+  unfold subrelation, predicate_implication, pointwise_lifting, flip.
+  intros x y H.
 Admitted.
 
 Lemma code_le_refl (Var : Set) (x : Code Var) : x [= x.
