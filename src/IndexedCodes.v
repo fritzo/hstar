@@ -105,7 +105,7 @@ Section Codes_ap.
     unfold enum12.
     apply code_le_join in p1.
     apply code_le_join in p2.
-    apply code_le_join; split; apply code_le_ap; apply p1 || apply p2.
+    apply code_le_join; split; apply code_ap_le; apply p1 || apply p2.
   Defined.
 End Codes_ap.
 
@@ -164,7 +164,7 @@ Section Codes_abs.
     assert (j := x.(join) i1 i2); destruct j as [i12 H]; exists i12.
     unfold enum; simpl.
     apply code_le_join in H; destruct H as [H1 H2].
-    apply code_le_join; split; apply code_le_abs; auto.
+    apply code_le_join; split; apply code_abs_le; auto.
   Defined.
 End Codes_abs.
 
@@ -194,7 +194,7 @@ Definition codes_close {Var : Set} (x : Codes (nat + Var)) : Codes Var.
   intros i1 i2.
   assert (j := x.(join) i1 i2); destruct j as [i12 H]; exists i12.
   apply code_le_join in H; destruct H as [H1 H2].
-  apply code_le_join; split; auto.
+  apply code_le_join; split; apply code_close_le; auto.
 Defined.
 
 Definition codes_lambda {Var : Set} := Codes_lambda Var.

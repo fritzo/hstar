@@ -614,6 +614,7 @@ Admitted.
 
 Instance code_close_le (Var : Set) : Proper (code_le ==> code_le) (@close Var).
 Proof.
+  intros x x' xx'.
 Admitted.
 
 Lemma code_le_top (Var : Set) (x : Code Var) : x [= TOP.
@@ -715,12 +716,13 @@ Proof.
     split; apply code_le_trans with (x || y); auto.
   destruct H as [Hx Hy]; auto.
 Qed.
+Hint Resolve code_le_join.
 
-Lemma code_le_j_idem (Var : Set) (x : Code Var) : x||x [=] x.
+Lemma code_le_j_idem (Var : Set) (x : Code Var) : x||x [= x.
 Proof.
-  split; auto.
   apply code_le_join; split; reflexivity.
 Qed.
+Hint Resolve code_le_j_idem.
 
 Lemma code_le_j_sym (Var : Set) (x y : Code Var) : x||y [=] y||x.
 Proof.
