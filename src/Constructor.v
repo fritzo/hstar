@@ -3,52 +3,52 @@
 Require Export Codes.
 Open Scope code_scope.
 
-Section Exp.
-  Variable Var : Set.
+Section exp.
+  Context {Var : Set}.
   Let a := make_var Var 0.
   Let b := make_var Var 1.
   Let f := make_var Var 2.
-  Definition Exp := Eval compute in close (\a, \b, \f, b o f o a).
-End Exp.
-Notation "x --> y" := (Exp _ * x * y)%code : code_scope.
+  Definition exp := Eval compute in close (\a, \b, \f, b o f o a).
+End exp.
+Notation "x --> y" := (exp * x * y)%code : code_scope.
 
 Lemma exp_i_i (Var : Set) : I --> I == (I : Code Var).
 Proof.
-  unfold Exp; beta_eta. (* FIXME very slow *)
+  unfold exp; beta_eta.
 Qed.
 
-Section Pair.
-  Variable Var : Set.
+Section pair.
+  Context {Var : Set}.
   Let x := make_var Var 0.
   Let y := make_var Var 1.
   Let f := make_var Var 2.
-  Definition Pair := Eval compute in close (\x,\y,\f, f * x * y).
-End Pair.
-Notation "<< x , y >>" := (Pair _ * x * y)%code : code_scope.
+  Definition pair := Eval compute in close (\x,\y,\f, f * x * y).
+End pair.
+Notation "<< x , y >>" := (pair * x * y)%code : code_scope.
 
 Definition is_pair {Var : Set} (x : Code Var) := x == <<x * K, x * (K * I)>>.
 Lemma pair_is_pair (Var : Set) (x y : Code Var) : is_pair <<x, y>>.
 Proof.
-  hnf; unfold Pair; beta_reduce; auto.
+  hnf; unfold pair; beta_reduce; auto.
 Qed.
 
 Definition sub_pair {Var : Set} (x : Code Var) := x [= <<TOP, TOP>>.
 Lemma sub_pair_pair (Var : Set) (x y : Code Var) : sub_pair <<x, y>>.
 Proof.
-  unfold sub_pair; unfold Pair; eta_expand as f; beta_reduce.
+  unfold sub_pair; unfold pair; eta_expand as f; beta_reduce.
   monotonicity; auto.
 Qed.
 
 Definition sub_pair_elim_intro {Var : Set} (x : Code Var) :
   sub_pair x -> x [= <<x*K, x*(K*I)>>.
 Proof.
-  unfold sub_pair; unfold Pair; simpl.
+  unfold sub_pair; unfold pair; simpl.
   intros H. (* eta_expand in H. FIXME eta_expand is borken *)
   eta_expand as f; beta_reduce.
 Admitted.
 
 Section raise.
-  Variable Var : Set.
+  Context {Var : Set}.
   Let x := make_var Var 3.
   Let y := make_var Var 4.
 
@@ -60,7 +60,7 @@ Section raise.
 End raise.
 
 Section compose.
-  Variable Var : Set.
+  Context {Var : Set}.
   Let s := make_var Var 0.
   Let a := make_var Var 1.
   Let a' := make_var Var 2.
@@ -71,16 +71,16 @@ Section compose.
     (\s, s*\a,\a', s*\b,\b', <<a o b, b' o a'>>).
 
   Definition conjugate := Eval compute in close
-    (\s, s*\a,\a', s*\b,\b', <<(a'-->b), (a-->b')>>).
+    (\s, s*\a,\a', s*\b,\b', <<a' --> b, a --> b'>>).
 End compose.
 
 Definition A {Var : Set} : Code Var :=
   Eval compute in
   Y * ( K * <<I, I>>
-     || K * <<raise _, lower _>>
-     || K * <<pull _, push _>>
-     || compose _
-     || conjugate _).
+     || K * <<raise, lower>>
+     || K * <<pull, push>>
+     || compose
+     || conjugate).
 
 Notation "\\ x , y ; z" := (A * \x, \y, z)%code : code_scope.
 
@@ -90,6 +90,23 @@ Section A_example.
   Let a' := make_var Var 1.
   Let A_example : Code Var := close (\\a,a'; a --> a').
 End A_example.
+
+Lemma A_sound (Var : Set) (r s : Code Var) : <<s, r>> [= A -> r o s [= I.
+Proof.
+  unfold A.
+  (*
+  apply Join_lub.
+  *)
+  (* unfold A_prop; split. *)
+  (*
+  unfold A_def.
+  apply Y_lfp.
+  intros y Hless.
+  repeat (rewrite J_beta || rewrite K_beta).
+  repeat apply J_lub.
+  *)
+  (* TODO *)
+Admitted.
 
 (** ** A strong characterization of [A] *)
 
@@ -152,23 +169,6 @@ Proof.
     monotonicity; eta_expand in Hless; apply Hless.
 Qed.
 *)
-
-Lemma A_sound (Var : Set) (r s : Code Var) : <<s, r>> [= A -> r o s [= I.
-Proof.
-  unfold A.
-  (*
-  apply Join_lub.
-  *)
-  (* unfold A_prop; split. *)
-  (*
-  unfold A_def.
-  apply Y_lfp.
-  intros y Hless.
-  repeat (rewrite J_beta || rewrite K_beta).
-  repeat apply J_lub.
-  *)
-  (* TODO *)
-Admitted.
 
 Lemma A_complete (Var : Set) (s r : Code Var) : r o s [= I -> <<s, r>> [= A.
 Proof.

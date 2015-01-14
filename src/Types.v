@@ -5,8 +5,8 @@ Open Scope code_scope.
 
 (** ** Properties of types *)
 
-Definition closure {Var : Set} (a : Code Var) := I [= a /\ a o a = a.
-Definition fixes {Var : Set} (a : Code Var) (x : Code Var) := a*x = x.
+Definition closure {Var : Set} (a : Code Var) := I [= a /\ a o a == a.
+Definition fixes {Var : Set} (a : Code Var) (x : Code Var) := a*x == x.
 Notation "x :: a" := (fixes a x) : code_scope.
 
 (** ** Atomic types *)
@@ -15,18 +15,14 @@ Lemma I_closure {Var : Set} : closure (I : Code Var).
 Proof.
   unfold closure; split.
   apply code_le_refl.
-  (* TODO adapt eta, beta tactics from Points to Codes.
   eta_expand; beta_reduce; auto.
-  *)
-Admitted.
+Qed.
 
 Theorem I_inhab (Var : Set) (x : Code Var) : x :: I <-> True.
 Proof.
   unfold fixes.
-  (* TODO adapt eta, beta tactics from Points to Codes.
   beta_reduce; firstorder.
-  *)
-Admitted.
+Qed.
 
 Lemma V_closure (Var : Set) : closure (V : Code Var).
 Proof.

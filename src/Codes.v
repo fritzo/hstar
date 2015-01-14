@@ -483,7 +483,7 @@ Definition code_le {Var : Set} (x y : Code Var) :=
 Notation "x [= y" := (code_le x y)%code : code_scope.
 
 Definition code_eq {Var : Set} (x y : Code Var) := x [= y /\ y [= x.
-Notation "x == y" := (x [= y /\ y [= x)%code : code_scope.
+Notation "x == y" := (code_eq x y)%code : code_scope.
 
 Instance code_le_eq_subrelation (Var : Set) :
   subrelation (@code_eq Var) (@code_le Var).
@@ -615,10 +615,26 @@ Proof.
 Qed.
 Hint Resolve code_le_ap.
 
-Ltac monotonicity := repeat (
-  apply code_le_ap_left ||
-  apply code_le_ap_right ||
-  apply code_le_ap).
+Lemma code_eq_ap_right (Var : Set) (x y y' : Code Var) :
+  y == y' -> x * y == x * y'.
+Proof.
+  unfold code_eq; intros [H H']; split; auto.
+Qed.
+Hint Resolve code_eq_ap_right.
+
+Lemma code_eq_ap_left (Var : Set) (x x' y : Code Var) :
+  x == x' -> x * y == x' * y.
+Proof.
+  unfold code_eq; intros [H H']; split; auto.
+Qed.
+Hint Resolve code_eq_ap_left.
+
+Lemma code_eq_ap (Var : Set) (x x' y y' : Code Var) :
+  x == x' -> y == y' -> x * y == x' * y'.
+Proof.
+  intros Hx Hy; transitivity (x * y'); auto.
+Qed.
+Hint Resolve code_eq_ap.
 
 Instance code_ap_le (Var : Set) :
   Proper (code_le ==> code_le ==> code_le) (@code_ap Var).
@@ -627,13 +643,47 @@ Proof.
   apply code_le_trans with (x * y'); auto.
 Qed.
 
+Instance code_ap_eq (Var : Set) :
+  Proper (code_eq ==> code_eq ==> code_eq) (@code_ap Var).
+Proof.
+  intros x x' Hx y y' Hy.
+  apply code_eq_trans with (x * y'); auto.
+Qed.
+
+Ltac code_le_monotonicity := repeat (
+  apply code_le_ap_left ||
+  apply code_le_ap_right ||
+  apply code_le_ap).
+
+Ltac code_eq_monotonicity := repeat (
+  apply code_eq_ap_left ||
+  apply code_eq_ap_right ||
+  apply code_eq_ap).
+
+Ltac monotonicity :=
+  match goal with
+  | [|- _ [= _] => code_le_monotonicity
+  | [|- _ == _] => code_eq_monotonicity
+  end.
+
 Instance code_abs_le (Var Var' : Set) (b : Var -> option Var') :
   Proper (code_le ==> code_le) (code_abs b).
 Proof.
   intros x x' Hx.
 Admitted.
 
+Instance code_abs_eq (Var Var' : Set) (b : Var -> option Var') :
+  Proper (code_eq ==> code_eq) (code_abs b).
+Proof.
+  intros x x' Hx.
+Admitted.
+
 Instance code_close_le (Var : Set) : Proper (code_le ==> code_le) (@close Var).
+Proof.
+  intros x x' xx'.
+Admitted.
+
+Instance code_close_eq (Var : Set) : Proper (code_eq ==> code_eq) (@close Var).
 Proof.
   intros x x' xx'.
 Admitted.
@@ -809,11 +859,10 @@ Tactic Notation "eta_expand" "in" hyp(H) :=
   eapply code_le_ap_left in H; beta_reduce in H.
 
 Ltac beta_eta :=
-  simpl_relation; (
   beta_reduce; auto
   || eta_expand; beta_reduce; auto
   || eta_expand; eta_expand; beta_reduce; auto
-  || eta_expand; eta_expand; eta_expand; beta_reduce; auto).
+  || eta_expand; eta_expand; eta_expand; beta_reduce; auto.
 
 Lemma code_eq_ap_top (Var : Set) (x : Code Var) : TOP * x == TOP.
 Proof.
