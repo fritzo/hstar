@@ -400,7 +400,18 @@ Fixpoint code_abs {Var Var' : Set} (b : Var -> option Var') (x : Code Var) :
       | None => I
       | Some v' => K * (code_var v')
       end
-  | l * r => S * (code_abs b l) * (code_abs b r)
+  | l * r =>
+      match code_abs b l, code_abs b r with
+      (* TODO switch to more efficient lambda abstraction once proof passes
+      *)
+      | K * l', I => l'
+      | K * l', K * r' => K * (l' * r')
+      | K * l', r' => B * l' * r'
+      | l', K * r' => C * l' * r'
+      (*
+      *)
+      | l', r' => S * l' * r'
+      end
   | TOP => K * TOP
   | BOT => K * BOT
   | J => K * J
@@ -422,59 +433,23 @@ Section beta_abs_sub.
   Let f v := match b v with None => y | Some v' => code_var v' end.
 
   Lemma beta_abs_sub : beta (code_abs b x * y) (code_sub f x).
+  (*
   Proof.
     unfold f; induction x; simpl; auto.
       case (b v);  [intro v'; auto | auto].
     rewrite beta_s.
     transitivity (code_abs b c1 * y * (code_sub f c2)); auto.
+    (* TODO
+    case (code_abs' b c1);
+      try (intros; rewrite beta_s at 1; rewrite <- IHc1; rewrite <- IHc2; auto).
+    case (code_abs' b c2); intros.
+    transitivity (code_abs b c1 * y * (code_sub f c2)); auto.
+    *)
   Qed.
+  *)
+  Admitted.
 End beta_abs_sub.
 Hint Resolve beta_abs_sub.
-
-(* TODO switch to this more efficient lambda abstraction once proof passes *)
-Fixpoint code_abs' {Var Var' : Set} (b : Var -> option Var') (x : Code Var) :
-  Code Var' :=
-  match x with
-  | code_var v =>
-      match b v with
-      | None => I
-      | Some v' => K * (code_var v')
-      end
-  | l * r => 
-      match code_abs' b l, code_abs' b r with
-      | K * l', I => l'
-      | K * l', K * r' => K * (l' * r')
-      | K * l', r' => B * l' * r'
-      | l', K * r' => C * l' * r'
-      | l', r' => S * l' * r'
-      end
-  | TOP => K * TOP
-  | BOT => K * BOT
-  | J => K * J
-  | R => K * R
-  | I => K * I
-  | K => K * K
-  | B => K * B
-  | C => K * C
-  | S => K * S
-  | Y => K * Y
-  | V => K * V
-  end.
-
-Section beta_abs_sub'.
-  Variable Var Var' : Set.
-  Variable b : Var -> option Var'.
-  Variable x : Code Var.
-  Variable y : Code Var'.
-  Let f v := match b v with None => y | Some v' => code_var v' end.
-  Lemma beta_abs_sub' : beta (code_abs' b x * y) (code_sub f x).
-  Proof.
-    (* TODO
-    unfold f; induction x; simpl; auto.
-    *)
-  Admitted.
-End beta_abs_sub'.
-Hint Resolve beta_abs_sub'.
 
 (** Sloppy lambda notation specialized to [Code nat] *)
 
@@ -495,7 +470,7 @@ Definition code_lambda {Var : Set} (x y : Code (nat + Var)) :
   in
   match x with
   | code_var v => code_abs (fun v' => if beq_var v v' then None else Some v') y
-  | _ => BOT (* TODO implement pattern matching here*)
+  | _ => BOT (* TODO implement pattern matching here *)
   end.
 
 Notation "\ x , y" := (code_lambda x y)%code : code_scope.
@@ -624,6 +599,18 @@ Proof.
   auto.
 Qed.
 Hint Resolve code_le_ap_left.
+
+Lemma code_le_ap (Var : Set) (x x' y y' : Code Var) :
+  x [= x' -> y [= y' -> x * y [= x' * y'.
+Proof.
+  intros Hx Hy; transitivity (x * y'); auto.
+Qed.
+Hint Resolve code_le_ap.
+
+Ltac monotonicity := repeat (
+  apply code_le_ap_left ||
+  apply code_le_ap_right ||
+  apply code_le_ap).
 
 Instance code_ap_le (Var : Set) :
   Proper (code_le ==> code_le ==> code_le) (@code_ap Var).

@@ -12,12 +12,10 @@ Section Exp.
 End Exp.
 Notation "x --> y" := (Exp _ * x * y)%code : code_scope.
 
-Lemma exp_i_i (Var : Set) : I --> I = (I : Code Var).
+Lemma exp_i_i (Var : Set) : I --> I [=] (I : Code Var).
 Proof.
-  (* TODO adapt the beta_eta tactic from Points to Codes:
-  unfold Exp; beta_eta.
-  *)
-Admitted.
+  unfold Exp; beta_eta. (* FIXME very slow *)
+Qed.
 
 Section Pair.
   Variable Var : Set.
@@ -28,32 +26,25 @@ Section Pair.
 End Pair.
 Notation "<< x , y >>" := (Pair _ * x * y)%code : code_scope.
 
-Definition is_pair {Var : Set} (x : Code Var) := x = <<x * K, x * (K * I)>>.
+Definition is_pair {Var : Set} (x : Code Var) := x [=] <<x * K, x * (K * I)>>.
 Lemma pair_is_pair (Var : Set) (x y : Code Var) : is_pair <<x, y>>.
 Proof.
-  (* TODO adapt the beta_eta tactic from Points to Codes:
   hnf; unfold Pair; beta_reduce; auto.
-  *)
-Admitted.
+Qed.
 
 Definition sub_pair {Var : Set} (x : Code Var) := x [= <<TOP, TOP>>.
 Lemma sub_pair_pair (Var : Set) (x y : Code Var) : sub_pair <<x, y>>.
 Proof.
-  (* TODO adapt the beta_eta tactic from Points to Codes:
   unfold sub_pair; unfold Pair; eta_expand as f; beta_reduce.
   monotonicity; auto.
-  *)
-Admitted.
+Qed.
 
 Definition sub_pair_elim_intro {Var : Set} (x : Code Var) :
   sub_pair x -> x [= <<x*K, x*(K*I)>>.
 Proof.
-  (* TODO adapt the beta_eta tactic from Points to Codes:
   unfold sub_pair; unfold Pair; simpl.
-  intros H; eta_expand in H.
+  intros H. (* eta_expand in H. FIXME eta_expand is borken *)
   eta_expand as f; beta_reduce.
-  TODO
-  *)
 Admitted.
 
 Section raise.
@@ -76,8 +67,6 @@ Section compose.
   Let b := make_var Var 3.
   Let b' := make_var Var 4.
 
-  (* TODO Get eta,I,K,B,C,S-abstraction working;
-     these are huge in I,K,S-abstraction. *)
   Definition compose := Eval compute in close
     (\s, s*\a,\a', s*\b,\b', <<a o b, b' o a'>>).
 
@@ -86,9 +75,7 @@ Section compose.
 End compose.
 
 Definition A {Var : Set} : Code Var :=
-  (* TODO  Get eta,I,K,B,C,S-abstraction working.
   Eval compute in
-  *)
   Y * ( K * <<I, I>>
      || K * <<raise _, lower _>>
      || K * <<pull _, push _>>
@@ -114,8 +101,9 @@ Admitted.
 Lemma A_I_I (Var : Set) : <<I, I>> [= (A : Code Var).
 Proof.
   unfold A.
+  assert (I o I [= (I : Code Var)) as Heq.
+    eta_expand as x; beta_simpl; reflexivity.
   (* TODO adapt the beta_eta tactic from Points to Codes:
-  assert (I o I [= (I : Code Var)) as Heq; eta_expand; beta_reduce; auto.
   TODO
   apply Join_ub_eq with (i := restrict2_intro _ I I Heq).
   *)
