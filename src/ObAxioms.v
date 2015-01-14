@@ -2,6 +2,7 @@
     in the Coq standard library. *)
 
 Require Export Notations.
+Require Export ComprehensionNotation.
 
 (* TODO replace these with the 5 axioms in Points.v *)
 
