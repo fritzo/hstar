@@ -13,3 +13,6 @@ coq*/
 *.vo
 *.v.d
 *.glob
+/bin/
+/lib/
+/man/
