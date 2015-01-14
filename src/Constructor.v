@@ -147,7 +147,7 @@ Proof.
   unfold A_prop; split.
     compute; beta_reduce; auto.
   compute; eta_expand; beta_reduce.
-  apply LESS_trans with (a * (K*I) * (a * K * H));
+  transitivity (a * (K*I) * (a * K * H));
     monotonicity; eta_expand in Hless; apply Hless.
 Qed.
 
@@ -160,7 +160,7 @@ Proof.
   unfold A_prop; split.
     compute; beta_reduce; auto.
   compute; eta_expand; eta_expand; beta_reduce.
-  apply LESS_trans with (a * (K*I) * (a * K * (H * H0)));
+  transitivity (a * (K*I) * (a * K * (H * H0)));
     monotonicity; eta_expand in Hless; apply Hless.
 Qed.
 *)

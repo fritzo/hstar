@@ -1,7 +1,6 @@
 (** * Combinatory algebra with parametric variables *)
 
 Require Import Coq.Program.Basics.
-(* Require Import Coq.Program.Tactics. *)
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
@@ -88,6 +87,37 @@ Hint Constructors beta.
 Hint Constructors pi.
 Hint Constructors approx.
 
+Definition Beta_i (Var : Set) := (@beta_i Var).
+Definition Beta_k (Var : Set) := (@beta_k Var).
+Definition Beta_b (Var : Set) := (@beta_b Var).
+Definition Beta_c (Var : Set) := (@beta_c Var).
+Definition Beta_s (Var : Set) := (@beta_s Var).
+Definition Beta_y (Var : Set) := (@beta_y Var).
+Definition Beta_v (Var : Set) := (@beta_v Var).
+Definition Beta_j_ap (Var : Set) := (@beta_j_ap Var).
+Definition Beta_r_ap (Var : Set) := (@beta_r_ap Var).
+Definition Beta_r_idem (Var : Set) := (@beta_r_idem Var).
+
+Hint Rewrite Beta_i Beta_k Beta_b Beta_c Beta_j_ap Beta_r_ap Beta_r_idem
+  : beta_safe.
+Hint Rewrite Beta_s Beta_y Beta_v
+  : beta_unsafe.
+
+Tactic Notation "beta_simpl" := autorewrite with beta_safe.
+Tactic Notation "beta_simpl" "in" hyp(H) := autorewrite with beta_safe in H.
+Tactic Notation "beta_reduce" := autorewrite with beta_safe beta_unsafe.
+Tactic Notation "beta_reduce" "in" hyp(H) :=
+  autorewrite with beta_safe beta_unsafe in H.
+
+(** To avoid nontermination in [beta_reduce],
+    we provide a mechanism to "freeze" terms during reduction. *)
+Tactic Notation "freeze" reference(c) "in" tactic(tac) :=
+  let v := fresh "v" in
+  let H := fresh "Hv" in
+  assert (exists v, c=v) as H;
+  [ exists c; reflexivity
+  | destruct H as [v H]; rewrite H; tac; destruct H].
+
 Instance beta_reflexive (Var : Set) : Reflexive (@beta Var).
 Proof. auto. Qed.
 
@@ -108,7 +138,7 @@ Instance code_ap_beta (Var : Set) :
   Proper (beta ==> beta ==> beta) (@code_ap Var).
 Proof.
   compute; intros x x' Hx y y' Hy.
-  apply beta_trans with (x * y'); auto.
+  transitivity (x * y'); auto.
 Qed.
 
 Instance pi_transitive (Var : Set) : Transitive (@pi Var).
@@ -127,7 +157,7 @@ Qed.
 Instance code_ap_pi (Var : Set) : Proper (pi ++> pi ++> pi) (@code_ap Var).
 Proof.
   compute; intros x x' Hx y y' Hy.
-  apply pi_trans with (x * y'); auto.
+  transitivity (x * y'); auto.
 Qed.
 
 Lemma pi_beta_to_beta_pi (Var : Set) (x y z : Code Var) :
@@ -151,7 +181,7 @@ Proof.
   destruct Hyz as [y v z yv vz].
   pi_beta_to_beta_pi u y v uy yv.
   apply approx_intro with y_.
-  apply beta_trans with u; auto.
+  transitivity u; auto.
   apply pi_trans with v; auto.
 Qed.
 
@@ -171,13 +201,13 @@ Proof.
     destruct xyz as [x y z xy yz].
     pi_beta_to_beta_pi y z z' yz zz'.
     apply approx_intro with z_; auto.
-    apply beta_trans with x; auto.
-    apply beta_trans with y; auto.
+    transitivity x; auto.
+    transitivity y; auto.
   destruct xyz as [x' y' z' x'y' y'z'].
   pi_beta_to_beta_pi y' z' z y'z' (beta_sym zz').
   apply approx_intro with z'_; auto.
-  apply beta_trans with x'; auto.
-  apply beta_trans with y'; auto.
+  transitivity x'; auto.
+  transitivity y'; auto.
 Qed.
 
 Instance approx_pi (Var : Set) : Proper (pi --> pi ++> impl) (@approx Var).
@@ -185,8 +215,8 @@ Proof.
   compute; intros x x' xx' z z' zz' Ha; destruct Ha as [x y z xy yz].
   set (wHw := pi_beta_to_beta_pi _ x' x y xx' xy); destruct wHw as [w [xw wy]].
   apply approx_intro with w; auto.
-  apply pi_trans with y; auto.
-  apply pi_trans with z; auto.
+  transitivity y; auto.
+  transitivity z; auto.
 Qed.
 
 Instance approx_beta_pi (Var : Set) :
@@ -196,61 +226,12 @@ Proof.
   apply approx_intro with x1; auto.
 Admitted.
 
-Fixpoint try_beta_step {Var : Set} (u : Code Var) : option (Code Var) :=
-  match u with
-  | I * x => Some x
-  | K * x * y => Some x
-  | J * x * y * z => Some (x * z || y * z)
-  | R * x * y * z => Some (x * z (+) y * z)
-  | B * x * y * z => Some (x * (y * z))
-  | C * x * y * z => Some (x * z * y)
-  | S * x * y * z => Some (x * z * (y * z))
-  | Y * x => Some (x * (Y * x))
-  | V * x => Some (I || x o (V * x))
-  | x * y =>
-      match try_beta_step x with
-      | Some x' => Some (x' * y)
-      | None =>
-          match try_beta_step y with
-          | Some y' => Some (x * y')
-          | None => None
-          end
-      end
-  | _ => None
-  end.
-
-Section try_beta_step.
-  Variable Var : Set.
-  Variable x : Code Var.
-  Eval compute in
-    (try_beta_step ((x || (C * I * TOP) o (V * (C * I * TOP)) * x))).
-End try_beta_step.
-
-Ltac beta_to x := apply beta_trans with x; auto.
-
-Ltac beta_step_ try_beta_step :=
-  match goal with
-  | [|- @beta ?v ?x ?y] =>
-      match eval compute in (try_beta_step v x) with
-      | Some ?z => beta_to z
-      | _ => fail
-      end
-  | _ => fail
-  end.
-
-Ltac beta_step := beta_step_ @try_beta_step.
-
 Definition code_div {Var : Set} : Code Var := V * (C * I * TOP).
 Lemma beta_div (Var : Set) (x : Code Var) :
   beta (code_div * x) (x || code_div * x * TOP).
 Proof.
   unfold code_div.
-  beta_step.
-  beta_step.
-  beta_step.
-  apply beta_ap_right. (* FIXME allow variables in beta_step *)
-  beta_step.
-  beta_step.
+  rewrite beta_v at 1; beta_simpl; auto.
 Qed.
 
 Definition conv {Var : Set} (x : Code Var) := approx (code_div * x) TOP.
@@ -347,7 +328,7 @@ Proof.
   induction x; auto.
     compute; auto.
   unfold code_sub; fold (@code_sub Var Var').
-  beta_to ((x1 @ f) * (x2 @ g)).
+  transitivity ((x1 @ g) * (x2 @ f)); auto.
 Qed.
 Hint Resolve code_sub_beta_left.
 
@@ -356,14 +337,14 @@ Lemma code_sub_beta_right (Var Var' : Set)
   (xy : beta x y) : beta (x @ f) (y @ f).
 Proof.
   induction xy; repeat rewrite code_sub_ap; simpl; auto.
-  apply beta_trans with (y @ f); auto.
+  transitivity (y @ f); auto.
 Qed.
 Hint Resolve code_sub_beta_right.
 
 Instance code_sub_beta (Var Var' : Set) :
   Proper ((eq ==> beta) ==> beta ==> beta) (@code_sub Var Var').
 Proof.
-  intros f g Hfg x y Hxy; apply beta_trans with (y @ f);
+  intros f g Hfg x y Hxy; transitivity (y @ f);
   [apply code_sub_beta_right | apply code_sub_beta_left]; auto.
 Qed.
 
@@ -390,7 +371,7 @@ Hint Resolve code_sub_pi_right.
 Instance code_sub_pi (Var Var' : Set) :
   Proper ((eq ==> pi) ==> pi ==> pi) (@code_sub Var Var').
 Proof.
-  intros f g Hfg x y Hxy; apply pi_trans with (y @ f);
+  intros f g Hfg x y Hxy; transitivity (y @ f);
   [apply code_sub_pi_right | apply code_sub_pi_left]; auto.
 Qed.
 
@@ -444,8 +425,8 @@ Section beta_abs_sub.
   Proof.
     unfold f; induction x; simpl; auto.
       case (b v);  [intro v'; auto | auto].
-    beta_to (code_abs b c1 * y * (code_abs b c2 * y)).
-    beta_to (code_abs b c1 * y * (code_sub f c2)).
+    rewrite beta_s.
+    transitivity (code_abs b c1 * y * (code_sub f c2)); auto.
   Qed.
 End beta_abs_sub.
 Hint Resolve beta_abs_sub.
@@ -524,9 +505,17 @@ Notation "\ x , y" := (code_lambda x y)%code : code_scope.
 Definition code_le {Var : Set} (x y : Code Var) :=
   forall {Var' : Set} (c : Code Var') (f : Var -> Code Var'),
   conv (c * (x @ f)) -> conv (c * (y @ f)).
-
 Notation "x [= y" := (code_le x y)%code : code_scope.
+
+Definition code_eq {Var : Set} (x y : Code Var) := x [= y /\ y [= x.
 Notation "x [=] y" := (x [= y /\ y [= x)%code : code_scope.
+
+Instance code_le_eq_subrelation (Var : Set) :
+  subrelation (@code_eq Var) (@code_le Var).
+Proof.
+  unfold subrelation, predicate_implication, pointwise_lifting.
+  unfold code_eq; intros x y [xy yx]; auto.
+Qed.
 
 Instance code_le_beta_proper (Var : Set) :
   Proper (beta ==> beta ==> iff) (@code_le Var).
@@ -534,6 +523,15 @@ Proof.
   intros x x' Hx y y' Hy; split; unfold code_le; intros Hle Var' c f Hc.
     rewrite <- Hy; apply Hle; rewrite -> Hx; auto.
   rewrite -> Hy; apply Hle; rewrite <- Hx; auto.
+Qed.
+
+Instance code_eq_beta_proper (Var : Set) :
+  Proper (beta ==> beta ==> iff) (@code_eq Var).
+Proof.
+  unfold code_eq.
+  intros x x' xx' y y' yy'; split; intros [xy yx].
+    split; rewrite <- xx'; rewrite <- yy'; auto.
+  split; rewrite -> xx'; rewrite -> yy'; auto.
 Qed.
 
 Instance code_le_beta_subrelation (Var : Set) :
@@ -544,7 +542,17 @@ Proof.
   rewrite <- H; auto.
 Qed.
 
-Instance code_le_pi (Var : Set) : Proper (pi ++> pi --> impl) (@code_le Var).
+Instance code_eq_beta_subrelation (Var : Set) :
+  subrelation beta (@code_eq Var).
+Proof.
+  unfold subrelation, predicate_implication, pointwise_lifting.
+  intros x y H; unfold code_le; split; intros Var' c f Hc.
+  rewrite <- H; auto.
+  rewrite -> H; auto.
+Qed.
+
+Instance code_le_pi_proper (Var : Set) :
+  Proper (pi ++> pi --> impl) (@code_le Var).
 Proof.
   intros x x' Hx y y' Hy; unfold code_le; intros Hle Var' c f Hc.
   unfold flip in *.
@@ -563,12 +571,30 @@ Qed.
 Instance code_le_refl (Var : Set) : Reflexive (@code_le Var).
 Proof. unfold code_le; auto. Qed.
 
+Instance code_eq_refl (Var : Set) : Reflexive (@code_eq Var).
+Proof. simpl_relation. Qed.
+
 Instance code_le_trans (Var : Set) : Transitive (@code_le Var).
 Proof. unfold code_le; auto. Qed.
+
+Instance code_eq_trans (Var : Set) : Transitive (@code_eq Var).
+Proof.
+  unfold code_eq, code_le; simpl_relation.
+Qed.
+
+Instance code_eq_sym (Var : Set) : Symmetric (@code_eq Var).
+Proof.
+  unfold code_eq, code_le; simpl_relation.
+Qed.
 
 Instance code_le_preorder (Var : Set) : PreOrder (@code_le Var).
 Proof.
   split; [apply code_le_refl | apply code_le_trans].
+Qed.
+
+Instance code_eq_equivalence (Var : Set) : Equivalence (@code_eq Var).
+Proof.
+  split; [apply code_eq_refl | apply code_eq_sym | apply code_eq_trans].
 Qed.
 
 Lemma code_le_ap_right (Var : Set) (x y y' : Code Var) :
@@ -724,15 +750,23 @@ Proof.
 Qed.
 Hint Resolve code_le_j_idem.
 
+Lemma code_eq_j_idem (Var : Set) (x : Code Var) : x||x [=] x.
+Proof. split; auto. Qed.
+Hint Resolve code_eq_j_idem.
+
 Lemma code_le_j_sym (Var : Set) (x y : Code Var) : x||y [=] y||x.
-Proof.
-  split; auto.
-Qed.
+Proof. split; auto. Qed.
 
 Lemma code_le_j_assoc (Var : Set) (x y z : Code Var) : x||(y||z) [=] (x||y)||z.
 Proof.
   split; auto.
-Admitted.
+    apply code_le_j_ub; auto.
+    transitivity (x||y); auto.
+  apply code_le_j_ub; auto.
+  transitivity (y||z); auto.
+Qed.
+
+(** *** Reasoning with extensionality *)
 
 (*
 Ltac abstract M x :=
@@ -750,13 +784,56 @@ Ltac beta_subs :=
   | beta x y
 *)
 
-Lemma code_le_ext (Var : Set) (x x' : Code Var) :
+Lemma code_le_extensionality (Var : Set) (x x' : Code Var) :
   (forall y, x * y [= x' * y) -> x [= x'.
 Proof.
   unfold code_le; intros H Var' c f Hconv.
   (* TODO implement via abstraction algorithm *)
 Admitted.
-Hint Resolve code_le_ext.
+
+Lemma code_eq_extensionality (Var : Set) (x x' : Code Var) :
+  (forall y, x * y [=] x' * y) -> x [=] x'.
+Proof.
+  intro H; split; apply code_le_extensionality; apply H.
+Qed.
+
+Tactic Notation "eta_expand" :=
+  let x := fresh in
+  match goal with
+  | [|- _ [= _] => apply code_le_extensionality; intro x
+  | [|- _ [=] _] => apply code_eq_extensionality; intro x
+  end.
+
+Tactic Notation "eta_expand" "as" ident(x) :=
+  match goal with
+  | [|- _ [= _] => apply code_le_extensionality; intro x
+  | [|- _ [=] _] => apply code_eq_extensionality; intro x
+  end.
+
+Tactic Notation "eta_expand" "in" hyp(H) :=
+  eapply code_le_ap_left in H; beta_reduce in H.
+
+Ltac beta_eta :=
+  simpl_relation; (
+  beta_reduce; auto
+  || eta_expand; beta_reduce; auto
+  || eta_expand; eta_expand; beta_reduce; auto
+  || eta_expand; eta_expand; eta_expand; beta_reduce; auto).
+
+Lemma code_eq_ap_top (Var : Set) (x : Code Var) : TOP * x [=] TOP.
+Proof.
+  split; auto.
+  unfold code_le, conv; intros Var' c f H.
+  rewrite (pi_top (K * TOP)); beta_simpl; auto.
+Qed.
+Hint Rewrite code_eq_ap_top.
+
+Lemma code_eq_ap_bot (Var : Set) (x : Code Var) : BOT * x [=] BOT.
+Proof.
+  split; auto.
+  unfold code_le, conv; intros Var' c f H.
+Admitted.
+Hint Rewrite code_eq_ap_bot.
 
 (** *** A head-normalized definition of convergence *)
 
@@ -827,9 +904,3 @@ Proof.
 Qed.
 Hint Resolve code_eq_beta.
 
-Lemma code_eq_ext (Var : Set) (x x' : Code Var) :
-  (forall y, x * y [=] x' * y) -> x [=] x'.
-Proof.
-  intro H; split; apply code_le_ext; intro y; apply H.
-Qed.
-Hint Resolve code_eq_ext.
