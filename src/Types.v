@@ -69,9 +69,9 @@ Proof.
 Admitted.
 
 Theorem semi_inhab (Var : Set) (x : Code Var) : x :: semi <->
-  x [=] BOT \/
-  x [=] I \/
-  x [=] TOP.
+  x == BOT \/
+  x == I \/
+  x == TOP.
 Proof.
   split.
   (* TODO *)
@@ -91,11 +91,11 @@ Proof.
 Admitted.
 
 Theorem boool_inhab (Var : Set) (x : Code Var) : x :: boool <->
-  x [=] BOT \/
-  x [=] K \/
-  x [=] K * I \/
-  x [=] J \/
-  x [=] TOP.
+  x == BOT \/
+  x == K \/
+  x == K * I \/
+  x == J \/
+  x == TOP.
 Proof.
   split.
   (* TODO *)

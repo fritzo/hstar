@@ -221,7 +221,7 @@ Definition codes_eq {Var : Set} (x y : Codes Var) : Prop :=
   codes_le x y /\ codes_le y x.
 
 Notation "x [= y" := (codes_le x y)%codes : codes_scope.
-Notation "x [=] y" := (codes_eq x y)%codes : codes_scope.
+Notation "x == y" := (codes_eq x y)%codes : codes_scope.
 
 (** Now we demonstrate the power of indexing over directed sets.
     The simple implicit definition of [A_implicit] is not directed. *)

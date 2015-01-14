@@ -12,7 +12,7 @@ Section Exp.
 End Exp.
 Notation "x --> y" := (Exp _ * x * y)%code : code_scope.
 
-Lemma exp_i_i (Var : Set) : I --> I [=] (I : Code Var).
+Lemma exp_i_i (Var : Set) : I --> I == (I : Code Var).
 Proof.
   unfold Exp; beta_eta. (* FIXME very slow *)
 Qed.
@@ -26,7 +26,7 @@ Section Pair.
 End Pair.
 Notation "<< x , y >>" := (Pair _ * x * y)%code : code_scope.
 
-Definition is_pair {Var : Set} (x : Code Var) := x [=] <<x * K, x * (K * I)>>.
+Definition is_pair {Var : Set} (x : Code Var) := x == <<x * K, x * (K * I)>>.
 Lemma pair_is_pair (Var : Set) (x y : Code Var) : is_pair <<x, y>>.
 Proof.
   hnf; unfold Pair; beta_reduce; auto.

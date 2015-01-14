@@ -483,7 +483,7 @@ Definition code_le {Var : Set} (x y : Code Var) :=
 Notation "x [= y" := (code_le x y)%code : code_scope.
 
 Definition code_eq {Var : Set} (x y : Code Var) := x [= y /\ y [= x.
-Notation "x [=] y" := (x [= y /\ y [= x)%code : code_scope.
+Notation "x == y" := (x [= y /\ y [= x)%code : code_scope.
 
 Instance code_le_eq_subrelation (Var : Set) :
   subrelation (@code_eq Var) (@code_le Var).
@@ -509,22 +509,26 @@ Proof.
   split; rewrite -> xx'; rewrite -> yy'; auto.
 Qed.
 
-Instance code_le_beta_subrelation (Var : Set) :
-  subrelation beta (@code_le Var).
+Lemma code_le_beta (Var : Set) (x y : Code Var) : beta x y -> x [= y.
 Proof.
-  unfold subrelation, predicate_implication, pointwise_lifting.
-  intros x y H; unfold code_le; intros Var' c f Hc.
+  unfold code_le; intros H Var' c f Hc.
   rewrite <- H; auto.
 Qed.
+Hint Resolve code_le_beta.
 
-Instance code_eq_beta_subrelation (Var : Set) :
-  subrelation beta (@code_eq Var).
+Instance code_le_beta_subrelation (Var : Set) :
+  subrelation beta code_le := code_le_beta Var.
+
+Lemma code_eq_beta (Var : Set) (x y : Code Var) : beta x y -> x == y.
 Proof.
-  unfold subrelation, predicate_implication, pointwise_lifting.
-  intros x y H; unfold code_le; split; intros Var' c f Hc.
+  unfold code_le; intro H; split; intros Var' c f Hc.
   rewrite <- H; auto.
   rewrite -> H; auto.
 Qed.
+Hint Resolve code_eq_beta.
+
+Instance code_eq_beta_subrelation (Var : Set) :
+  subrelation beta code_eq := code_eq_beta Var.
 
 Instance code_le_pi_proper (Var : Set) :
   Proper (pi ++> pi --> impl) (@code_le Var).
@@ -571,6 +575,10 @@ Instance code_eq_equivalence (Var : Set) : Equivalence (@code_eq Var).
 Proof.
   split; [apply code_eq_refl | apply code_eq_sym | apply code_eq_trans].
 Qed.
+
+Instance code_le_partialorder (Var : Set) :
+  PartialOrder (@code_eq Var) (@code_le Var).
+Proof. simpl_relation. Qed.
 
 Lemma code_le_ap_right (Var : Set) (x y y' : Code Var) :
   y [= y' -> x * y [= x * y'.
@@ -694,7 +702,7 @@ Proof.
   compute.
 Admitted.
 
-Lemma code_eq_omega_bot (Var : Set) : Omega Var [=] BOT.
+Lemma code_eq_omega_bot (Var : Set) : Omega Var == BOT.
 Proof.
   split ; (apply code_le_omega_bot || auto).
 Qed.
@@ -737,14 +745,14 @@ Proof.
 Qed.
 Hint Resolve code_le_j_idem.
 
-Lemma code_eq_j_idem (Var : Set) (x : Code Var) : x||x [=] x.
+Lemma code_eq_j_idem (Var : Set) (x : Code Var) : x||x == x.
 Proof. split; auto. Qed.
 Hint Resolve code_eq_j_idem.
 
-Lemma code_le_j_sym (Var : Set) (x y : Code Var) : x||y [=] y||x.
+Lemma code_le_j_sym (Var : Set) (x y : Code Var) : x||y == y||x.
 Proof. split; auto. Qed.
 
-Lemma code_le_j_assoc (Var : Set) (x y z : Code Var) : x||(y||z) [=] (x||y)||z.
+Lemma code_le_j_assoc (Var : Set) (x y z : Code Var) : x||(y||z) == (x||y)||z.
 Proof.
   split; auto.
     apply code_le_j_ub; auto.
@@ -779,7 +787,7 @@ Proof.
 Admitted.
 
 Lemma code_eq_extensionality (Var : Set) (x x' : Code Var) :
-  (forall y, x * y [=] x' * y) -> x [=] x'.
+  (forall y, x * y == x' * y) -> x == x'.
 Proof.
   intro H; split; apply code_le_extensionality; apply H.
 Qed.
@@ -788,13 +796,13 @@ Tactic Notation "eta_expand" :=
   let x := fresh in
   match goal with
   | [|- _ [= _] => apply code_le_extensionality; intro x
-  | [|- _ [=] _] => apply code_eq_extensionality; intro x
+  | [|- _ == _] => apply code_eq_extensionality; intro x
   end.
 
 Tactic Notation "eta_expand" "as" ident(x) :=
   match goal with
   | [|- _ [= _] => apply code_le_extensionality; intro x
-  | [|- _ [=] _] => apply code_eq_extensionality; intro x
+  | [|- _ == _] => apply code_eq_extensionality; intro x
   end.
 
 Tactic Notation "eta_expand" "in" hyp(H) :=
@@ -807,7 +815,7 @@ Ltac beta_eta :=
   || eta_expand; eta_expand; beta_reduce; auto
   || eta_expand; eta_expand; eta_expand; beta_reduce; auto).
 
-Lemma code_eq_ap_top (Var : Set) (x : Code Var) : TOP * x [=] TOP.
+Lemma code_eq_ap_top (Var : Set) (x : Code Var) : TOP * x == TOP.
 Proof.
   split; auto.
   unfold code_le, conv; intros Var' c f H.
@@ -815,7 +823,7 @@ Proof.
 Qed.
 Hint Rewrite code_eq_ap_top.
 
-Lemma code_eq_ap_bot (Var : Set) (x : Code Var) : BOT * x [=] BOT.
+Lemma code_eq_ap_bot (Var : Set) (x : Code Var) : BOT * x == BOT.
 Proof.
   split; auto.
   unfold code_le, conv; intros Var' c f H.
@@ -882,12 +890,3 @@ Proof.
   set (y := x @ f) in *; set (y' := x' @ f) in *.
   inversion Hconv; simpl; auto.
 Admitted.
-
-(** ** Observational equivalence *)
-
-Lemma code_eq_beta (Var : Set) (x y : Code Var) : beta x y -> x [=] y.
-Proof.
-  intro Hb; split; apply code_le_beta_subrelation; auto.
-Qed.
-Hint Resolve code_eq_beta.
-
