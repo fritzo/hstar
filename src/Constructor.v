@@ -35,14 +35,14 @@ Qed.
 Definition sub_pair {Var : Set} (x : Code Var) := x [= <<TOP, TOP>>.
 Lemma sub_pair_pair (Var : Set) (x y : Code Var) : sub_pair <<x, y>>.
 Proof.
-  unfold sub_pair; unfold pair; eta_expand as f; beta_reduce.
+  unfold sub_pair, pair; eta_expand as f; beta_reduce.
   monotonicity; auto.
 Qed.
 
 Definition sub_pair_elim_intro {Var : Set} (x : Code Var) :
   sub_pair x -> x [= <<x*K, x*(K*I)>>.
 Proof.
-  unfold sub_pair; unfold pair; simpl.
+  unfold sub_pair, pair; simpl.
   intros H. (* eta_expand in H. FIXME eta_expand is borken *)
   eta_expand as f; beta_reduce.
 Admitted.

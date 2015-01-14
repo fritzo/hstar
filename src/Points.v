@@ -92,14 +92,14 @@ Notation "x [!= y" := (point_nle x y)%point : point_scope.
 
 Lemma point_ap_respect (Var : Set) (x y : Code Var) : [x * y]%code = [x] * [y].
 Proof.
-  unfold point_ap; unfold codes_ap.
+  unfold point_ap, codes_ap.
   (* TODO *)
 Admitted.
 
 Lemma point_sub_respect (Var Var' : Set) (f : Var -> Code Var') (x : Code Var)
   : [x] @ (fun v => [f v]%code) = [x @ f]%code.
 Proof.
-  unfold point_sub; unfold codes_sub.
+  unfold point_sub, codes_sub.
   (* TODO *)
 Admitted.
 

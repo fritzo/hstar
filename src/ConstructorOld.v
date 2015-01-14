@@ -32,7 +32,7 @@ Qed.
 
 Definition sub_pair_elim_intro : forall x, sub_pair x -> x [= <<x*K, x*F>>.
 Proof.
-  unfold sub_pair; unfold pair; compute.
+  unfold sub_pair, pair; compute.
   intros x H.
   eta_expand as y. beta_reduce.
   eta_expand in H.

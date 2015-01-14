@@ -583,7 +583,7 @@ Proof. simpl_relation. Qed.
 Lemma code_le_ap_right (Var : Set) (x y y' : Code Var) :
   y [= y' -> x * y [= x * y'.
 Proof.
-  unfold code_le; unfold conv; intros H Var' c f.
+  unfold code_le, conv; intros H Var' c f.
   repeat rewrite code_sub_ap.
   intros Hconv.
   rewrite <- (beta_ap_right beta_b); apply H.
@@ -594,7 +594,7 @@ Hint Resolve code_le_ap_right.
 Lemma code_le_ap_left (Var : Set) (x x' y : Code Var) :
   x [= x' -> x * y [= x' * y.
 Proof.
-  unfold code_le; unfold conv; intros H Var' c f.
+  unfold code_le, conv; intros H Var' c f.
   repeat rewrite code_sub_ap.
   intros Hconv.
   rewrite <- (beta_ap_right (beta_ap_right (beta_ap_left beta_i))).
@@ -776,7 +776,7 @@ Hint Resolve code_le_j_right.
 Lemma code_le_j_ub (Var : Set) (x y z : Code Var) :
   x [= z -> y [= z -> x || y [= z.
 Proof.
-  unfold code_le; unfold conv; intros Hx Hy Var' c f Hconv.
+  unfold code_le, conv; intros Hx Hy Var' c f Hconv.
 Admitted.
 Hint Resolve code_le_j_ub.
 
