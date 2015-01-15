@@ -102,14 +102,23 @@ forward-chaining inference engine.
 
 ## Organization
 
-* [/src](/src) - Working draft of Coq development
-* [/src/Codes.v](/src/Codes.v) - Foundation of combinatory algebra
-* [/src/Points.v](/src/Points.v) - Points as limits of "rational" codes
-* [/src/ObAxioms.v](/src/ObAxioms.v) - Axiomatic development of points
-* [/src/Lambda.v](/src/Lambda.v) - &lambda;-calculus as notation for combinators
-* [/src/Constructor.v](/src/Constructor.v) - A constructor for polymorphic types
-* [/src/Types.v](/src/Types.v) - A library of definable types
-* [/sandbox](/sandbox) - Sketches in Coq and Isabelle
+*   [/src](/src) -
+    Working draft of main Coq developments
+*   [/src/Codes.v](/src/Codes.v) -
+    Foundation of combinatory algebra: reduction, and observational equivalence
+*   [/src/Constructor.v](/src/Constructor.v) -
+    A definable constructor for polymorphic types
+*   [/src/Types.v](/src/Types.v) -
+    A library of definable types
+*   [/src/IndexedCodes.v](/src/IndexedCodes.v) -
+    Completion via directed sets of "rational" codes
+*   [/src/Points.v](/src/Points.v) -
+    Points as quotients of directed sets of codes (via five axioms)
+*   [/src/ObAxioms.v](/src/ObAxioms.v) -
+    DEPRECATED Axiomatic development of points
+*   [/src/Lambda.v](/src/Lambda.v) -
+    DEPRECATED &lambda;-calculus as notation for combinators
+*   [/sandbox](/sandbox) - Experimental Coq developments
 
 ## License
 
