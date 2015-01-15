@@ -1,6 +1,8 @@
 *.tar.gz
-Isabelle*/
 coq*/
+/*/Makefile
+/src/coqdoc.sty
+/src/body.tex
 *~
 \#*\#
 *.aux
