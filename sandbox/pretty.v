@@ -1,3 +1,11 @@
+(** * Combinators [<->] lambda-terms.
+
+    This demonstrates a simple way to write combinators using lambda notation,
+    but does not allow any direct reasoning about lambda terms.
+    The main trick is to embed inline-assembly-style code blocks
+    in lambda terms via a [INLINE] constructor.
+    *)
+
 Require Import EqNat.
 
 Inductive code : Set :=
