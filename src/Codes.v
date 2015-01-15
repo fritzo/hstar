@@ -222,9 +222,20 @@ Qed.
 Instance approx_beta_pi (Var : Set) :
   Proper (beta ==> pi ==> impl) (@approx Var).
 Proof.
-  compute; intros x y Hbxy x0 y0 Hpxy Hax; destruct Hax as [x1 y1].
-  apply approx_intro with x1; auto.
-Admitted.
+  compute; intros x x' Hx z z' Hz Ha; destruct Ha as [x y z xy yz].
+  apply approx_intro with y.
+    transitivity x; auto.
+  transitivity z; auto.
+Qed.
+
+Instance code_ap_approx (Var : Set) :
+  Proper (approx ++> approx ++> approx) (@code_ap Var).
+Proof.
+  compute; intros x z xz x' z' x'z'.
+  destruct xz as [x y z xy yz];  rewrite xy; rewrite yz;
+  destruct x'z' as [x' y' z' x'y' y'z']; rewrite x'y'; rewrite y'z';
+  reflexivity.
+Qed.
 
 Definition code_div {Var : Set} : Code Var := V * (C * I * TOP).
 Lemma beta_div (Var : Set) (x : Code Var) :
@@ -246,7 +257,9 @@ Qed.
 
 Instance conv_pi (Var : Set) : Proper (pi --> impl) (@conv Var).
 Proof.
-Admitted.
+  compute; intros x x' xx' Ha.
+  rewrite xx'; auto.
+Qed.
 
 Inductive prob {Var : Set} : Code Var -> Prop :=
   | prob_top : prob TOP
@@ -375,20 +388,32 @@ Proof.
   [apply code_sub_pi_right | apply code_sub_pi_left]; auto.
 Qed.
 
-Lemma approx_sub_right (Var Var' : Set)
+Lemma code_sub_approx_right (Var Var' : Set)
   (f : Var -> Code Var') (x y : Code Var)
   (xy : approx x y) : approx (x @ f) (y @ f).
 Proof.
   induction xy; repeat rewrite code_sub_ap; simpl; auto.
   apply approx_intro with (y @ f); auto.
 Qed.
-Hint Resolve approx_sub_right.
+Hint Resolve code_sub_approx_right.
+
+Lemma code_sub_approx_left (Var Var' : Set)
+  (f g : Var -> Code Var') (fg : forall v, approx (f v) (g v))
+  (x : Code Var) : approx (x @ f) (x @ g).
+Proof.
+  induction x; try (compute ; reflexivity).
+    compute; auto.
+  unfold code_sub; fold (@code_sub Var Var').
+  rewrite IHx1; rewrite IHx2; reflexivity.
+Qed.
+Hint Resolve code_sub_approx_left.
 
 Instance code_sub_approx (Var Var' : Set) :
   Proper ((eq ==> approx) ==> approx ==> approx) (@code_sub Var Var').
 Proof.
-  intros f g Hfg x y Hxy.
-Admitted.
+  intros f h fh x z xz.
+  transitivity (x @ h); auto.
+Qed.
 
 (** ** Abstraction *)
 
@@ -433,20 +458,13 @@ Section beta_abs_sub.
   Let f v := match b v with None => y | Some v' => code_var v' end.
 
   Lemma beta_abs_sub : beta (code_abs b x * y) (code_sub f x).
-  (*
   Proof.
-    unfold f; induction x; simpl; auto.
-      case (b v);  [intro v'; auto | auto].
-    rewrite beta_s.
-    transitivity (code_abs b c1 * y * (code_sub f c2)); auto.
-    (* TODO
-    case (code_abs' b c1);
-      try (intros; rewrite beta_s at 1; rewrite <- IHc1; rewrite <- IHc2; auto).
-    case (code_abs' b c2); intros.
+    induction x; try (unfold f; simpl; auto; fail).
+      compute; case (b v); auto.
+    (* TODO this only works for simple I,K,S-abstraction.
+    compute; rewrite beta_s.
     transitivity (code_abs b c1 * y * (code_sub f c2)); auto.
     *)
-  Qed.
-  *)
   Admitted.
 End beta_abs_sub.
 Hint Resolve beta_abs_sub.

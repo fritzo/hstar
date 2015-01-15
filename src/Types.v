@@ -7,7 +7,7 @@ Open Scope code_scope.
 (** ** Properties of types *)
 
 Definition closure {Var : Set} (a : Code Var) := I [= a /\ a o a == a.
-Definition fixes {Var : Set} (a : Code Var) (x : Code Var) := a*x == x.
+Definition fixes {Var : Set} (a : Code Var) (x : Code Var) := a * x == x.
 Notation "x :: a" := (fixes a x) : code_scope.
 
 Instance closure_proper_eq (Var : Set) :
@@ -22,6 +22,20 @@ Instance fixes_proper_eq (Var : Set) :
 Proof.
   unfold fixes; intros a a' Ha x x' Hx.
   rewrite Ha; rewrite Hx; firstorder.
+Qed.
+
+Lemma nondecreasing_idempotent (Var : Set) (a : Code Var) :
+ I [= a -> a o a [= a -> a o a == a.
+Proof.
+  intros Hi Hr; split; auto.
+  rewrite <- Hi at 2; beta_eta.
+Qed.
+Hint Resolve nondecreasing_idempotent.
+
+Lemma closure_weak (Var : Set) (a : Code Var) :
+ I [= a -> a o a [= a -> closure a.
+Proof.
+  unfold closure; intros; split; auto.
 Qed.
 
 (** ** Atomic types *)
@@ -57,7 +71,9 @@ Qed.
 
 Lemma V_idempotent (Var : Set) : V o V == (V : Code Var).
 Proof.
-  eta_expand as a; rewrite beta_b.
+  apply nondecreasing_idempotent.
+    apply V_nondecreasing.
+    eta_expand as a; rewrite beta_b.
 Admitted.
 Hint Rewrite V_nondecreasing.
 
@@ -83,6 +99,7 @@ Qed.
 Lemma V_complete (Var : Set) (x : Code Var) : closure x -> x :: V.
 Proof.
   unfold fixes, closure; intros [Hn Hi].
+  (* TODO this requires a least fixed point lemma *)
 Admitted.
 
 Theorem V_inhab (Var : Set) (x : Code Var) : x :: V <-> closure x.
