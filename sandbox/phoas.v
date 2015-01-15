@@ -34,7 +34,7 @@ Inductive step {Var : Type} : Term Var -> Term Var -> Prop :=
   | step_beta f x: step (APP (ABS (f Var)) x) (Subs f x)
   | step_app_1 f f' x: step f f' -> step (APP f x) (APP f' x)
   | step_app_2 f x x': step x x' -> step (APP f x) (APP f x')
-  | step_abs f f' : Term1:
+  | step_abs f f' :
       (forall v x, step (Var := v) (f v x) (f' v x)) ->
       step (ABS (f Var)) (ABS (f' Var))
 .

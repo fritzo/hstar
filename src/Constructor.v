@@ -55,7 +55,7 @@ Section raise.
   Definition raise := Eval compute in close (\x, \y, x).
   Definition lower := Eval compute in close (\x, x * TOP).
 
-  Definition pull := Eval compute in close (\x, \y, x || code_div * y).
+  Definition pull := Eval compute in close (\x, \y, x || div * y).
   Definition push := Eval compute in close (\x, x * BOT).
 End raise.
 

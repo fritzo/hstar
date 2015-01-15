@@ -30,17 +30,17 @@ Lemma confluence_step_step:
 Proof.
   intros.
   inversion H; inversion H0.
+  (*
   exists (x0 * z * (y1 * z)).
   split; reflexivity.
   auto.
-  apply step_s .
-
+  apply step_s.
+  *)
+Admitted.
 
 Theorem confluence:
   forall x y y0,
   red x y -> red x y0 -> exists z, red y z /\ red y0 z.
 Proof.
   intros.
-  (* TODO *)
-Qed.
-
+Admitted.

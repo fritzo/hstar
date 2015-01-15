@@ -114,10 +114,6 @@ forward-chaining inference engine.
     Completion via directed sets of "rational" codes
 *   [/src/Points.v](/src/Points.v) -
     Points as quotients of directed sets of codes (via five axioms)
-*   [/src/ObAxioms.v](/src/ObAxioms.v) -
-    DEPRECATED Axiomatic development of points
-*   [/src/Lambda.v](/src/Lambda.v) -
-    DEPRECATED &lambda;-calculus as notation for combinators
 *   [/sandbox](/sandbox) - Experimental Coq developments
 
 ## License

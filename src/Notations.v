@@ -1,3 +1,4 @@
+(* begin hide *)
 
 (** printing TOP $\pmb\top$ *)
 (** printing BOT $\pmb\bot$ *)
@@ -30,3 +31,5 @@ Reserved Notation "\ x , y" (at level 58, right associativity).
 Reserved Notation "\\ x , y ; z" (at level 59, right associativity).
 
 Reserved Notation "[ x ]".
+
+(* end hide *)

@@ -10,10 +10,6 @@ Definition closure {Var : Set} (a : Code Var) := I [= a /\ a o a == a.
 Definition fixes {Var : Set} (a : Code Var) (x : Code Var) := a * x == x.
 Notation "x :: a" := (fixes a x) : code_scope.
 
-Definition inhabitants {Var : Set}
-  (a : Code Var) (a_fixes : Code Var -> Prop) : Prop :=
-  forall x, fixes a x <-> exists x', x == x' /\ a_fixes x'.
-
 Instance closure_proper_eq (Var : Set) :
   Proper (code_eq ==> iff) (@closure Var).
 Proof.
@@ -27,13 +23,6 @@ Proof.
   unfold fixes; intros a a' Ha x x' Hx.
   rewrite Ha; rewrite Hx; firstorder.
 Qed.
-
-Instance inhabitants_proper_eq (Var : Set) :
-  Proper (code_eq ==> (code_eq ==> iff) ==> iff) (@inhabitants Var).
-Proof.
-  intros a a' aa' f f' ff'.
-  unfold inhabitants, fixes; simpl_relation; repeat (split; intros); auto.
-Admitted.
 
 Lemma nondecreasing_idempotent (Var : Set) (a : Code Var) :
  I [= a -> a o a [= a -> a o a == a.

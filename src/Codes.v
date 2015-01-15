@@ -237,15 +237,16 @@ Proof.
   reflexivity.
 Qed.
 
-Definition code_div {Var : Set} : Code Var := V * (C * I * TOP).
+Definition div {Var : Set} : Code Var := V * (C * I * TOP).
+
 Lemma beta_div (Var : Set) (x : Code Var) :
-  beta (code_div * x) (x || code_div * x * TOP).
+  beta (div * x) (x || div * x * TOP).
 Proof.
-  unfold code_div.
+  unfold div.
   rewrite beta_v at 1; beta_simpl; auto.
 Qed.
 
-Definition conv {Var : Set} (x : Code Var) := approx (code_div * x) TOP.
+Definition conv {Var : Set} (x : Code Var) := approx (div * x) TOP.
 
 Instance conv_beta (Var : Set) : Proper (beta ==> iff) (@conv Var).
 Proof.
@@ -267,7 +268,7 @@ Inductive prob {Var : Set} : Code Var -> Prop :=
   | prob_r p q : prob p -> prob q -> prob (p (+) q).
 
 Definition pconv {Var : Set} (x : Code Var) (p : Code Var) :=
-  approx (code_div * x) p.
+  approx (div * x) p.
 
 (** ** Substitution *)
 
