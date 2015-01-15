@@ -10,6 +10,10 @@ Definition closure {Var : Set} (a : Code Var) := I [= a /\ a o a == a.
 Definition fixes {Var : Set} (a : Code Var) (x : Code Var) := a * x == x.
 Notation "x :: a" := (fixes a x) : code_scope.
 
+Definition inhabitants {Var : Set}
+  (a : Code Var) (a_fixes : Code Var -> Prop) : Prop :=
+  forall x, fixes a x <-> exists x', x == x' /\ a_fixes x'.
+
 Instance closure_proper_eq (Var : Set) :
   Proper (code_eq ==> iff) (@closure Var).
 Proof.
@@ -23,6 +27,13 @@ Proof.
   unfold fixes; intros a a' Ha x x' Hx.
   rewrite Ha; rewrite Hx; firstorder.
 Qed.
+
+Instance inhabitants_proper_eq (Var : Set) :
+  Proper (code_eq ==> (code_eq ==> iff) ==> iff) (@inhabitants Var).
+Proof.
+  intros a a' aa' f f' ff'.
+  unfold inhabitants, fixes; simpl_relation; repeat (split; intros); auto.
+Admitted.
 
 Lemma nondecreasing_idempotent (Var : Set) (a : Code Var) :
  I [= a -> a o a [= a -> a o a == a.
@@ -135,6 +146,7 @@ Qed.
 Lemma semi_idempotent (Var : Set) : semi o semi == (semi : Code Var).
 Proof.
   eta_expand as a; rewrite beta_b.
+  (* TODO this requires a least-fixed-point argument *)
 Admitted.
 Hint Rewrite semi_nondecreasing.
 
@@ -145,38 +157,47 @@ Qed.
 
 Lemma semi_inhab_bot (Var : Set) : BOT :: (semi : Code Var).
 Proof.
-  unfold semi.
 Admitted.
 
 Lemma semi_inhab_i (Var : Set) : I :: (semi : Code Var).
 Proof.
-  unfold semi.
+  (* TODO this requires a least-fixed-point argument *)
 Admitted.
 
 Lemma semi_inhab_top (Var : Set) : TOP :: (semi : Code Var).
 Proof.
-  unfold semi.
 Admitted.
 
-Theorem semi_sound (Var : Set) (x : Code Var) : x :: semi ->
-  x == BOT \/
-  x == I \/
-  x == TOP.
+Inductive semi_fixes {Var : Set} : Code Var -> Prop :=
+  | semi_fixes_eq x y : x == y -> semi_fixes x -> semi_fixes y
+  | semi_fixes_bot : semi_fixes BOT
+  | semi_fixes_i : semi_fixes I
+  | semi_fixes_top : semi_fixes TOP.
+Hint Constructors semi_fixes.
+
+Instance semi_fixes_proper (Var : Set) :
+  Proper (code_eq ==> iff) (@semi_fixes Var).
+Proof.
+  intros x y xy; split; [idtac | apply symmetry in xy];
+  intro H; induction H; eauto.
+Qed.
+
+Theorem semi_sound (Var : Set) (x : Code Var) :
+  x :: semi -> semi_fixes x.
 Proof.
   intros H; unfold fixes in H.
+  (* TODO this requires a Bohm-tree argument *)
 Admitted.
 
-Theorem semi_inhab (Var : Set) (x : Code Var) : x :: semi <->
-  x == BOT \/
-  x == I \/
-  x == TOP.
+Theorem semi_inhab (Var : Set) (x : Code Var) : x :: semi <-> semi_fixes x.
 Proof.
   split.
     apply semi_sound.
-  intro H; destruct H as [Hb | [Hi | Ht]].
-  rewrite Hb; apply semi_inhab_bot.
-  rewrite Hi; apply semi_inhab_i.
-  rewrite Ht; apply semi_inhab_top.
+  intro H; induction H.
+  rewrite <- H; auto.
+  apply semi_inhab_bot.
+  apply semi_inhab_i.
+  apply semi_inhab_top.
 Qed.
 
 (** [boool] is the set of ambiguous boolean values [K], [F], and [J].
@@ -214,28 +235,39 @@ Qed.
 
 Lemma boool_inhab_bot (Var : Set) : BOT :: (boool : Code Var).
 Proof.
-  unfold boool.
 Admitted.
 
 Lemma boool_inhab_k (Var : Set) : K :: (boool : Code Var).
 Proof.
-  unfold boool.
 Admitted.
 
 Lemma boool_inhab_f (Var : Set) : K * I :: (boool : Code Var).
 Proof.
-  unfold boool.
 Admitted.
 
 Lemma boool_inhab_j (Var : Set) : J :: (boool : Code Var).
 Proof.
-  unfold boool.
 Admitted.
 
 Lemma boool_inhab_top (Var : Set) : TOP :: (boool : Code Var).
 Proof.
-  unfold boool.
 Admitted.
+
+Inductive boool_fixes {Var : Set} : Code Var -> Prop :=
+  | boool_fixes_eq x y : x == y -> boool_fixes x -> boool_fixes y
+  | boool_fixes_bot : boool_fixes BOT
+  | boool_fixes_k : boool_fixes K
+  | boool_fixes_f : boool_fixes (K * I)
+  | boool_fixes_j : boool_fixes J
+  | boool_fixes_top : boool_fixes TOP.
+Hint Constructors boool_fixes.
+
+Instance boool_fixes_proper (Var : Set) :
+  Proper (code_eq ==> iff) (@boool_fixes Var).
+Proof.
+  intros x y xy; split; [idtac | apply symmetry in xy];
+  intro H; induction H; eauto.
+Qed.
 
 Theorem boool_sound (Var : Set) (x : Code Var) : x :: boool ->
   x == BOT \/
