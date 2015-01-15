@@ -1,8 +1,9 @@
+/src/Makefile
+/sandbox/Makefile
+/doc/coqdoc.sty
+/doc/body.tex
+/coq*/
 *.tar.gz
-coq*/
-/*/Makefile
-/src/coqdoc.sty
-/src/body.tex
 *~
 \#*\#
 *.aux

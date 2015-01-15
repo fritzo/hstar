@@ -114,6 +114,7 @@ forward-chaining inference engine.
     Completion via directed sets of "rational" codes
 *   [/src/Points.v](/src/Points.v) -
     Points as quotients of directed sets of codes (via five axioms)
+*   [/doc](/doc) - Latex documentation
 *   [/sandbox](/sandbox) - Experimental Coq developments
 
 ## License
