@@ -1,7 +1,7 @@
 (** * Types as closures *)
 
 Require Import Coq.Classes.Morphisms.
-Require Export Constructor.
+Require Export TypeConstructor.
 Open Scope code_scope.
 
 (** ** Properties of types *)

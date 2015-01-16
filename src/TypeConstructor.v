@@ -1,11 +1,12 @@
-(** * A constructor for simple types *)
+(** * A constructor for polymorphic types *)
 
 Require Import Coq.Program.Basics.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
-Require Export Codes.
-Require Import Diverge.
+Require Export InformationOrdering.
+Require Import Nontermination.
+Require Import LeastFixedPoint.
 Open Scope code_scope.
 
 Section exp.
@@ -101,9 +102,7 @@ Ltac A_prop_pair :=
   ].
 
 Lemma A_I_I (Var : Set) : A_prop (<<I, I>> : Code Var).
-Proof.
-  A_prop_pair; beta_eta.
-Qed.
+Proof. A_prop_pair; beta_eta. Qed.
 Hint Resolve A_I_I.
 
 Section raise.
@@ -153,26 +152,60 @@ End compose.
 
 Lemma A_compose (Var : Set) (a : Code Var) : A_prop a -> A_prop (compose * a).
 Proof.
-  unfold A_prop, sub_pair; intros [Hs Ha].
-  unfold A_prop; unfold sub_pair; split.
+  unfold A_prop, sub_pair; intros [Hs Ha]; split.
 Admitted.
 Hint Resolve A_compose.
 
 Lemma A_conjugate (Var : Set) (a : Code Var) :
   A_prop a -> A_prop (conjugate * a).
 Proof.
-  unfold A_prop, sub_pair; intros [Hs Ha].
-  unfold A_prop; unfold sub_pair; split.
+  unfold A_prop, sub_pair; intros [Hs Ha]; split.
 Admitted.
 Hint Resolve A_conjugate.
 
-Definition A {Var : Set} : Code Var :=
-  (* Eval compute in *)
-  Y * ( K * <<I, I>>
-     || K * <<raise, lower>>
-     || K * <<pull, push>>
-     || compose
-     || conjugate).
+(* OLD
+Lemma A_compose : forall a, A_prop a -> A_prop (compose * a).
+Proof.
+  intros a H.
+  unfold A_prop in H; destruct H as [Hpair Hless].
+  unfold is_pair in Hpair.
+  rewrite Hpair.
+  unfold A_prop; split.
+    compute; beta_reduce; auto.
+  compute; eta_expand; beta_reduce.
+  transitivity (a * (K*I) * (a * K * H));
+    monotonicity; eta_expand in Hless; apply Hless.
+Qed.
+
+Lemma A_conjugate : forall a, A_prop a -> A_prop (conjugate * a).
+Proof.
+  intros a H.
+  unfold A_prop in H; destruct H as [Hpair Hless].
+  unfold is_pair in Hpair.
+  rewrite Hpair.
+  unfold A_prop; split.
+    compute; beta_reduce; auto.
+  compute; eta_expand; eta_expand; beta_reduce.
+  transitivity (a * (K*I) * (a * K * (H * H0)));
+    monotonicity; eta_expand in Hless; apply Hless.
+Qed.
+*)
+
+Definition A_step {Var : Set} : Code Var
+  := K * <<I, I>>
+  || K * <<raise, lower>>
+  || K * <<pull, push>>
+  || compose
+  || conjugate.
+
+Definition A {Var : Set} : Code Var := Eval compute in Y * A_step.
+
+Lemma A_simpl (Var : Set) : (A : Code Var) == Y * A_step.
+Proof.
+  (freeze code_eq in compute); auto.
+Qed.
+
+Ltac A_simpl := rewrite A_simpl; unfold A_step.
 
 Notation "\\ x , y ; z" := (A * \x, \y, z)%code : code_scope.
 
@@ -201,11 +234,6 @@ Proof.
   split; destruct H as [Hl Hr]; apply A_above_le; auto.
 Qed.
 
-Lemma Y_lfp (Var : Set) (f b : Code Var) :
-  (forall x, x [= b -> f * x [= b) -> Y * f [= b.
-Proof.
-Admitted.
-
 Lemma A_above_A (Var : Set) (a : Code Var) : a [= A <-> A_above a.
 Proof.
   (* TODO this needs some sort of least-fixed-point lemma *)
@@ -225,56 +253,19 @@ Proof.
   (* TODO *)
 Admitted.
 
-(*
-Lemma A_raise_lower : A_prop <<raise, lower>>.
-Proof.
-  unfold A_prop; split;
-  [ apply pair_is_pair
-  | compute; eta_expand; beta_reduce; auto].
-Qed.
-
-Lemma A_compose : forall a, A_prop a -> A_prop (compose * a).
-Proof.
-  intros a H.
-  unfold A_prop in H; destruct H as [Hpair Hless].
-  unfold is_pair in Hpair.
-  rewrite Hpair.
-  unfold A_prop; split.
-    compute; beta_reduce; auto.
-  compute; eta_expand; beta_reduce.
-  transitivity (a * (K*I) * (a * K * H));
-    monotonicity; eta_expand in Hless; apply Hless.
-Qed.
-
-Lemma A_conjugate : forall a, A_prop a -> A_prop (conjugate * a).
-Proof.
-  intros a H.
-  unfold A_prop in H; destruct H as [Hpair Hless].
-  unfold is_pair in Hpair.
-  rewrite Hpair.
-  unfold A_prop; split.
-    compute; beta_reduce; auto.
-  compute; eta_expand; eta_expand; beta_reduce.
-  transitivity (a * (K*I) * (a * K * (H * H0)));
-    monotonicity; eta_expand in Hless; apply Hless.
-Qed.
-*)
-
 Lemma A_complete (Var : Set) (s r : Code Var) : r o s [= I -> <<s, r>> [= A.
 Proof.
-  unfold A.
-  (*
+  A_simpl; intro Hi.
+  (* OLD
   apply Join_lub; unfold is_upper_bound.
   intros sr; induction sr as [[s r] Hless].
   apply LESS_conv.
   intros c Hdef Hconv.
   inversion Hconv.
   *)
-  (* TODO *)
 Admitted.
 
 Theorem A_implicit (Var : Set) (x f : Code Var) :
   x [= A * f <-> (forall s r : Code Var, r o s [= I -> x [= f * s * r).
 Proof.
-  (* TODO *)
 Admitted.

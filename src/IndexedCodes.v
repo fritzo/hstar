@@ -1,5 +1,5 @@
 Require Import Setoid.
-Require Export Codes.
+Require Export InformationOrdering.
 Require Export ComprehensionNotation.
 
 (** ** Indexed codes *)

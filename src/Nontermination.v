@@ -1,6 +1,6 @@
 (** * Proofs of divergence / nontermination *)
 
-Require Export Codes.
+Require Export InformationOrdering.
 Open Scope code_scope.
 
 Lemma beta_self_div (Var : Set) (x : Code Var) :

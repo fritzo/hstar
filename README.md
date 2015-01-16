@@ -100,29 +100,6 @@ forward-chaining inference engine.
   [Full abstraction for non-deterministic and probabilistic extensions of PCF I: The angelic cases]
   (http://www.lsv.ens-cachan.fr/Publis/PAPERS/PDF/jgl-jlap14.pdf)
 
-## Organization
-
-*   [/src](/src) - Main Coq developments
-
-    *   [Codes.v](/src/Codes.v) -
-        Combinatory algebra with join; reduction and observational equivalence
-    *   [Constructor.v](/src/Constructor.v) -
-        A definable constructor for polymorphic types
-    *   [Types.v](/src/Types.v) -
-        A library of definable types
-    *   [IndexedCodes.v](/src/IndexedCodes.v) -
-        Completion via directed sets of "rational" codes
-    *   [Points.v](/src/Points.v) -
-        Points as quotients of directed sets of codes (via five axioms)
-    *   [Notations.v](/src/Notations.v) -
-        Operator notations
-    *   [ComprehensionNotations.v](/src/Notations.v) -
-        Python-style comprehension + replacement notation
-
-*   [/doc](/doc) - Latex documentation
-
-*   [/sandbox](/sandbox) - Experimental Coq developments
-
 ## License
 
 Copyright (c) 2014-2015 Fritz Obermeyer.<br/>
