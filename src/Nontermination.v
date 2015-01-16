@@ -3,6 +3,25 @@
 Require Export InformationOrdering.
 Open Scope code_scope.
 
+Definition sub_top {Var : Set} (Var' : Set) (x : Var) : Code Var' := TOP.
+
+Lemma conv_sub_top (Var Var' : Set) (x : Code Var) (f : Var -> Code Var') :
+  conv (x @ f) -> conv (x @ sub_top Var').
+Proof.
+  induction x; simpl; intros; auto.
+Admitted.
+
+Lemma not_conv_eq_bot (Var : Set) (x : Code Var) :
+  ~ conv (x @ sub_top Var) -> x == BOT.
+Proof.
+  intro Hd; split; auto.
+  apply code_le_apply_equiv; unfold code_le_apply.
+  unfold code_le; intros Var' c f Hc.
+  (* TODO
+  apply conv_sub_top in Hc.
+  *)
+Admitted.
+
 Lemma beta_self_div (Var : Set) (x : Code Var) :
   (forall ys z, beta (x ** ys) z -> x ** ys = z) -> ~ conv x.
 Proof.

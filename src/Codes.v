@@ -74,7 +74,7 @@ Inductive pi {Var : Set} : Code Var -> Code Var -> Prop :=
   | pi_trans {x} y {z} : pi x y -> pi y z -> pi x z
   | pi_ap_left {x x' y} : pi x x' -> pi (x * y) (x' * y)
   | pi_ap_right {x y y'} : pi y y' -> pi (x * y) (x * y')
-  | pi_top x : pi TOP x
+  | pi_top x : pi TOP x  (* FIXME this is too weak: [~pi (TOP * TOP) TOP] *)
   | pi_bot x : pi x BOT
   | pi_j_left {x y} : pi (x || y) x
   | pi_j_right {x y} : pi (x || y) y.
@@ -250,6 +250,12 @@ Proof.
 Qed.
 
 Definition conv {Var : Set} (x : Code Var) := approx (div * x) TOP.
+
+Lemma conv_top (Var : Set) : conv (TOP : Code Var).
+Proof.
+  unfold conv; rewrite beta_div; rewrite pi_j_left; reflexivity.
+Qed.
+Hint Resolve conv_top.
 
 Instance conv_beta (Var : Set) : Proper (beta ==> iff) (@conv Var).
 Proof.

@@ -4,6 +4,7 @@ Require Import Coq.Program.Basics.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
+Require Import Coq.Lists.List.
 Require Export Codes.
 Open Scope code_scope.
 
@@ -419,7 +420,15 @@ Fixpoint code_apply {Var : Set} (x : Code Var) (ys : list (Code Var)) :
   | (y ::ys')%list => code_apply (x * y) ys'
   end.
 
-Notation "x ** y" := (code_apply x y)%code : code_scope.
+Notation "x ** y" := (code_apply x y) : code_scope.
+
+Fixpoint code_repeat {Var : Set} (x : Code Var) (n : nat) : list (Code Var) :=
+  match n with
+  | 0 => nil
+  | Succ n' => (x :: code_repeat x n')%list
+  end.
+
+Notation "x ^^ n" := (code_repeat x n) : code_scope.
 
 Fixpoint code_tuple {Var : Set} (ys : list (Code Var)) : Code Var :=
   match ys with
@@ -449,6 +458,49 @@ Proof.
 Qed.
 Hint Resolve beta_apply_tuple.
 
+Instance code_tuple_le (Var : Set) :
+  Proper (Forall2 code_le ==> code_le) (@code_tuple Var).
+Proof.
+  intros xs xs' xsxs'; induction xsxs'; simpl; auto.
+Qed.
+
+Lemma code_repeat_top (Var : Set) (ys : list (Code Var)):
+  Forall2 code_le ys (TOP ^^ length ys).
+Proof.
+  induction ys; simpl; auto.
+Qed.
+Hint Resolve code_repeat_top.
+
+Lemma ap_top_conv (Var : Set) (x : Code Var) : conv x <-> conv (x * TOP).
+Proof.
+  unfold conv; split; intro H; inversion_clear H as [? y ? Hb Hp].
+Admitted.
+
+Lemma ap_top_div (Var : Set) (x : Code Var) : div * (x * TOP) == div * x.
+Proof.
+  split; unfold code_le, conv; intros Var' c f H.
+Admitted.
+
+Lemma div_ap_top (Var : Set) (x : Code Var) : div * x * TOP == div * x.
+Proof.
+  split.
+    rewrite beta_div at 2; rewrite pi_j_right; auto.
+  unfold code_le, conv; intros Var' c f H.
+  simpl in *; auto.
+Admitted.
+
+Lemma div_repeat_top (Var : Set) (x : Code Var) (n : nat) :
+  (div * x) ** TOP ^^ n == div * x.
+Proof.
+  induction n; simpl; auto.
+Admitted.
+
+Lemma repeat_top_div (Var : Set) (x : Code Var) (n : nat) :
+  div * (x ** TOP ^^ n) == div * x.
+Proof.
+  induction n; simpl; auto.
+Admitted.
+
 Definition code_le_apply {Var : Set} (x x' : Code Var) : Prop :=
   forall (Var' : Set) (ys : list (Code Var')) (f : Var -> Code Var'),
   conv ((x @ f) ** ys) -> conv ((x' @ f) ** ys).
@@ -476,3 +528,14 @@ Theorem code_le_apply_equiv (Var : Set) (x x' : Code Var) :
 Proof.
   split; [apply code_le_apply_complete | apply code_le_apply_sound].
 Qed.
+
+Ltac code_le_apply := apply code_le_apply_equiv; unfold code_le_apply.
+
+Lemma code_le_apply_weaken (Var : Set) (x : Code Var) (ys : list (Code Var)) :
+  conv (x ** ys) -> conv x.
+Proof.
+  induction ys.
+    simpl; auto.
+  unfold code_apply; fold (@code_apply Var).
+  (* TODO *)
+Admitted.
