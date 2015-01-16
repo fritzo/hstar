@@ -102,19 +102,25 @@ forward-chaining inference engine.
 
 ## Organization
 
-*   [/src](/src) -
-    Working draft of main Coq developments
-*   [/src/Codes.v](/src/Codes.v) -
-    Foundation of combinatory algebra: reduction, and observational equivalence
-*   [/src/Constructor.v](/src/Constructor.v) -
-    A definable constructor for polymorphic types
-*   [/src/Types.v](/src/Types.v) -
-    A library of definable types
-*   [/src/IndexedCodes.v](/src/IndexedCodes.v) -
-    Completion via directed sets of "rational" codes
-*   [/src/Points.v](/src/Points.v) -
-    Points as quotients of directed sets of codes (via five axioms)
+*   [/src](/src) - Main Coq developments
+
+    *   [Codes.v](/src/Codes.v) -
+        Combinatory algebra with join; reduction and observational equivalence
+    *   [Constructor.v](/src/Constructor.v) -
+        A definable constructor for polymorphic types
+    *   [Types.v](/src/Types.v) -
+        A library of definable types
+    *   [IndexedCodes.v](/src/IndexedCodes.v) -
+        Completion via directed sets of "rational" codes
+    *   [Points.v](/src/Points.v) -
+        Points as quotients of directed sets of codes (via five axioms)
+    *   [Notations.v](/src/Notations.v) -
+        Operator notations
+    *   [ComprehensionNotations.v](/src/Notations.v) -
+        Python-style comprehension + replacement notation
+
 *   [/doc](/doc) - Latex documentation
+
 *   [/sandbox](/sandbox) - Experimental Coq developments
 
 ## License

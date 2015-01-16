@@ -8,5 +8,8 @@ before_install:
     - coq_makefile -h || echo debug
     - export COQPATH=$COQPATH:.
     - # export OTHERFLAGS=-verbose  # for coqc via coq_makefile
+env:
+    - TARGET=src
+    - TARGET=sandbox
 script:
-    - make
+        - make -C $TARGET
