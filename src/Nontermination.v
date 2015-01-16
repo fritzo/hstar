@@ -1,7 +1,5 @@
 (** * Reasoning about nontermination *)
 
-Definition Succ := S%nat. (* an alias for later *)
-
 Require Export InformationOrdering.
 Open Scope code_scope.
 

@@ -180,10 +180,10 @@ Proof.
   apply code_eq_trans with (x * y'); auto.
 Qed.
 
-Ltac code_le_monotonicity := repeat (
+Ltac code_le_monotonicity := repeat ((
   apply code_le_ap_left ||
   apply code_le_ap_right ||
-  apply code_le_ap).
+  apply code_le_ap) ; auto).
 
 Ltac code_eq_monotonicity := repeat (
   apply code_eq_ap_left ||

@@ -235,8 +235,10 @@ Proof.
   split; destruct H as [Hl Hr]; apply A_above_le; auto.
 Qed.
 
+(* FIXME this is false: it is missing joins like [<<I,I>>||<<raise,lower>>] *)
 Lemma A_above_A (Var : Set) (a : Code Var) : a [= A <-> A_above a.
 Proof.
+  split; intro H.
   (* TODO this needs some sort of least-fixed-point lemma *)
 Admitted.
 

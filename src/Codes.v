@@ -1,5 +1,7 @@
 (** * Combinatory algebra with parametric variables *)
 
+Definition Succ := S%nat.  (* an alias for later *)
+
 Require Import Coq.Program.Basics.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
