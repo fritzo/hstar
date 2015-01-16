@@ -12,4 +12,4 @@ env:
     - TARGET=src
     - TARGET=sandbox
 script:
-        - make -C $TARGET
+    - make $TARGET
