@@ -219,14 +219,24 @@ Proof.
   intros x x' xx'.
 Admitted.
 
+Lemma code_le_top_closed (x : Code Empty_set) : x [= TOP.
+  unfold code_le, conv.
+  induction x; intros Var' c f;
+  intro Hc; inversion Hc as [? y ? Hb Hp e1 e2]; clear e1 e2; auto.
+    inversion v.
+    admit. (* easy context twiddling *)
+Admitted.
+
 Lemma code_le_top (Var : Set) (x : Code Var) : x [= TOP.
 Proof.
   unfold code_le, conv ; intros Var' c f Hred.
   simpl.
   rewrite <- beta_b.
+  (* OLD
   rewrite -> (pi_top (x @ f)) at 1.
   rewrite -> beta_b; auto.
-Qed.
+  *)
+Admitted.
 Hint Resolve code_le_top.
 
 Lemma code_le_bot (Var : Set) (x : Code Var) : BOT [= x.
@@ -370,8 +380,10 @@ Lemma code_eq_ap_top (Var : Set) (x : Code Var) : TOP * x == TOP.
 Proof.
   split; auto.
   unfold code_le, conv; intros Var' c f H.
+  (* OLD
   rewrite (pi_top (K * TOP)); beta_simpl; auto.
-Qed.
+  *)
+Admitted.
 Hint Rewrite code_eq_ap_top : code_simpl.
 
 Lemma code_eq_ap_bot (Var : Set) (x : Code Var) : BOT * x == BOT.

@@ -66,15 +66,14 @@ Inductive beta {Var : Set} : Code Var -> Code Var -> Prop :=
   | beta_r_ap {x y z} : beta ((x (+) y) * z) (x * z (+) y * z)
   | beta_r_idem {x} : beta (x (+) x) x
   | beta_r_sym {x y} : beta (x (+) y) (y (+) x)
-  | beta_r_sym_sym {w x y z} : beta ((w(+)x) (+) (y(+)z))
-                                  ((x(+)y) (+) (z(+)w)).
+  | beta_r_sym_sym {w x y z} : beta ((w(+)x) (+) (y(+)z)) ((x(+)y) (+) (z(+)w)).
 
 Inductive pi {Var : Set} : Code Var -> Code Var -> Prop :=
   | pi_refl {x} : pi x x
   | pi_trans {x} y {z} : pi x y -> pi y z -> pi x z
   | pi_ap_left {x x' y} : pi x x' -> pi (x * y) (x' * y)
   | pi_ap_right {x y y'} : pi y y' -> pi (x * y) (x * y')
-  | pi_top x : pi TOP x  (* FIXME this is too weak: [~pi (TOP * TOP) TOP] *)
+  | pi_top x : pi (TOP * x) TOP
   | pi_bot x : pi x BOT
   | pi_j_left {x y} : pi (x || y) x
   | pi_j_right {x y} : pi (x || y) y.
@@ -165,7 +164,7 @@ Qed.
 Lemma pi_beta_to_beta_pi (Var : Set) (x y z : Code Var) :
   pi x y -> beta y z -> exists y', beta x y' /\ pi y' z.
 Proof.
-  intros Hp Hb; induction Hb; eauto.
+  intros Hp; generalize z as w; clear z; induction Hp; intros z' Hb; eauto.
   (* TODO this requires a confluence-like argument. *)
 Admitted.
 
@@ -478,6 +477,12 @@ Section beta_abs_sub.
   Admitted.
 End beta_abs_sub.
 Hint Resolve beta_abs_sub.
+
+Instance code_abs_beta (Var Var' : Set) :
+  Proper ((eq ==> eq) ==> beta ==> beta) (@code_abs Var Var').
+Proof.
+  intros b b' bb' x x' xx'.
+Admitted.
 
 (** ** Informal lambda notation *)
 
