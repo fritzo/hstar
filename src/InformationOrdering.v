@@ -502,34 +502,6 @@ Lemma ap_top_conv (Var : Set) (x : Code Var) : conv x <-> conv (x * TOP).
 Proof.
 Admitted.
 
-Definition div {Var : Set} : Code Var := V * (C * I * TOP).
-
-Lemma ap_top_div (Var : Set) (x : Code Var) : div * (x * TOP) == div * x.
-Proof.
-Admitted.
-
-Lemma div_ap_top (Var : Set) (x : Code Var) : div * x * TOP == div * x.
-Proof.
-  (* OLD
-  split.
-    rewrite beta_div at 2; rewrite pi_j_right; auto.
-  unfold code_le, conv; intros Var' c f H.
-  simpl in *; auto.
-  *)
-Admitted.
-
-Lemma div_repeat_top (Var : Set) (x : Code Var) (n : nat) :
-  (div * x) ** TOP ^^ n == div * x.
-Proof.
-  induction n; simpl; auto.
-Admitted.
-
-Lemma repeat_top_div (Var : Set) (x : Code Var) (n : nat) :
-  div * (x ** TOP ^^ n) == div * x.
-Proof.
-  induction n; simpl; auto.
-Admitted.
-
 Definition code_le_apply {Var : Set} (x x' : Code Var) : Prop :=
   forall (Var' : Set) (ys : list (Code Var')) (f : Var -> Code Var'),
   conv ((x @ f) ** ys) -> conv ((x' @ f) ** ys).

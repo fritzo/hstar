@@ -20,9 +20,7 @@ Inductive code {Var : Set} : Set :=
   | code_k : code
   | code_b : code
   | code_c : code
-  | code_s : code
-  | code_y : code
-  | code_v : code.
+  | code_s : code.
 Hint Constructors code.
 Definition Code (Var : Set) := @code Var.
 
@@ -41,8 +39,6 @@ Notation "'K'" := code_k : code_scope.
 Notation "'B'" := code_b : code_scope.
 Notation "'C'" := code_c : code_scope.
 Notation "'S'" := code_s : code_scope.
-Notation "'Y'" := code_y : code_scope.
-Notation "'V'" := code_v : code_scope.
 Notation "x 'o' y" := (code_b * x * y)%code : code_scope.
 Notation "x || y" := (code_j * x * y)%code : code_scope.
 Notation "x (+) y" := (code_r * x * y)%code : code_scope.
@@ -60,8 +56,6 @@ Inductive beta {Var : Set} : Code Var -> Code Var -> Prop :=
   | beta_b {x y z} : beta (B * x * y * z) (x * (y * z))
   | beta_c {x y z} : beta (C * x * y * z) (x * z * y)
   | beta_s {x y z} : beta (S * x * y * z) (x * z * (y * z))
-  | beta_y {x} : beta (Y * x) (x * (Y * x))
-  | beta_v {x} : beta (V * x) (I || x o (V * x))
   | beta_j_ap {x y z} : beta ((x || y) * z) (x * z || y * z)
   | beta_r_ap {x y z} : beta ((x (+) y) * z) (x * z (+) y * z)
   | beta_r_idem {x} : beta (x (+) x) x
@@ -106,16 +100,13 @@ Definition Beta_k (Var : Set) := (@beta_k Var).
 Definition Beta_b (Var : Set) := (@beta_b Var).
 Definition Beta_c (Var : Set) := (@beta_c Var).
 Definition Beta_s (Var : Set) := (@beta_s Var).
-Definition Beta_y (Var : Set) := (@beta_y Var).
-Definition Beta_v (Var : Set) := (@beta_v Var).
 Definition Beta_j_ap (Var : Set) := (@beta_j_ap Var).
 Definition Beta_r_ap (Var : Set) := (@beta_r_ap Var).
 Definition Beta_r_idem (Var : Set) := (@beta_r_idem Var).
 
 Hint Rewrite Beta_i Beta_k Beta_b Beta_c Beta_j_ap Beta_r_ap Beta_r_idem
   : beta_safe.
-Hint Rewrite Beta_s Beta_y Beta_v
-  : beta_unsafe.
+Hint Rewrite Beta_s : beta_unsafe.
 
 Tactic Notation "beta_simpl" := autorewrite with beta_safe.
 Tactic Notation "beta_simpl" "in" hyp(H) := autorewrite with beta_safe in H.
@@ -286,8 +277,6 @@ Fixpoint code_sub {Var Var' : Set}
   | B => B
   | C => C
   | S => S
-  | Y => Y
-  | V => V
   end.
 
 Notation "x @ f" := (code_sub f x)%code : code_scope.
@@ -447,8 +436,6 @@ Fixpoint code_abs {Var Var' : Set} (b : Var -> option Var') (x : Code Var) :
   | B => K * B
   | C => K * C
   | S => K * S
-  | Y => K * Y
-  | V => K * V
   end.
 
 Section beta_abs_sub.
@@ -499,3 +486,43 @@ Definition code_lambda {Var : Set} (x y : Code (nat + Var)) :
   end.
 
 Notation "\ x , y" := (code_lambda x y)%code : code_scope.
+
+(** ** Standard combinators *)
+
+Section Y.
+  Context {Var : Set}.
+  Let f := make_var Var 0.
+  Let x := make_var Var 1.
+  Definition Y := Eval compute in close
+    ((\f, \x, f * (x * x * f)) * (\f, \x, f * (x * x * f))).
+    (* (\f, (\x, f * (x * x)) * (\x, f * (x * x))).  *)
+End Y.
+
+Lemma beta_y (Var : Set) (f : Code Var) : beta (Y * f) (f * (Y * f)).
+Proof.
+  unfold Y.
+Admitted.
+Hint Rewrite beta_y : beta_unsafe.
+
+Section V.
+  Context {Var : Set}.
+  Let a := make_var Var 0.
+  Let x := make_var Var 1.
+  Definition V := Eval compute in close (\a, Y * \x, I || a o x).
+End V.
+
+Lemma beta_v (Var : Set) (a : Code Var) : beta (V * a) (I || a o (V * a)).
+Proof.
+  unfold V.
+Admitted.
+Hint Rewrite beta_v : beta_unsafe.
+
+Definition div {Var : Set} : Code Var := V * (C * I * TOP).
+
+Lemma beta_div (Var : Set) (x : Code Var) :
+  beta (div * x) (x || div * x * TOP).
+Proof.
+  unfold div.
+  rewrite beta_v at 1; beta_simpl; auto.
+Qed.
+Hint Rewrite beta_div : beta_unsafe.
