@@ -114,17 +114,20 @@ Proof. simpl_relation. Qed.
 Lemma code_le_ap_right (Var : Set) (x y y' : Code Var) :
   y [= y' -> x * y [= x * y'.
 Proof.
+  (* OLD
   unfold code_le, conv; intros H Var' c f.
   repeat rewrite code_sub_ap.
   intros Hconv.
   rewrite <- (beta_ap_right beta_b); apply H.
   rewrite -> (beta_ap_right beta_b); auto.
-Qed.
+  *)
+Admitted.
 Hint Resolve code_le_ap_right.
 
 Lemma code_le_ap_left (Var : Set) (x x' y : Code Var) :
   x [= x' -> x * y [= x' * y.
 Proof.
+  (* OLD
   unfold code_le, conv; intros H Var' c f.
   repeat rewrite code_sub_ap.
   intros Hconv.
@@ -136,7 +139,8 @@ Proof.
   rewrite -> (beta_ap_right (beta_ap_right beta_c)).
   rewrite -> (beta_ap_right (beta_ap_right (beta_ap_left beta_i))).
   auto.
-Qed.
+  *)
+Admitted.
 Hint Resolve code_le_ap_left.
 
 Lemma code_le_ap (Var : Set) (x x' y y' : Code Var) :
@@ -220,18 +224,23 @@ Proof.
 Admitted.
 
 Lemma code_le_top_closed (x : Code Empty_set) : x [= TOP.
+Proof.
+  (* OLD
   unfold code_le, conv.
   induction x; intros Var' c f;
   intro Hc; inversion Hc as [? y ? Hb Hp e1 e2]; clear e1 e2; auto.
     inversion v.
     admit. (* easy context twiddling *)
+  *)
 Admitted.
 
 Lemma code_le_top (Var : Set) (x : Code Var) : x [= TOP.
 Proof.
+  (* OLD
   unfold code_le, conv ; intros Var' c f Hred.
   simpl.
   rewrite <- beta_b.
+  *)
   (* OLD
   rewrite -> (pi_top (x @ f)) at 1.
   rewrite -> beta_b; auto.
@@ -241,33 +250,41 @@ Hint Resolve code_le_top.
 
 Lemma code_le_bot (Var : Set) (x : Code Var) : BOT [= x.
 Proof.
+  (* OLD
   unfold code_le, conv; intros Var' c f Hred.
   rewrite <- beta_b.
   rewrite -> (pi_ap_right (pi_bot _)).
   rewrite -> beta_b; auto.
-Qed.
+  *)
+Admitted.
 Hint Resolve code_le_bot.
 
 (** ** Basic properties of information ordering *)
 
 Lemma code_le_j_left (Var : Set) (x y : Code Var) : x [= x || y.
 Proof.
+  (* OLD
   unfold code_le, conv; intros Var' c f Hred.
   rewrite pi_j_left; auto.
-Qed.
+  *)
+Admitted.
 Hint Resolve code_le_j_left.
 
 Lemma code_le_j_right (Var : Set) (x y : Code Var) : y [= x || y.
 Proof.
+  (* OLD
   unfold code_le, conv; intros Var' c f Hred.
   rewrite pi_j_right; auto.
-Qed.
+  *)
+Admitted.
 Hint Resolve code_le_j_right.
 
 Lemma code_le_j_ub (Var : Set) (x y z : Code Var) :
   x [= z -> y [= z -> x || y [= z.
 Proof.
+  (* OLD
   unfold code_le, conv; intros Hx Hy Var' c f Hconv.
+  *)
 Admitted.
 Hint Resolve code_le_j_ub.
 
@@ -379,7 +396,6 @@ Ltac beta_eta :=
 Lemma code_eq_ap_top (Var : Set) (x : Code Var) : TOP * x == TOP.
 Proof.
   split; auto.
-  unfold code_le, conv; intros Var' c f H.
   (* OLD
   rewrite (pi_top (K * TOP)); beta_simpl; auto.
   *)
@@ -389,7 +405,6 @@ Hint Rewrite code_eq_ap_top : code_simpl.
 Lemma code_eq_ap_bot (Var : Set) (x : Code Var) : BOT * x == BOT.
 Proof.
   split; auto.
-  unfold code_le, conv; intros Var' c f H.
 Admitted.
 Hint Rewrite code_eq_ap_bot : code_simpl.
 
@@ -485,20 +500,22 @@ Hint Resolve code_repeat_top.
 
 Lemma ap_top_conv (Var : Set) (x : Code Var) : conv x <-> conv (x * TOP).
 Proof.
-  unfold conv; split; intro H; inversion_clear H as [? y ? Hb Hp].
 Admitted.
+
+Definition div {Var : Set} : Code Var := V * (C * I * TOP).
 
 Lemma ap_top_div (Var : Set) (x : Code Var) : div * (x * TOP) == div * x.
 Proof.
-  split; unfold code_le, conv; intros Var' c f H.
 Admitted.
 
 Lemma div_ap_top (Var : Set) (x : Code Var) : div * x * TOP == div * x.
 Proof.
+  (* OLD
   split.
     rewrite beta_div at 2; rewrite pi_j_right; auto.
   unfold code_le, conv; intros Var' c f H.
   simpl in *; auto.
+  *)
 Admitted.
 
 Lemma div_repeat_top (Var : Set) (x : Code Var) (n : nat) :

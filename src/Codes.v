@@ -81,9 +81,25 @@ Inductive pi {Var : Set} : Code Var -> Code Var -> Prop :=
 Inductive approx {Var : Set} : Code Var -> Code Var -> Prop :=
   approx_intro x y z : beta x y -> pi y z -> approx x z.
 
+Inductive conv {Var : Set} : Code Var -> Prop :=
+  | conv_approx {x} : approx x TOP -> conv x
+  | conv_ap {x} : conv (x * TOP) -> conv x.
+
+Inductive prob {Var : Set} : Code Var -> Prop :=
+  | prob_top : prob TOP
+  | prob_bot : prob BOT
+  | prob_r p q : prob p -> prob q -> prob (p (+) q).
+
+Inductive pconv {Var : Set} : Code Var -> Code Var -> Prop :=
+  | pconv_approx {p x} : prob p -> approx x p -> pconv p x
+  | pconv_ap {p x} : pconv p (x * TOP) -> pconv p x.
+
 Hint Constructors beta.
 Hint Constructors pi.
 Hint Constructors approx.
+Hint Constructors conv.
+Hint Constructors prob.
+Hint Constructors pconv.
 
 Definition Beta_i (Var : Set) := (@beta_i Var).
 Definition Beta_k (Var : Set) := (@beta_k Var).
@@ -239,44 +255,20 @@ Proof.
   reflexivity.
 Qed.
 
-Definition div {Var : Set} : Code Var := V * (C * I * TOP).
-
-Lemma beta_div (Var : Set) (x : Code Var) :
-  beta (div * x) (x || div * x * TOP).
-Proof.
-  unfold div.
-  rewrite beta_v at 1; beta_simpl; auto.
-Qed.
-
-Definition conv {Var : Set} (x : Code Var) := approx (div * x) TOP.
-
 Lemma conv_top (Var : Set) : conv (TOP : Code Var).
-Proof.
-  unfold conv; rewrite beta_div; rewrite pi_j_left; reflexivity.
-Qed.
+Proof. eauto. Qed.
 Hint Resolve conv_top.
 
 Instance conv_beta (Var : Set) : Proper (beta ==> iff) (@conv Var).
 Proof.
-  compute; intros x x' Hx; split; intros Hc;
-  inversion Hc as [u v w]; apply approx_intro with v; auto.
-    rewrite <- Hx; auto.
-  rewrite -> Hx; auto.
-Qed.
+  intros x x' xx'; split.
+    intros Hc; induction Hc; apply conv_approx; rewrite <- xx'; auto.
+Admitted.
 
 Instance conv_pi (Var : Set) : Proper (pi --> impl) (@conv Var).
 Proof.
   compute; intros x x' xx' Ha.
-  rewrite xx'; auto.
-Qed.
-
-Inductive prob {Var : Set} : Code Var -> Prop :=
-  | prob_top : prob TOP
-  | prob_bot : prob BOT
-  | prob_r p q : prob p -> prob q -> prob (p (+) q).
-
-Definition pconv {Var : Set} (x : Code Var) (p : Code Var) :=
-  approx (div * x) p.
+Admitted.
 
 (** ** Substitution *)
 

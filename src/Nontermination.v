@@ -70,7 +70,7 @@ End Omega.
 
 Lemma code_le_omega_bot (Var : Set) : (@Omega Var) [= BOT.
 Proof.
-  unfold Omega, code_le, conv; intros Var' c f Ha.
+  unfold Omega, code_le; intros Var' c f Ha.
   induction Ha.
   (* TODO this could be proved from an asymmetric definition of beta *)
 Admitted.
