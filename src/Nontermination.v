@@ -49,8 +49,6 @@ Proof.
   intros n H; induction n; auto.
 Admitted.
 
-Definition div {Var : Set} : Code Var := V * (C * I * TOP).
-
 Lemma ap_top_div (Var : Set) (x : Code Var) : div * (x * TOP) == div * x.
 Proof.
 Admitted.
