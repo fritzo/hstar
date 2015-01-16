@@ -124,7 +124,12 @@ Section raise.
   Proof.
     unfold push, pull; eta_expand; beta_simpl.
     symmetry; apply code_le_eq_j.
-    fold (@div Var); code_simpl; auto.
+    (* FIXME this is ugly *)
+    rewrite <- (beta_ap_right beta_b).
+    rewrite <- (beta_ap_left beta_b).
+    fold (@V Var).
+    fold (@div Var).
+    code_simpl; auto.
   Qed.
 
   Lemma A_raise_lower : A_prop <<raise, lower>>.

@@ -55,11 +55,14 @@ Proof.
   intros n H; inversion H.
 Admitted.
 
-Lemma div_bot (Var : Set) : div * BOT == (BOT : Code Var).
-Proof.
-  unfold div.
-  (* TODO this could be proved from an asymmetric definition of beta *)
-Admitted.
+Section div_bot.
+  Variable Var : Set.
+  Let x : Code Var := Eval compute in div * BOT.
+  Lemma div_bot : x = BOT.
+  Proof.
+    (* TODO this could be proved from an asymmetric definition of beta *)
+  Admitted.
+End div_bot.
 Hint Rewrite div_bot : code_simpl.
 
 Section Omega.

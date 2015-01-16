@@ -165,7 +165,7 @@ End P.
 
 Lemma P_idem (Var : Set) (a : Code Var) : P * a * a == V * a.
 Proof.
-  unfold P; beta_simpl; rewrite code_eq_j_idem; auto.
+  unfold P; beta_simpl; rewrite code_eq_j_idem; unfold V; beta_simpl; auto.
 Qed.
 Hint Rewrite P_idem.
 
@@ -216,7 +216,7 @@ Proof.
   unfold fixes, closure, P; beta_simpl.
   intros Hfix.
   assert (I [= x).
-    rewrite <- Hfix; rewrite beta_v; auto.
+    rewrite <- Hfix; rewrite beta_y; beta_simpl; auto.
   split; auto.
   (* TODO adapt proof from V:
   rewrite <- Hfix at 3; rewrite beta_v; rewrite Hfix.
@@ -248,20 +248,26 @@ Qed.
 
 Lemma P2_nondecreasing (Var : Set) (a b : Code Var) : I [= P * a * b.
 Proof.
+  (* OLD
   unfold P; beta_simpl; apply V1_nondecreasing.
-Qed.
+  *)
+Admitted.
 
 Lemma P2_idempotent (Var : Set) (a b : Code Var) :
   (P * a * b) o (P * a * b) == P * a * b.
 Proof.
+  (* OLD
   unfold P; beta_simpl; apply V1_idempotent.
-Qed.
+  *)
+Admitted.
 Hint Rewrite P1_idempotent.
 
 Lemma P2_closure (Var : Set) (a b : Code Var): closure (P * a * b).
 Proof.
+  (* OLD
   unfold P; beta_simpl; apply V1_closure.
-Qed.
+  *)
+Admitted.
 
 Inductive P2_fixes {Var : Set} (a b : Code Var) : Code Var -> Prop :=
   P2_fixes_intro x : x :: V * a -> x :: V * b -> P2_fixes a b x.
