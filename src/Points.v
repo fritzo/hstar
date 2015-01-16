@@ -1,4 +1,4 @@
-Require Export IndexedCodes.
+Require Export DirectedSets.
 
 (** * Points as quotients of indexed codes.
 
