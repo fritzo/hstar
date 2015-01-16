@@ -4,11 +4,8 @@ Require Import Coq.Program.Basics.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
-Require Import Coq.Classes.Morphisms_Prop.
 Require Import Coq.Arith.EqNat.
 Require Export Notations.
-
-Definition Succ := S%nat. (* an alias for later *)
 
 Inductive code {Var : Set} : Set :=
   | code_var : Var -> code

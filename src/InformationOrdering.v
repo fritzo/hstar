@@ -4,7 +4,6 @@ Require Import Coq.Program.Basics.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
-Require Import Coq.Classes.Morphisms_Prop.
 Require Export Codes.
 Open Scope code_scope.
 
@@ -238,7 +237,7 @@ Proof.
 Qed.
 Hint Resolve code_le_bot.
 
-(** *** Proving information ordering *)
+(** ** Basic properties of information ordering *)
 
 Lemma code_le_j_left (Var : Set) (x y : Code Var) : x [= x || y.
 Proof.

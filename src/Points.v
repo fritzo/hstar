@@ -117,7 +117,7 @@ Proof.
   (* TODO *)
 Admitted.
 
-(** Local properties of points *)
+(** ** Local properties of points *)
 
 Section point_beta.
   Variable Var : Set.
@@ -172,15 +172,6 @@ Tactic Notation "beta_reduce" "in" hyp(H) :=
   repeat rewrite point_ap_respect in H;
   autorewrite with beta;
   autorewrite with beta in H.
-
-(** To avoid nontermination in [beta_reduce],
-    we provide a mechanism to "freeze" terms during reduction. *)
-Tactic Notation "freeze" reference(c) "in" tactic(tac) :=
-  let v := fresh "v" in
-  let H := fresh "Hv" in
-  assert (exists v, c=v) as H;
-  [ exists c; reflexivity
-  | destruct H as [v H]; rewrite H; tac; destruct H].
 
 Section point_algebra.
   Variable Var : Set.
@@ -309,7 +300,7 @@ Section point_sup_empty.
   Qed.
 End point_sup_empty.
 
-(** Global properties of [Points] *)
+(** ** Global properties of [Points] *)
 
 Theorem consistency (Var : Set) : [@code_top Var] <> [@code_bot Var].
 Proof.

@@ -2,7 +2,7 @@ Require Import Setoid.
 Require Export InformationOrdering.
 Require Export ComprehensionNotation.
 
-(** ** Indexed codes *)
+(** * Directed sets of codes *)
 
 (** Now that we have defined finite codes,
     we would next like to define limits of finite codes,
@@ -51,7 +51,7 @@ Definition precodes_le {Var : Set} (s1 s2 : Precodes Var) : Prop :=
   forall i1 : index1, conv (c * (enum1 i1)) ->
   exists i2 : index2, conv (c * (enum2 i2)).
 
-(** Indexed codes with directedness certificates *)
+(** ** Indexed codes with directedness certificates *)
 
 Record codes {Var : Set} := codes_intro {
   index : Type;
@@ -209,7 +209,8 @@ Proof.
   compute; auto.
 *)
 
-(** patently Pi02 *)
+(** The information ordering is now patently $\Pi_0^2$ *)
+
 Definition codes_le {Var : Set} (s1 s2 : Codes Var) : Prop :=
   let (index1, enum1, _, _) := s1 in
   let (index2, enum2, _, _) := s2 in
