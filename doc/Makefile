@@ -9,13 +9,16 @@ body.tex: FORCE
 	$(SRC)/InformationOrdering.v \
 	$(SRC)/Nontermination.v \
 	$(SRC)/LeastFixedPoint.v \
+	$(SRC)/BohmTrees.v \
 	$(SRC)/TypeConstructor.v \
 	$(SRC)/Types.v \
 	$(SRC)/IndexedCodes.v \
 	$(SRC)/Points.v \
 	#
 
-main.pdf: main.tex body.tex
-	pdflatex main.tex
+main.pdf: main.tex body.tex references.bib
+	pdflatex main
+	bibtex main
+	pdflatex main
 
 FORCE:

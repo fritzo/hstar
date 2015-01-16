@@ -2,6 +2,9 @@
 
 Require Import Coq.Classes.Morphisms.
 Require Export TypeConstructor.
+Require Import Nontermination.
+Require Import LeastFixedPoint.
+Require Import BohmTrees.
 Open Scope code_scope.
 
 (** ** Properties of types *)

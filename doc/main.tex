@@ -5,6 +5,14 @@
 \usepackage[color]{coqdoc}
 \usepackage{amsmath,amssymb}
 
+%\usepackage[backend=biber]{biblatex}
+\usepackage[backend=bibtex]{biblatex}
+
+\usepackage{draftwatermark}
+%\usepackage[final]{draftwatermark}
+\SetWatermarkScale{5}
+\SetWatermarkLightness{0.95}
+
 \usepackage{hyperref}
 \usepackage{amsthm}
 \usepackage{verbatim}
@@ -14,6 +22,9 @@
 \usepackage{wrapfig}
 %\usepackage{stmaryrd} %for bigsqcap
 %\usepackage{mathpartir} % http://pauillac.inria.fr/~remy/latex/mathpartir.sty
+
+\bibliography{references}{}
+%\bibliographystyle{plain}
 
 \newcommand \Hstar {{\ensuremath{\mathcal H^\ast}}}
 
@@ -49,4 +60,5 @@ convex sets of probability distributions.
 
 \input{body.tex}
 
+\printbibliography
 \end{document}
