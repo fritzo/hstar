@@ -108,6 +108,9 @@ Tactic Notation "beta_simpl" "in" hyp(H) := autorewrite with beta_safe in H.
 Tactic Notation "beta_reduce" := autorewrite with beta_safe beta_unsafe.
 Tactic Notation "beta_reduce" "in" hyp(H) :=
   autorewrite with beta_safe beta_unsafe in H.
+Tactic Notation "code_simpl" := autorewrite with beta_safe code_simpl.
+Tactic Notation "code_simpl" "in" hyp(H) :=
+  autorewrite with beta_safe code_simpl in H.
 
 (** To avoid nontermination in [beta_reduce],
     we provide a mechanism to "freeze" terms during reduction. *)
@@ -164,6 +167,7 @@ Lemma pi_beta_to_beta_pi (Var : Set) (x y z : Code Var) :
   pi x y -> beta y z -> exists y', beta x y' /\ pi y' z.
 Proof.
   intros Hp Hb; induction Hb; eauto.
+  (* TODO this requires a confluence-like argument. *)
 Admitted.
 
 Ltac pi_beta_to_beta_pi x y z xy yz :=
@@ -298,21 +302,21 @@ Proof.
   unfold code_sub; fold (@code_sub Var Var).
   rewrite IHx1; rewrite IHx2; auto.
 Qed.
-Hint Rewrite var_monad_unit_right.
+Hint Rewrite var_monad_unit_right : code_simpl.
 
 Lemma var_monad_unit_left (Var Var' : Set) (f : Var -> Code Var') x :
   (code_var x) @ f = f x.
 Proof.
   compute; auto.
 Qed.
-Hint Rewrite var_monad_unit_left.
+Hint Rewrite var_monad_unit_left : code_simpl.
 
 Lemma code_sub_ap (Var Var' : Set)
   (x y : Code Var) (f : Var -> Code Var') : (x * y @ f) = (x @ f) * (y @ f).
 Proof.
   simpl; auto.
 Qed.
-Hint Rewrite code_sub_ap.
+Hint Rewrite code_sub_ap : code_simpl.
 
 Lemma var_monad_assoc
   (Var Var' Var'' : Set)
@@ -325,7 +329,7 @@ Proof.
   repeat rewrite code_sub_ap.
   rewrite IHx1; rewrite IHx2; auto.
 Qed.
-Hint Rewrite var_monad_assoc.
+Hint Rewrite var_monad_assoc : code_simpl.
 
 Lemma code_sub_ext (Var Var' : Set)
   (f g : Var -> Code Var') (fg : forall v, f v = g v) x :
@@ -494,10 +498,10 @@ Definition code_lambda {Var : Set} (x y : Code (nat + Var)) :
 
 Notation "\ x , y" := (code_lambda x y)%code : code_scope.
 
-(** ** Contexts, convergence, and information ordering *)
+(** ** Information ordering and observable equivalence *)
 
 Definition code_le {Var : Set} (x y : Code Var) :=
-  forall {Var' : Set} (c : Code Var') (f : Var -> Code Var'),
+  forall (Var' : Set) (c : Code Var') (f : Var -> Code Var'),
   conv (c * (x @ f)) -> conv (c * (y @ f)).
 Notation "x [= y" := (code_le x y)%code : code_scope.
 
@@ -717,8 +721,6 @@ Proof.
 Qed.
 Hint Resolve code_le_top.
 
-(** *** Proving divergence *)
-
 Lemma code_le_bot (Var : Set) (x : Code Var) : BOT [= x.
 Proof.
   unfold code_le, conv; intros Var' c f Hred.
@@ -727,54 +729,6 @@ Proof.
   rewrite -> beta_b; auto.
 Qed.
 Hint Resolve code_le_bot.
-
-Fixpoint probe {Var : Set} (n : nat) (x : Code Var) : Code Var :=
-  match n with
-  | 0%nat => x
-  | (Succ n')%nat => (probe n' x) * code_top
-  end.
-
-Lemma probe_bot_top (Var : Set) : forall n, probe n (@code_bot Var) <> TOP.
-Proof.
-  intros n; induction n; compute; fold (@probe Var); discriminate.
-Qed.
-
-Lemma approx_probe_bot_top (Var : Set) :
-  forall n, ~ approx (probe n (@code_bot Var)) TOP.
-Proof.
-  intros n H; induction n; auto.
-Admitted.
-
-Lemma div_probe_bot (Var : Set) :
-  forall n : nat, ~ conv (probe n (@code_bot Var)).
-Proof.
-  intros n H; inversion H.
-Admitted.
-
-(*  TODO
-
-    This is very difficult to prove given the definitions of
-    [code], [beta], and [conv].
-
-    See sandbox/hoas.v which adds substitution and
-    attempts to strengthen [conv] to get induction to work.
-*)
-
-Section Omega.
-  Variable Var : Set.
-  Let x := make_var Var 0.
-  Definition Omega := (\x, x * x) * (\x, x * x).
-End Omega.
-
-Lemma code_le_omega_bot (Var : Set) : Omega Var [= BOT.
-Proof.
-  compute.
-Admitted.
-
-Lemma code_eq_omega_bot (Var : Set) : Omega Var == BOT.
-Proof.
-  split ; (apply code_le_omega_bot || auto).
-Qed.
 
 (** *** Proving information ordering *)
 
@@ -808,6 +762,11 @@ Proof.
 Qed.
 Hint Resolve code_le_join.
 
+Lemma code_le_eq_j (Var : Set) (x y : Code Var) : x [= y <-> y == y || x.
+Proof.
+  split; intro H; [split | rewrite H]; auto.
+Qed.
+
 Lemma code_le_j_idem (Var : Set) (x : Code Var) : x||x [= x.
 Proof.
   apply code_le_join; split; reflexivity.
@@ -829,6 +788,22 @@ Proof.
   apply code_le_j_ub; auto.
   transitivity (y||z); auto.
 Qed.
+
+Lemma code_le_j_bot_left (Var : Set) (x : Code Var) : BOT || x == x.
+Proof. split; auto. Qed.
+Hint Rewrite code_le_j_bot_left : code_simpl.
+
+Lemma code_le_j_bot_right (Var : Set) (x : Code Var) : x || BOT == x.
+Proof. split; auto. Qed.
+Hint Rewrite code_le_j_bot_right : code_simpl.
+
+Lemma code_le_j_top_left (Var : Set) (x : Code Var) : TOP || x == TOP.
+Proof. split; auto. Qed.
+Hint Rewrite code_le_j_top_left : code_simpl.
+
+Lemma code_le_j_top_right (Var : Set) (x : Code Var) : x || TOP == TOP.
+Proof. split; auto. Qed.
+Hint Rewrite code_le_j_top_right : code_simpl.
 
 (** *** Reasoning with extensionality *)
 
@@ -889,14 +864,44 @@ Proof.
   unfold code_le, conv; intros Var' c f H.
   rewrite (pi_top (K * TOP)); beta_simpl; auto.
 Qed.
-Hint Rewrite code_eq_ap_top.
+Hint Rewrite code_eq_ap_top : code_simpl.
 
 Lemma code_eq_ap_bot (Var : Set) (x : Code Var) : BOT * x == BOT.
 Proof.
   split; auto.
   unfold code_le, conv; intros Var' c f H.
 Admitted.
-Hint Rewrite code_eq_ap_bot.
+Hint Rewrite code_eq_ap_bot : code_simpl.
+
+(** *** Closed terms *)
+
+(** A term is closed if it has no variables.
+    In proving [x [= y], it will sometimes be easier to consider only
+    closing variable assignments [f : Var -> Code Empty_set].
+    Thus we introduce an equivalent definition of [x [= y]. *)
+
+Definition code_le_empty {Var : Set} (x y : Code Var) :=
+  let Var' := Empty_set in
+  forall (c : Code Var') (f : Var -> Code Var'),
+  conv (c * (x @ f)) -> conv (c * (y @ f)).
+
+Lemma code_le_empty_complete (Var : Set) (x x' : Code Var) :
+  x [= x' -> code_le_empty x x'.
+Proof.
+  unfold code_le, code_le_empty; intros; auto.
+Qed.
+
+Lemma code_le_empty_sound (Var : Set) (x x' : Code Var) :
+  code_le_empty x x' -> x [= x'.
+Proof.
+  unfold code_le; intros H Var' c f Hconv.
+Admitted.
+
+Theorem code_le_empty_equiv (Var : Set) (x x' : Code Var) :
+  x [= x' <-> code_le_empty x x'.
+Proof.
+  split; [apply code_le_empty_complete | apply code_le_empty_sound].
+Qed.
 
 (** *** A head-normalized definition of convergence *)
 
@@ -937,20 +942,20 @@ Proof.
 Qed.
 Hint Resolve beta_apply_tuple.
 
-Lemma code_le_apply_easy (Var : Set) (x x' : Code Var) :
-  x [= x' ->
+Definition code_le_apply {Var : Set} (x x' : Code Var) : Prop :=
   forall (Var' : Set) (ys : list (Code Var')) (f : Var -> Code Var'),
   conv ((x @ f) ** ys) -> conv ((x' @ f) ** ys).
+
+Lemma code_le_apply_complete (Var : Set) (x x' : Code Var) :
+  x [= x' -> code_le_apply x x'.
 Proof.
   unfold code_le; intros H Var' ys f Hconv.
   rewrite beta_apply_tuple; apply H.
   rewrite beta_tuple_apply; auto.
 Qed.
 
-Lemma code_le_apply_hard (Var : Set) (x x' : Code Var) :
-  (forall (Var' : Set) (ys : list (Code Var')) (f : Var -> Code Var'),
-    conv ((x @ f) ** ys) -> conv ((x' @ f) ** ys)) ->
-  x [= x'.
+Lemma code_le_apply_sound (Var : Set) (x x' : Code Var) :
+  code_le_apply x x' -> x [= x'.
 Proof.
   unfold code_le; intros H Var' c f Hconv.
   assert (forall (ys : list (Code Var')),
@@ -958,3 +963,9 @@ Proof.
   set (y := x @ f) in *; set (y' := x' @ f) in *.
   inversion Hconv; simpl; auto.
 Admitted.
+
+Theorem code_le_apply_equiv (Var : Set) (x x' : Code Var) :
+  x [= x' <-> code_le_apply x x'.
+Proof.
+  split; [apply code_le_apply_complete | apply code_le_apply_sound].
+Qed.
