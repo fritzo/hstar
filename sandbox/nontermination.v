@@ -34,12 +34,11 @@ Inductive test : code -> code -> Prop :=
   | test_top x : test (TOP * x) TOP
   | test_bot x : test x BOT.
 
-Hint Constructors probe.
-Hint Constructors beta.
-Hint Constructors test.
-
 Definition conv (x : code) : Prop :=
   exists y z, probe x y /\ beta y z /\ test z TOP.
+
+(* -------------------------------------------------------------------------- *)
+(* head function *)
 
 Fixpoint head (x : code) : code :=
   match x with
@@ -78,3 +77,45 @@ Proof.
   apply not_conv_head_bot; compute; auto.
 Qed.
 Print Assumptions not_conv_bot.
+
+(* -------------------------------------------------------------------------- *)
+(* heads relation *)
+
+Inductive heads : code -> code -> Prop :=
+  | heads_refl x : heads x x
+  | heads_ap h x y : heads h x -> heads h (x * y).
+Hint Constructors heads.
+
+Lemma heads_probe h x y : probe x y -> heads h x -> heads h y.
+Proof.
+  intro H; induction H; auto.
+Qed.
+
+Lemma heads_beta_bot x y : beta x y -> heads BOT x -> heads BOT y.
+Proof.
+  intros Ht; induction Ht; auto; intro Hh; inversion Hh; auto.
+    inversion H1; auto.
+    inversion H5; auto.
+  inversion H1; auto.
+  inversion H5; auto.
+  inversion H9; auto.
+Qed.
+
+Lemma heads_test_bot x y : test x y -> heads BOT x -> heads BOT y.
+Proof.
+  intros Ht; induction Ht; auto; intro Hh; inversion Hh; auto.
+Qed.
+
+Lemma not_conv_heads_bot x : heads BOT x -> ~ conv x.
+Proof.
+  intros H [y [z [xy [yz zt]]]].
+  apply (heads_probe _ _ y) in H; auto.
+  apply (heads_beta_bot _ z) in H; auto.
+  apply (heads_test_bot _ TOP) in H; auto.
+  inversion H; auto.
+Qed.
+
+Lemma not_conv_bot' : ~conv BOT.
+Proof.
+  apply not_conv_heads_bot; auto.
+Qed.
