@@ -1,10 +1,8 @@
-Require Import Coq.Setoids.Setoid.  (* for rewrite *)
-Require Import Coq.Program.Equality.  (* for dependent induction *)
-
 Inductive code : Set :=
   | AP : code -> code -> code
   | TOP : code
   | BOT : code
+  | I : code
   | K : code
   | S : code.
 
@@ -23,6 +21,7 @@ Inductive beta : code -> code -> Prop :=
   | beta_trans x y z : beta x y -> beta y z -> beta x z
   | beta_ap_left x x' y : beta x x' -> beta (x * y) (x' * y)
   | beta_ap_right x y y' : beta y y' -> beta (x * y) (x * y')
+  | beta_i x : beta (I * x) x
   | beta_k x y : beta (K * x * y) x
   | beta_s x y z : beta (S * x * y * z) (x * z * (y * z)).
 
@@ -84,26 +83,26 @@ Print Assumptions not_conv_bot.
 Inductive heads : code -> code -> Prop :=
   | heads_refl x : heads x x
   | heads_ap h x y : heads h x -> heads h (x * y).
-Hint Constructors heads.
+
+Ltac heads :=
+  auto using heads_refl, heads_ap;
+  match goal with
+  | [H : heads ?x ?y |- _] => inversion_clear H; heads
+  end.
 
 Lemma heads_probe h x y : probe x y -> heads h x -> heads h y.
 Proof.
-  intro H; induction H; auto.
+  intro H; induction H; heads.
 Qed.
 
 Lemma heads_beta_bot x y : beta x y -> heads BOT x -> heads BOT y.
 Proof.
-  intros Ht; induction Ht; auto; intro Hh; inversion Hh; auto.
-    inversion H1; auto.
-    inversion H5; auto.
-  inversion H1; auto.
-  inversion H5; auto.
-  inversion H9; auto.
+  intros Ht; induction Ht; intros; heads.
 Qed.
 
 Lemma heads_test_bot x y : test x y -> heads BOT x -> heads BOT y.
 Proof.
-  intros Ht; induction Ht; auto; intro Hh; inversion Hh; auto.
+  intros Ht; induction Ht; intros; heads.
 Qed.
 
 Lemma not_conv_heads_bot x : heads BOT x -> ~ conv x.
@@ -117,5 +116,5 @@ Qed.
 
 Lemma not_conv_bot' : ~conv BOT.
 Proof.
-  apply not_conv_heads_bot; auto.
+  apply not_conv_heads_bot; heads.
 Qed.
