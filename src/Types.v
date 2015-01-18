@@ -286,6 +286,66 @@ Proof.
 Admitted.
 
 (* ------------------------------------------------------------------------ *)
+(** [div] is inhabited by [{BOT, TOP}]. *)
+
+Lemma div_nondecreasing (Var : Set) : I [= (div : Code Var).
+Proof.
+  unfold div; apply V1_nondecreasing.
+Qed.
+
+Lemma div_idempotent (Var : Set) : div o div == (div : Code Var).
+Proof.
+  unfold div; apply V1_idempotent.
+Qed.
+Hint Rewrite div_idempotent.
+
+Lemma div_closure {Var : Set} : closure (div : Code Var).
+Proof.
+  split; [apply div_nondecreasing | apply div_idempotent].
+Qed.
+
+Lemma div_inhab_bot (Var : Set) : BOT :: (div : Code Var).
+Proof.
+  apply div_bot.
+Qed.
+
+Lemma div_inhab_top (Var : Set) : TOP :: (div : Code Var).
+Proof.
+  unfold fixes; split; auto.
+  rewrite <- div_nondecreasing; auto.
+Qed.
+
+Inductive div_fixes {Var : Set} : Code Var -> Prop :=
+  | div_fixes_eq x y : x == y -> div_fixes x -> div_fixes y
+  | div_fixes_bot : div_fixes BOT
+  | div_fixes_top : div_fixes TOP.
+Hint Constructors div_fixes.
+
+Instance div_fixes_proper (Var : Set) :
+  Proper (code_eq ==> iff) (@div_fixes Var).
+Proof.
+  intros x y xy; split; [idtac | apply symmetry in xy];
+  intro H; induction H; eauto.
+Qed.
+
+Theorem div_sound (Var : Set) (x : Code Var) :
+  x :: div -> div_fixes x.
+Proof.
+  intros H; unfold fixes in H.
+  (* requires a branch on [conv x] *)
+Admitted.
+
+Theorem div_inhab (Var : Set) (x : Code Var) : x :: div <-> div_fixes x.
+Proof.
+  split.
+    apply div_sound.
+  intro H; induction H.
+  rewrite <- H; auto.
+  apply div_inhab_bot.
+  apply div_inhab_top.
+Qed.
+
+(* ------------------------------------------------------------------------ *)
 (** [semi] is Sierpinsky space, inhabited by [{BOT, I, TOP}]. *)
 
 Section semi.
@@ -344,6 +404,8 @@ Proof.
   intros x y xy; split; [idtac | apply symmetry in xy];
   intro H; induction H; eauto.
 Qed.
+
+(* main theorem *)
 
 Theorem semi_sound (Var : Set) (x : Code Var) :
   x :: semi -> semi_fixes x.

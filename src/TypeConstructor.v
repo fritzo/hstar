@@ -10,19 +10,8 @@ Require Import LeastFixedPoint.
 Require Import BohmTrees.
 Open Scope code_scope.
 
-Section exp.
-  Context {Var : Set}.
-  Let a := make_var Var 0.
-  Let b := make_var Var 1.
-  Let f := make_var Var 2.
-  Definition exp := Eval compute in close (\a, \b, \f, b o f o a).
-End exp.
-Notation "x --> y" := (exp * x * y)%code : code_scope.
-
-Lemma exp_i_i (Var : Set) : I --> I == (I : Code Var).
-Proof.
-  unfold exp; beta_eta.
-Qed.
+(* ------------------------------------------------------------------------ *)
+(** ** An implicit definition of [A] *)
 
 Section pair.
   Context {Var : Set}.
@@ -70,13 +59,30 @@ Proof.
 Qed.
 
 (* FIXME is this true? *)
-Definition sub_pair_elim_intro {Var : Set} (x : Code Var) :
+Lemma sub_pair_elim_intro (Var : Set) (x : Code Var) :
   sub_pair x -> x [= <<x*K, x*(K*I)>>.
 Proof.
   unfold sub_pair, pair; simpl.
   intros H. (* eta_expand in H. FIXME eta_expand is borken *)
   eta_expand as f; beta_reduce.
 Admitted.
+
+Definition pairish {Var : Set} (x : Code Var) :=
+  <<BOT, BOT>> [= x /\ x [= <<TOP, TOP>>.
+
+(* FIXME is this true? what about for stochastic terms? *)
+Lemma pairish_elim (Var : Set) (x f y : Code Var) :
+  pairish x ->
+  (forall s r, <<s, r>> [= x -> f * s * r [= y) ->
+  x * f [= y.
+Proof.
+Admitted.
+
+(* should we work only in the lattice inverval [[<BOT,BOT>, <TOP, TOP>]]? *)
+Definition A_prop' {Var : Set} (a : Code Var) :=
+  <<BOT, BOT>> [= a /\
+  a [= <<TOP, TOP>> /\
+  forall s r, <<s, r>> [= a -> r o s [= I.
 
 Definition A_prop {Var : Set} (a : Code Var) :=
   sub_pair a /\ forall s r, <<s, r>> [= a -> r o s [= I.
@@ -102,6 +108,9 @@ Ltac A_prop_pair :=
     rewrite Hs; rewrite Hr
   ].
 
+(* ------------------------------------------------------------------------ *)
+(** ** An inductive definition of [A] *)
+
 Lemma A_I_I (Var : Set) : A_prop (<<I, I>> : Code Var).
 Proof. A_prop_pair; beta_eta. Qed.
 Hint Resolve A_I_I.
@@ -122,10 +131,12 @@ Section raise.
 
   Lemma push_pull : push o pull == I.
   Proof.
+    (* easy *)
     (* OLD
     unfold push, pull; eta_expand; beta_simpl.
     symmetry; apply code_le_eq_j.
     fold (@div Var); code_simpl; auto.
+    Qed.
     *)
   Admitted.
 
@@ -137,6 +148,20 @@ Section raise.
 End raise.
 Hint Resolve A_raise_lower.
 Hint Resolve A_pull_push.
+
+Section exp.
+  Context {Var : Set}.
+  Let a := make_var Var 0.
+  Let b := make_var Var 1.
+  Let f := make_var Var 2.
+  Definition exp := Eval compute in close (\a, \b, \f, b o f o a).
+End exp.
+Notation "x --> y" := (exp * x * y)%code : code_scope.
+
+Lemma exp_i_i (Var : Set) : I --> I == (I : Code Var).
+Proof.
+  unfold exp; beta_eta.
+Qed.
 
 Section compose.
   Context {Var : Set}.
@@ -194,31 +219,6 @@ Proof.
 Qed.
 *)
 
-Definition A_step {Var : Set} : Code Var
-  := K * <<I, I>>
-  || K * <<raise, lower>>
-  || K * <<pull, push>>
-  || compose
-  || conjugate.
-
-Definition A {Var : Set} : Code Var := Eval compute in Y * A_step.
-
-Lemma A_simpl (Var : Set) : (A : Code Var) == Y * A_step.
-Proof.
-  (freeze code_eq in compute); auto.
-Qed.
-
-Ltac A_simpl := rewrite A_simpl; unfold A_step.
-
-Notation "\\ x , y ; z" := (A * \x, \y, z)%code : code_scope.
-
-Section A_example.
-  Variable Var : Set.
-  Let a := make_var Var 0.
-  Let a' := make_var Var 1.
-  Let A_example : Code Var := close (\\a,a'; a --> a').
-End A_example.
-
 Inductive A_above {Var : Set} : Code Var -> Prop :=
   | A_above_below x y : x [= y -> A_above y -> A_above x
   | A_above_i_i : A_above <<I, I>>
@@ -237,40 +237,92 @@ Proof.
   split; destruct H as [Hl Hr]; apply A_above_le; auto.
 Qed.
 
-(* FIXME this is false: it is missing joins like [<<I,I>>||<<raise,lower>>] *)
-Lemma A_above_A (Var : Set) (a : Code Var) : a [= A <-> A_above a.
+Lemma A_above_sound (Var : Set) (s r : Code Var) :
+  A_above <<s, r>> -> A_prop <<s, r>>.
 Proof.
-  split; intro H.
-  (* TODO this needs some sort of least-fixed-point lemma *)
-Admitted.
-
-Lemma A_sound (Var : Set) (r s : Code Var) : <<s, r>> [= A -> A_prop <<s, r>>.
-Proof.
-  intros H; apply A_above_A in H.
-  induction H; auto.
+  intro H; induction H; auto.
   rewrite H; auto.
 Qed.
 
-(** ** A strong characterization of [A] *)
+(** The main lemma *)
 
-Lemma A_pair (Var : Set) : (A : Code Var) [= <<TOP, TOP>>.
+Lemma A_above_complete (Var : Set) (s r : Code Var) :
+  A_prop <<s, r>> -> A_above <<s, r>>.
 Proof.
-  (* TODO *)
+  intro H; destruct H as [Hp Hl].
 Admitted.
 
-Lemma A_complete (Var : Set) (s r : Code Var) : r o s [= I -> <<s, r>> [= A.
+(* ------------------------------------------------------------------------ *)
+(** ** A constructive definition of [A] *)
+
+Definition A_step {Var : Set} : Code Var
+  := K * <<I, I>>
+  || K * <<raise, lower>>
+  || K * <<pull, push>>
+  || compose
+  || conjugate.
+
+Definition A {Var : Set} : Code Var := Eval compute in Y * A_step.
+
+Lemma A_simpl (Var : Set) : (A : Code Var) == Y * A_step.
 Proof.
-  A_simpl; intro Hi.
-  (* OLD
-  apply Join_lub; unfold is_upper_bound.
-  intros sr; induction sr as [[s r] Hless].
-  apply LESS_conv.
-  intros c Hdef Hconv.
-  inversion Hconv.
-  *)
+  (freeze code_eq in compute); auto.
+Qed.
+
+Ltac A_simpl := rewrite A_simpl; unfold A_step.
+
+Lemma A_complete (Var : Set) (s r : Code Var) :
+  A_prop <<s, r>> -> <<s, r>> [= A.
+Proof.
+  A_simpl.
+  intros H; apply A_above_complete in H.
+  induction H; auto.
+  - transitivity y; auto.
+  - rewrite beta_y; beta_simpl.
+    rewrite pi_j_left.
+    rewrite pi_j_left.
+    rewrite pi_j_left.
+    rewrite pi_j_left.
+    auto.
+  - rewrite beta_y; beta_simpl.
+    rewrite pi_j_left.
+    rewrite pi_j_left.
+    rewrite pi_j_left.
+    rewrite pi_j_right.
+    auto.
+  - rewrite beta_y; beta_simpl.
+    rewrite pi_j_left.
+    rewrite pi_j_left.
+    rewrite pi_j_right.
+    auto.
+  - rewrite beta_y; beta_simpl.
+    rewrite pi_j_left.
+    rewrite pi_j_right.
+    rewrite IHA_above; auto.
+  - rewrite beta_y; beta_simpl.
+    rewrite pi_j_right.
+    rewrite IHA_above; auto.
+Qed.
+
+Lemma A_sound (Var : Set) (s r : Code Var) : <<s, r>> [= A -> A_prop <<s, r>>.
+Proof.
+  A_simpl.
+  intros H; apply A_above_sound.
+  (* this requires reasoning about pairs and least fixed points *)
 Admitted.
 
 Theorem A_implicit (Var : Set) (x f : Code Var) :
   x [= A * f <-> (forall s r : Code Var, r o s [= I -> x [= f * s * r).
 Proof.
+  split; intro H.
+    intros s r Hl.
 Admitted.
+
+Notation "\\ x , y ; z" := (A * \x, \y, z)%code : code_scope.
+
+Section A_example.
+  Variable Var : Set.
+  Let a := make_var Var 0.
+  Let a' := make_var Var 1.
+  Let A_example : Code Var := close (\\a,a'; a --> a').
+End A_example.
