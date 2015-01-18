@@ -130,7 +130,7 @@ Proof. auto. Qed.
 
 Instance beta_transitive (Var : Set) : Transitive (@beta Var).
 Proof.
-  unfold Transitive; intros x y z; apply beta_trans.
+  intros x y z; apply beta_trans.
 Qed.
 
 Instance beta_preorder (Var : Set) : PreOrder (@beta Var).
@@ -141,8 +141,7 @@ Qed.
 Instance code_ap_beta (Var : Set) :
   Proper (beta ==> beta ==> beta) (@code_ap Var).
 Proof.
-  compute; intros x x' Hx y y' Hy.
-  transitivity (x * y'); auto.
+  intros x x' Hx y y' Hy; transitivity (x * y'); auto.
 Qed.
 
 Lemma beta_confluent (Var : Set) (x y y' : Code Var) :
@@ -160,7 +159,7 @@ Ltac beta_confluent x y y' xy xy' :=
 
 Instance pi_transitive (Var : Set) : Transitive (@pi Var).
 Proof.
-  unfold Transitive; intros x y z Hxy Hyz; apply pi_trans with y; auto.
+  intros x y z Hxy Hyz; apply pi_trans with y; auto.
 Qed.
 
 Instance pi_reflexive (Var : Set) : Reflexive (@pi Var).
@@ -173,8 +172,7 @@ Qed.
 
 Instance code_ap_pi (Var : Set) : Proper (pi ++> pi ++> pi) (@code_ap Var).
 Proof.
-  compute; intros x x' Hx y y' Hy.
-  transitivity (x * y'); auto.
+  intros x x' Hx y y' Hy; transitivity (x * y'); auto.
 Qed.
 
 Lemma pi_beta_to_beta_pi (Var : Set) (x y z : Code Var) :
@@ -229,7 +227,7 @@ Qed.
 Instance approx_beta (Var : Set) :
   Proper (beta --> beta ++> impl) (@approx Var).
 Proof.
-  compute; intros x x' xx' z z' zz' xyz.
+  intros x x' xx' z z' zz' xyz.
   destruct xyz as [x y z xy yz].
   pi_beta_to_beta_pi y z z' yz zz'.
   apply approx_intro with z_; auto.
@@ -253,7 +251,7 @@ Qed.
 
 Instance approx_pi (Var : Set) : Proper (pi --> pi ++> impl) (@approx Var).
 Proof.
-  compute; intros x x' xx' z z' zz' Ha; destruct Ha as [x y z xy yz].
+  intros x x' xx' z z' zz' Ha; destruct Ha as [x y z xy yz].
   set (wHw := pi_beta_to_beta_pi _ x' x y xx' xy); destruct wHw as [w [xw wy]].
   apply approx_intro with w; auto.
   transitivity y; auto.
@@ -263,7 +261,7 @@ Qed.
 Instance approx_beta_pi (Var : Set) :
   Proper (beta --> pi ++> impl) (@approx Var).
 Proof.
-  compute; intros x x' Hx z z' Hz Ha; destruct Ha as [x y z xy yz].
+  intros x x' Hx z z' Hz Ha; destruct Ha as [x y z xy yz].
   apply approx_intro with y.
     transitivity x; auto.
   transitivity z; auto.
@@ -272,7 +270,7 @@ Qed.
 Instance code_ap_approx (Var : Set) :
   Proper (approx ++> approx ++> approx) (@code_ap Var).
 Proof.
-  compute; intros x z xz x' z' x'z'.
+  intros x z xz x' z' x'z'.
   destruct xz as [x y z xy yz];  rewrite xy; rewrite yz;
   destruct x'z' as [x' y' z' x'y' y'z']; rewrite x'y'; rewrite y'z';
   reflexivity.
