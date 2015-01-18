@@ -14,6 +14,7 @@ body.tex: FORCE
 	$(SRC)/Types.v \
 	$(SRC)/DirectedSets.v \
 	$(SRC)/Points.v \
+	$(SRC)/Applications.v \
 	#
 
 main.pdf: main.tex body.tex references.bib
