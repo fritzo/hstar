@@ -131,14 +131,13 @@ Section raise.
 
   Lemma push_pull : push o pull == I.
   Proof.
-    (* easy *)
-    (* OLD
     unfold push, pull; eta_expand; beta_simpl.
     symmetry; apply code_le_eq_j.
-    fold (@div Var); code_simpl; auto.
-    Qed.
-    *)
-  Admitted.
+    assert (@div Var * BOT [= H) as H0.
+      admit. (* TODO *)
+    unfold div in H0; code_simpl in H0.
+    auto.
+  Qed.
 
   Lemma A_raise_lower : A_prop <<raise, lower>>.
   Proof. A_prop_pair; apply lower_raise. Qed.

@@ -544,18 +544,19 @@ Section V.
   Definition V := Eval compute in close (\a, Y * \x, I || a o x).
 End V.
 
+(* FIXME this is only true up to undirected [beta_eta] *)
 Lemma beta_v (Var : Set) (a : Code Var) : beta (V * a) (I || a o (V * a)).
 Proof.
-  unfold V.
+  unfold V; fold (@Y Var).
 Admitted.
 Hint Rewrite beta_v : beta_unsafe.
 
-Definition div {Var : Set} : Code Var := V * (C * I * TOP).
+Definition div {Var : Set} : Code Var := Eval compute in V * (C * I * TOP).
 
 Lemma beta_div (Var : Set) (x : Code Var) :
   beta (div * x) (x || div * x * TOP).
 Proof.
-  unfold div.
+  unfold div; fold (@V Var).
   rewrite beta_v at 1; beta_simpl; auto.
 Qed.
 Hint Rewrite beta_div : beta_unsafe.

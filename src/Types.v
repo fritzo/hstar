@@ -41,10 +41,8 @@ Proof.
   unfold closure; intros; split; auto.
 Qed.
 
-(** ** Atomic types *)
-
 (* ------------------------------------------------------------------------ *)
-(** [I] is the largest type, the type of everyting. *)
+(** ** [I] is the largest type, the type of everyting *)
 
 Lemma I_nondecreasing (Var : Set) : I [= (I : Code Var).
 Proof. auto. Qed.
@@ -73,7 +71,7 @@ Proof.
 Qed.
 
 (* ------------------------------------------------------------------------ *)
-(** [V] is the type of all types *)
+(** ** [V] is the type of all types *)
 
 Lemma V_nondecreasing (Var : Set) : I [= (V : Code Var).
 Proof.
@@ -152,6 +150,8 @@ Proof.
 Admitted.
 
 (* ------------------------------------------------------------------------ *)
+(** ** [P] is a powertype operator *)
+
 (** [P] acts as both a unary subtype operation
     and a binary type intersection operation.
     We start with the unary version. *)
@@ -286,7 +286,7 @@ Proof.
 Admitted.
 
 (* ------------------------------------------------------------------------ *)
-(** [div] is inhabited by [{BOT, TOP}]. *)
+(** ** [div] is inhabited by [{BOT, TOP}] *)
 
 Lemma div_nondecreasing (Var : Set) : I [= (div : Code Var).
 Proof.
@@ -345,8 +345,22 @@ Proof.
   apply div_inhab_top.
 Qed.
 
+(* We also have an algebraic definition of [div] as nil *)
+
+Section div'.
+  Context {Var : Set}.
+  Let a := make_var Var 0.
+  Let a' := make_var Var 1.
+  Definition div' := Eval compute in close (\\a,a'; a').
+End div'.
+
+Lemma div_algebraic (Var : Set) : div' == (div : Code Var).
+Proof.
+  unfold div, div'; code_simpl.
+Admitted.
+
 (* ------------------------------------------------------------------------ *)
-(** [semi] is Sierpinsky space, inhabited by [{BOT, I, TOP}]. *)
+(** ** [semi] is Sierpinsky space, inhabited by [{BOT, I, TOP}] *)
 
 Section semi.
   Context {Var : Set}.
@@ -426,7 +440,8 @@ Proof.
 Qed.
 
 (* ------------------------------------------------------------------------ *)
-(** [boool] is the set of ambiguous boolean values [K], [F], and [J].
+(** ** [boool] is the type of ambiguous boolean values *)
+(** [boool] is inhabited by [K], [F], and [J].
     We will later define a stricter [bool] that raises [J] to [TOP],
     i.e., raising an error on ambiguous values. *)
 
@@ -514,6 +529,7 @@ Proof.
 Qed.
 
 (* ------------------------------------------------------------------------ *)
+(** ** [bool] is a disambiguated subtype of [boool] *)
 (** We narrow the [boool] type to [bool] by disambiguating the unwanted
     inhabitants *)
 
