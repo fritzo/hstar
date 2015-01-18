@@ -280,6 +280,11 @@ Lemma conv_top (Var : Set) : conv (TOP : Code Var).
 Proof. eauto. Qed.
 Hint Resolve conv_top.
 
+Lemma not_conv_bot (Var : Set) : ~ conv (BOT : Code Var).
+Proof.
+Admitted.
+Hint Resolve not_conv_bot.
+
 Instance conv_beta (Var : Set) : Proper (beta ==> iff) (@conv Var).
 Proof.
   intros x x' xx'; split.

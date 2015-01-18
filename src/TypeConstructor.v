@@ -255,11 +255,8 @@ Admitted.
 (** ** A constructive definition of [A] *)
 
 Definition A_step {Var : Set} : Code Var
-  := K * <<I, I>>
-  || K * <<raise, lower>>
-  || K * <<pull, push>>
-  || compose
-  || conjugate.
+  := K * (<<I, I>> || <<raise, lower>> || <<pull, push>>)
+    || (compose || conjugate).
 
 Definition A {Var : Set} : Code Var := Eval compute in Y * A_step.
 
@@ -281,13 +278,6 @@ Proof.
     rewrite pi_j_left.
     rewrite pi_j_left.
     rewrite pi_j_left.
-    rewrite pi_j_left.
-    auto.
-  - rewrite beta_y; beta_simpl.
-    rewrite pi_j_left.
-    rewrite pi_j_left.
-    rewrite pi_j_left.
-    rewrite pi_j_right.
     auto.
   - rewrite beta_y; beta_simpl.
     rewrite pi_j_left.
@@ -297,8 +287,13 @@ Proof.
   - rewrite beta_y; beta_simpl.
     rewrite pi_j_left.
     rewrite pi_j_right.
+    auto.
+  - rewrite beta_y; beta_simpl.
+    rewrite pi_j_right.
+    rewrite pi_j_left.
     rewrite IHA_above; auto.
   - rewrite beta_y; beta_simpl.
+    rewrite pi_j_right.
     rewrite pi_j_right.
     rewrite IHA_above; auto.
 Qed.
@@ -310,6 +305,7 @@ Proof.
   (* this requires reasoning about pairs and least fixed points *)
 Admitted.
 
+(* This is very powerful, but questionably useful. *)
 Theorem A_implicit (Var : Set) (x f : Code Var) :
   x [= A * f <-> (forall s r : Code Var, r o s [= I -> x [= f * s * r).
 Proof.

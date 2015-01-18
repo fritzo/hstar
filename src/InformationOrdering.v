@@ -1,5 +1,6 @@
 (** * Information ordering and observable equivalence *)
 
+Require Import Coq.Logic.Classical_Prop.
 Require Import Coq.Program.Basics.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
@@ -11,10 +12,10 @@ Open Scope code_scope.
 Definition code_le {Var : Set} (x y : Code Var) :=
   forall (Var' : Set) (c : Code Var') (f : Var -> Code Var'),
   conv (c * (x @ f)) -> conv (c * (y @ f)).
-Notation "x [= y" := (code_le x y)%code : code_scope.
+Notation "x [= y" := (code_le x y) : code_scope.
 
 Definition code_eq {Var : Set} (x y : Code Var) := x [= y /\ y [= x.
-Notation "x == y" := (code_eq x y)%code : code_scope.
+Notation "x == y" := (code_eq x y) : code_scope.
 
 Instance code_le_eq_subrelation (Var : Set) :
   subrelation (@code_eq Var) (@code_le Var).
@@ -237,6 +238,27 @@ Proof.
 Admitted.
 Hint Resolve code_le_bot.
 
+Lemma absolute_consistency (Var : Set) : ~ TOP [= (BOT : Code Var).
+Proof.
+  intro H; unfold code_le in H.
+  apply (@not_conv_bot Var).
+  rewrite <- beta_i; rewrite <- var_monad_unit_right.
+  apply H; code_simpl; auto.
+Qed.
+Hint Resolve absolute_consistency.
+
+Lemma not_conv_le_bot (Var : Set) (x : Code Var) :
+  ~ conv x <-> x [= BOT.
+Proof.
+  split; intro H; auto.
+  - unfold code_le; intros Var' c f Hc.
+    admit. (* TODO induction or something *)
+  - intro Hneg; apply (@not_conv_bot Var).
+    unfold code_le in H.
+    rewrite <- beta_i; rewrite <- (@var_monad_unit_right Var _).
+    apply H; code_simpl; auto.
+Qed.
+
 (** ** Basic properties of information ordering *)
 
 Lemma code_le_j_left (Var : Set) (x y : Code Var) : x [= x || y.
@@ -385,6 +407,24 @@ Proof.
   split; auto.
 Admitted.
 Hint Rewrite code_eq_ap_bot : code_simpl.
+
+(** We will use classical reasoning for case analysis. *)
+
+Lemma case_le (Var : Set) (x y : Code Var) (p : Prop) :
+  (x [= y -> p) -> (~ x [= y -> p) -> p.
+Proof.
+  intros H H'; elim (classic (x [= y)); auto.
+Qed.
+
+Tactic Notation "case_le" constr(xy) :=
+  match xy with
+  | ?x [= ?y => apply (@case_le _ x y _)
+  end; intro.
+
+Tactic Notation "case_le" constr(xy) "as" ident(H) :=
+  match xy with
+  | ?x [= ?y => apply (@case_le _ x y _)
+  end; intro H.
 
 (** ** Reasoning about closed terms *)
 

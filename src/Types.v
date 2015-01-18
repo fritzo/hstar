@@ -1,5 +1,6 @@
 (** * Types as closures *)
 
+Require Import Coq.Logic.Classical_Prop.
 Require Import Coq.Classes.Morphisms.
 Require Export TypeConstructor.
 Require Import Nontermination.
@@ -332,8 +333,14 @@ Theorem div_sound (Var : Set) (x : Code Var) :
   x :: div -> div_fixes x.
 Proof.
   intros H; unfold fixes in H.
-  (* requires a branch on [conv x] *)
-Admitted.
+  case_le (x [= BOT) as H'.
+  - assert (x == BOT) as eq. split; auto. rewrite eq; auto.
+  - rewrite <- H; clear H.
+    rewrite <- not_conv_le_bot in H'.
+    apply NNPP in H'.  (* FIXME can this be avoided? *)
+    apply conv_div in H'.
+    rewrite H'; auto.
+Qed.
 
 Theorem div_inhab (Var : Set) (x : Code Var) : x :: div <-> div_fixes x.
 Proof.
@@ -357,6 +364,7 @@ End div'.
 Lemma div_algebraic (Var : Set) : div' == (div : Code Var).
 Proof.
   unfold div, div'; code_simpl.
+  (* easy lfp argument *)
 Admitted.
 
 (* ------------------------------------------------------------------------ *)
@@ -373,10 +381,10 @@ Lemma semi_nondecreasing (Var : Set) : I [= (semi : Code Var).
 Proof.
   unfold semi.
   eta_expand as a.
-  rewrite beta_y; rewrite pi_j_left.
+  rewrite beta_y.
   rewrite beta_j_ap.
+  rewrite beta_k.
   repeat rewrite pi_j_left.
-  beta_simpl.
   beta_eta.
 Qed.
 
@@ -456,7 +464,9 @@ Lemma boool_nondecreasing (Var : Set) : I [= (boool : Code Var).
 Proof.
   unfold boool.
   eta_expand as a.
-  rewrite beta_y; rewrite pi_j_left.
+  rewrite beta_y.
+  rewrite pi_j_left.
+  rewrite beta_k.
   rewrite beta_j_ap.
   repeat rewrite pi_j_left.
   beta_simpl.

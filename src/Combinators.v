@@ -115,6 +115,8 @@ Proof.
 Admitted.
 Hint Rewrite beta_v : beta_unsafe.
 
+(* The [div] combinator is useful in convergence testing *)
+
 Definition div {Var : Set} : Code Var := Eval compute in V * (C * I * TOP).
 
 Lemma beta_div (Var : Set) (x : Code Var) :
@@ -124,3 +126,14 @@ Proof.
   rewrite beta_v at 1; beta_simpl; auto.
 Qed.
 Hint Rewrite beta_div : beta_unsafe.
+
+Lemma conv_div (Var : Set) (x : Code Var) :
+  conv x <-> div * x == TOP.
+Proof.
+  split.
+  intro H; induction H.
+      admit.
+    admit.
+  intros [H' H]; clear H'.
+  unfold code_le in H.
+Admitted.
