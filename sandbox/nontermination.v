@@ -1,4 +1,5 @@
 Require Import Coq.Program.Equality.
+Require Import Coq.Setoids.Setoid.
 
 Inductive code : Set :=
   | AP : code -> code -> code
@@ -33,6 +34,12 @@ Inductive beta_step : code -> code -> Prop :=
   | beta_step_s x y z : beta_step (S * x * y * z) (x * z * (y * z)).
 Hint Constructors beta_step.
 
+Inductive star {s : Set} (r : s -> s -> Prop) : s -> s -> Prop :=
+  | star_step x y : r x y -> star r x y
+  | star_refl x : star r x x
+  | star_trans x y z : star r x y -> star r y z -> star r x z.
+Hint Constructors star.
+
 Inductive test : code -> code -> Prop :=
   | test_refl x : test x x
   | test_trans x y z : test x y -> test y z -> test x z
@@ -49,12 +56,47 @@ Proof.
   intros x y H; induction H; auto.
 Qed.
 
+Lemma star_beta_ap_left x x' y :
+  star beta_step x x' -> star beta_step (x * y) (x' * y).
+Proof.
+  intro H; induction H; auto.
+  apply star_trans with (y0 * y); auto.
+Qed.
+
+Lemma star_beta_ap_right x y y' :
+  star beta_step y y' -> star beta_step (x * y) (x * y').
+Proof.
+  intro H; induction H; auto.
+  apply star_trans with (x * y); auto.
+Qed.
+
+Lemma star_beta x y : beta x y <-> star beta_step x y.
+Proof.
+  split; intro H; induction H; auto.
+  - apply star_trans with y; auto.
+  - auto using star_beta_ap_left.
+  - auto using star_beta_ap_right.
+  - auto using beta_beta_step.
+  - apply beta_trans with y; auto.
+Qed.
+
+Lemma star_closed (r : code -> code -> Prop) (p : code -> Prop) :
+  (forall x y, r x y -> p x -> p y) <->
+  (forall x y, star r x y -> p x -> p y).
+Proof.
+  split; intro H.
+  - intros x y Hr; induction Hr; auto.
+    apply H; auto.
+  - intros x y Hs; apply H; auto.
+Qed.
+
 Lemma beta_closed (p : code -> Prop) :
   (forall x y, beta_step x y -> p x -> p y) ->
   forall x y, beta x y -> p x -> p y.
 Proof.
-  intros Hs x y Hb; induction Hb; auto.
-Admitted.
+  intros Hs x y Hb; apply star_beta in Hb; revert Hb; revert x y.
+  rewrite <- star_closed; auto.
+Qed.
 
 (* -------------------------------------------------------------------------- *)
 (* head function *)
