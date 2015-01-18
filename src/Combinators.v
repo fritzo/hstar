@@ -47,7 +47,6 @@ Definition code_join {Var : Set} x y : Code Var := x || y.
 
 Inductive beta {Var : Set} : Code Var -> Code Var -> Prop :=
   | beta_refl {x} : beta x x
-  | beta_sym {x y} : beta x y -> beta y x
   | beta_trans {x} y {z} : beta x y -> beta y z -> beta x z
   | beta_ap_left {x x' y} : beta x x' -> beta (x * y) (x' * y)
   | beta_ap_right {x y y'} : beta y y' -> beta (x * y) (x * y')
@@ -129,17 +128,14 @@ Tactic Notation "freeze" reference(c) "in" tactic(tac) :=
 Instance beta_reflexive (Var : Set) : Reflexive (@beta Var).
 Proof. auto. Qed.
 
-Instance beta_symmetric (Var : Set) : Symmetric (@beta Var).
-Proof. auto. Qed.
-
 Instance beta_transitive (Var : Set) : Transitive (@beta Var).
 Proof.
   unfold Transitive; intros x y z; apply beta_trans.
 Qed.
 
-Instance beta_equivalence (Var : Set) : Equivalence (@beta Var).
+Instance beta_preorder (Var : Set) : PreOrder (@beta Var).
 Proof.
-  split; [apply beta_reflexive | apply beta_symmetric | apply beta_transitive].
+  split; [apply beta_reflexive | apply beta_transitive].
 Qed.
 
 Instance code_ap_beta (Var : Set) :
@@ -148,6 +144,19 @@ Proof.
   compute; intros x x' Hx y y' Hy.
   transitivity (x * y'); auto.
 Qed.
+
+Lemma beta_confluent (Var : Set) (x y y' : Code Var) :
+  beta x y -> beta x y' -> exists z, beta y z /\ beta y' z.
+Proof.
+Admitted.
+
+Ltac beta_confluent x y y' xy xy' :=
+  let w := fresh "w" in
+  let yw := fresh y w in
+  let y'w := fresh y' w in
+  let H := fresh in
+  set (H := beta_confluent _ x y y' xy xy');
+  destruct H as [w [yw y'w]].
 
 Instance pi_transitive (Var : Set) : Transitive (@pi Var).
 Proof.
@@ -183,6 +192,19 @@ Ltac pi_beta_to_beta_pi x y z xy yz :=
   set (H := pi_beta_to_beta_pi _ x y z xy yz);
   destruct H as [w [xw wz]].
 
+Lemma beta_pi_confluent (Var : Set) (x y y' : Code Var) :
+  beta x y -> pi x y' -> exists z, pi y z /\ beta y' z.
+Proof.
+Admitted.
+
+Ltac beta_pi_confluent x y y' xy xy' :=
+  let w := fresh "w" in
+  let yw := fresh y w in
+  let y'w := fresh y' w in
+  let H := fresh in
+  set (H := beta_pi_confluent _ x y y' xy xy');
+  destruct H as [w [yw y'w]].
+
 Instance approx_transitive (Var : Set) : Transitive (@approx Var).
 Proof.
   unfold Transitive; intros x y z Hxy Hyz.
@@ -204,20 +226,30 @@ Proof.
   split; [apply approx_reflexive | apply approx_transitive].
 Qed.
 
-Instance approx_beta (Var : Set) : Proper (beta ==> beta ==> iff) (@approx Var).
+Instance approx_beta (Var : Set) :
+  Proper (beta --> beta ++> impl) (@approx Var).
 Proof.
-  compute; intros x x' xx' z z' zz'; split; intro xyz.
-    destruct xyz as [x y z xy yz].
-    pi_beta_to_beta_pi y z z' yz zz'.
-    apply approx_intro with z_; auto.
-    transitivity x; auto.
-    transitivity y; auto.
-  destruct xyz as [x' y' z' x'y' y'z'].
-  pi_beta_to_beta_pi y' z' z y'z' (beta_sym zz').
-  apply approx_intro with z'_; auto.
-  transitivity x'; auto.
-  transitivity y'; auto.
+  compute; intros x x' xx' z z' zz' xyz.
+  destruct xyz as [x y z xy yz].
+  pi_beta_to_beta_pi y z z' yz zz'.
+  apply approx_intro with z_; auto.
+  transitivity x; auto.
+  transitivity y; auto.
 Qed.
+
+(* Is this needed?
+Instance approx_beta' (Var : Set) :
+  Proper (beta ++> beta --> impl) (@approx Var).
+Proof.
+  compute; intros x x' xx' z z' zz' xyz.
+  destruct xyz as [x y z xy yz].
+  beta_confluent x x' y xx' xy.
+  beta_pi_confluent y w z yw yz.
+  apply approx_intro with ; auto.
+  transitivity w0; auto.
+  transitivity w0; auto.
+Qed.
+*)
 
 Instance approx_pi (Var : Set) : Proper (pi --> pi ++> impl) (@approx Var).
 Proof.
@@ -229,7 +261,7 @@ Proof.
 Qed.
 
 Instance approx_beta_pi (Var : Set) :
-  Proper (beta ==> pi ==> impl) (@approx Var).
+  Proper (beta --> pi ++> impl) (@approx Var).
 Proof.
   compute; intros x x' Hx z z' Hz Ha; destruct Ha as [x y z xy yz].
   apply approx_intro with y.
@@ -253,7 +285,8 @@ Hint Resolve conv_top.
 Instance conv_beta (Var : Set) : Proper (beta ==> iff) (@conv Var).
 Proof.
   intros x x' xx'; split.
-    intros Hc; induction Hc; apply conv_approx; rewrite <- xx'; auto.
+    intros Hc; induction Hc; apply conv_approx; admit.
+  intros Hc; induction Hc; apply conv_approx; rewrite xx'; auto.
 Admitted.
 
 Instance conv_pi (Var : Set) : Proper (pi --> impl) (@conv Var).

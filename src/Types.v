@@ -312,7 +312,7 @@ Qed.
 Lemma div_inhab_top (Var : Set) : TOP :: (div : Code Var).
 Proof.
   unfold fixes; split; auto.
-  rewrite <- div_nondecreasing; auto.
+  rewrite <- div_nondecreasing; rewrite beta_i; auto.
 Qed.
 
 Inductive div_fixes {Var : Set} : Code Var -> Prop :=

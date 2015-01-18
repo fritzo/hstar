@@ -474,17 +474,6 @@ Proof.
 Qed.
 Hint Resolve beta_tuple_apply.
 
-Lemma beta_apply_tuple (Var : Set) (ys : list (Code Var)) :
-  forall x : Code Var, beta (x ** ys) (code_tuple ys * x).
-Proof.
-  induction ys; simpl; auto; intro x.
-  rewrite beta_b.
-  rewrite beta_c.
-  rewrite beta_i.
-  auto.
-Qed.
-Hint Resolve beta_apply_tuple.
-
 Instance code_tuple_le (Var : Set) :
   Proper (Forall2 code_le ==> code_le) (@code_tuple Var).
 Proof.
@@ -510,7 +499,7 @@ Lemma code_le_apply_complete (Var : Set) (x x' : Code Var) :
   x [= x' -> code_le_apply x x'.
 Proof.
   unfold code_le; intros H Var' ys f Hconv.
-  rewrite beta_apply_tuple; apply H.
+  rewrite <- beta_tuple_apply; apply H.
   rewrite beta_tuple_apply; auto.
 Qed.
 
