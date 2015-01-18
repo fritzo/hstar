@@ -1,5 +1,6 @@
-Require Import Setoid.
-Require Export InformationOrdering.
+Require Import Coq.Setoids.Setoid.
+Require Import Coq.Classes.Morphisms.
+Require Export Combinators.
 Require Export ComprehensionNotation.
 
 (** * Directed sets of codes *)
@@ -111,7 +112,7 @@ Section Codes_ap.
 End Codes_ap.
 
 Definition codes_ap {Var : Set} := Codes_ap Var.
-Notation "x * y" := (codes_ap x y)%codes : codes_scope.
+Notation "x * y" := (codes_ap x y) : codes_scope.
 
 Section Codes_sub.
   Variable Var Var' : Set.
@@ -152,6 +153,12 @@ End Codes_sub.
 Definition codes_sub {Var Var' : Set} := Codes_sub Var Var'.
 Notation "x @ f" := (codes_sub x f) : codes_scope.
 
+Instance code_abs_le (Var Var' : Set) (b : Var -> option Var') :
+  Proper (code_le ==> code_le) (code_abs b).
+Proof.
+  intros x x' Hx.
+Admitted.
+
 Section Codes_abs.
   Variable Var Var' : Set.
   Variable b : Var -> option Var'.
@@ -190,6 +197,11 @@ Section Codes_lambda.
   Defined.
 End Codes_lambda.
 
+Instance code_close_le (Var : Set) : Proper (code_le ==> code_le) (@close Var).
+Proof.
+  intros x x' xx'.
+Admitted.
+
 Definition codes_close {Var : Set} (x : Codes (nat + Var)) : Codes Var.
   refine (codes_intro _ x.(index) (fun i => close (x.(enum) i)) _ x.(nonempty)).
   intros i1 i2.
@@ -199,7 +211,7 @@ Definition codes_close {Var : Set} (x : Codes (nat + Var)) : Codes Var.
 Defined.
 
 Definition codes_lambda {Var : Set} := Codes_lambda Var.
-Notation "\ x , y" := (codes_lambda x y)%codes : codes_scope.
+Notation "\ x , y" := (codes_lambda x y) : codes_scope.
 
 (* does this require extensionality?
 Lemma codess_ap_comm :
@@ -221,8 +233,8 @@ Definition codes_le {Var : Set} (s1 s2 : Codes Var) : Prop :=
 Definition codes_eq {Var : Set} (x y : Codes Var) : Prop :=
   codes_le x y /\ codes_le y x.
 
-Notation "x [= y" := (codes_le x y)%codes : codes_scope.
-Notation "x == y" := (codes_eq x y)%codes : codes_scope.
+Notation "x [= y" := (codes_le x y) : codes_scope.
+Notation "x == y" := (codes_eq x y) : codes_scope.
 
 (** Now we demonstrate the power of indexing over directed sets.
     The simple implicit definition of [A_implicit] is not directed. *)

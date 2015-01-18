@@ -4,7 +4,7 @@ Require Import Coq.Program.Basics.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
-Require Export InformationOrdering.
+Require Export Combinators.
 Open Scope code_scope.
 
 Fixpoint power {Var : Set} (f : Code Var) (n : nat) : Code Var :=

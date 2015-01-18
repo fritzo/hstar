@@ -5,7 +5,7 @@ Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
 Require Import Coq.Lists.List.
-Require Export Combinators.
+Require Export Codes.
 Open Scope code_scope.
 
 Definition code_le {Var : Set} (x y : Code Var) :=
@@ -200,28 +200,6 @@ Ltac monotonicity :=
   | [|- _ [= _] => code_le_monotonicity
   | [|- _ == _] => code_eq_monotonicity
   end.
-
-Instance code_abs_le (Var Var' : Set) (b : Var -> option Var') :
-  Proper (code_le ==> code_le) (code_abs b).
-Proof.
-  intros x x' Hx.
-Admitted.
-
-Instance code_abs_eq (Var Var' : Set) (b : Var -> option Var') :
-  Proper (code_eq ==> code_eq) (code_abs b).
-Proof.
-  intros x x' Hx.
-Admitted.
-
-Instance code_close_le (Var : Set) : Proper (code_le ==> code_le) (@close Var).
-Proof.
-  intros x x' xx'.
-Admitted.
-
-Instance code_close_eq (Var : Set) : Proper (code_eq ==> code_eq) (@close Var).
-Proof.
-  intros x x' xx'.
-Admitted.
 
 Lemma code_le_top_closed (x : Code Empty_set) : x [= TOP.
 Proof.
@@ -467,10 +445,7 @@ Lemma beta_tuple_apply (Var : Set) (ys : list (Code Var)) :
   forall x : Code Var, beta (code_tuple ys * x) (x ** ys).
 Proof.
   induction ys; simpl; auto; intro x.
-  rewrite beta_b.
-  rewrite beta_c.
-  rewrite beta_i.
-  auto.
+  beta_simpl; auto.
 Qed.
 Hint Resolve beta_tuple_apply.
 

@@ -5,8 +5,9 @@ SRC:=../src
 body.tex: FORCE
 	coqdoc --short --light --body-only --latex -o body.tex \
 	$(SRC)/Notations.v \
-	$(SRC)/Combinators.v \
+	$(SRC)/Codes.v \
 	$(SRC)/InformationOrdering.v \
+	$(SRC)/Combinators.v \
 	$(SRC)/Nontermination.v \
 	$(SRC)/LeastFixedPoint.v \
 	$(SRC)/BohmTrees.v \

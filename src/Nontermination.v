@@ -1,6 +1,6 @@
 (** * Reasoning about nontermination *)
 
-Require Export InformationOrdering.
+Require Export Combinators.
 Open Scope code_scope.
 
 Definition sub_top {Var : Set} (Var' : Set) (x : Var) : Code Var' := TOP.
