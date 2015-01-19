@@ -122,6 +122,7 @@ Qed.
 Lemma V_complete (Var : Set) (x : Code Var) : V_fixes x -> x :: V.
 Proof.
   unfold fixes, closure; intros [Hn Hi].
+  unfold V; fold (@Y Var).
   (* TODO this requires a least fixed point lemma *)
 Admitted.
 
@@ -234,9 +235,16 @@ Admitted.
 
 Lemma P1_complete (Var : Set) (a x : Code Var) : P1_fixes a x -> x :: P * a.
 Proof.
-  unfold fixes, closure; intros [Hn Hi].
-  (* TODO this requires a least fixed point lemma *)
-Admitted.
+  unfold fixes, closure; intros [b Hf Hl]; split.
+  - rewrite Hl.
+    unfold P; fold (@V Var); beta_simpl.
+    rewrite code_le_j_idem.
+    apply V_complete in Hf; unfold fixes in Hf.
+    rewrite Hf; auto.
+  - assert (b == I * b) as eq; beta_simpl; auto; rewrite eq at 1.
+    monotonicity.
+    apply (P1_nondecreasing _ a).
+Qed.
 
 Theorem P1_inhab (Var : Set) (a x : Code Var) : x :: P * a <-> P1_fixes a x.
 Proof.
@@ -261,30 +269,33 @@ Admitted.
 Lemma P2_idempotent (Var : Set) (a b : Code Var) :
   (P * a * b) o (P * a * b) == P * a * b.
 Proof.
-  (* OLD
-  unfold P; beta_simpl; apply V1_idempotent.
-  *)
-Admitted.
+  unfold P; fold (@V Var); beta_simpl; apply V1_idempotent.
+Qed.
 Hint Rewrite P1_idempotent.
 
 Lemma P2_closure (Var : Set) (a b : Code Var): closure (P * a * b).
 Proof.
-  (* OLD
-  unfold P; beta_simpl; apply V1_closure.
-  *)
-Admitted.
+  unfold P; fold (@V Var); beta_simpl; apply V1_closure.
+Qed.
 
 Inductive P2_fixes {Var : Set} (a b : Code Var) : Code Var -> Prop :=
-  P2_fixes_intro x : x :: V * a -> x :: V * b -> P2_fixes a b x.
-  (* Which of these forms is most convenient?
   P2_fixes_intro x : a * x [= x -> b * x [= x -> P2_fixes a b x.
+  (* Which of these forms is most convenient?
+  P2_fixes_intro x : V1_fixes a x -> V1_fixes b x -> P2_fixes a b x.
+  P2_fixes_intro x : x :: V * a -> x :: V * b -> P2_fixes a b x.
   *)
 
 Instance P2_fixes_proper (Var : Set) :
   Proper (code_eq ==> code_eq ==> code_eq ==> iff) (@P2_fixes Var).
 Proof.
-  intros a a' aa' b b' bb' x x' xx'; split; intro Ha.
-Admitted.
+  intros a a' aa' b b' bb' x x' xx'; split; intro Ha; inversion Ha.
+  - apply P2_fixes_intro.
+    + rewrite <- aa'; rewrite <- xx'; auto.
+    + rewrite <- bb'; rewrite <- xx'; auto.
+  - apply P2_fixes_intro.
+    + rewrite aa'; rewrite xx'; auto.
+    + rewrite bb'; rewrite xx'; auto.
+Qed.
 
 (* ------------------------------------------------------------------------ *)
 (** ** [div] is inhabited by [{BOT, TOP}] *)
@@ -336,10 +347,8 @@ Proof.
   case_le (x [= BOT) as H'.
   - assert (x == BOT) as eq. split; auto. rewrite eq; auto.
   - rewrite <- H; clear H.
-    rewrite <- not_conv_le_bot in H'.
-    apply NNPP in H'.  (* FIXME can this be avoided? *)
-    apply conv_div in H'.
-    rewrite H'; auto.
+    rewrite <- conv_nle_bot in H'.
+    apply conv_div in H'; rewrite H'; auto.
 Qed.
 
 Theorem div_inhab (Var : Set) (x : Code Var) : x :: div <-> div_fixes x.
@@ -361,10 +370,28 @@ Section div'.
   Definition div' := Eval compute in close (\\a,a'; a').
 End div'.
 
+Lemma div'_div (Var : Set) : (div' : Code Var) :: div --> I.
+Proof.
+Admitted.
+
+(* this is an ugly proof. why not show [div' : div --> I] then [case_le]? *)
 Lemma div_algebraic (Var : Set) : div' == (div : Code Var).
 Proof.
-  unfold div, div'; code_simpl.
-  (* easy lfp argument *)
+  split.
+  - eta_expand as x.
+    case_le (x [= BOT).
+    + assert (x == BOT) as eq; try (split; auto).
+      rewrite eq; clear x eq H.
+      unfold div'; fold (@Y Var); code_simpl.
+      admit. (* TODO lfp argument *)
+    + rewrite <- conv_nle_bot in H.
+      apply conv_div in H; rewrite H; auto.
+  - unfold div, div'; fold (@Y Var).
+    rewrite pi_j_left at 1.
+    rewrite pi_j_left at 1.
+    rewrite pi_j_right at 1.
+    beta_simpl.
+    (* FIXME it looks like A may need to use Y instead of V *)
 Admitted.
 
 (* ------------------------------------------------------------------------ *)

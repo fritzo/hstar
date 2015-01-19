@@ -247,6 +247,17 @@ Proof.
 Qed.
 Hint Resolve absolute_consistency.
 
+Lemma conv_nle_bot (Var : Set) (x : Code Var) :
+  conv x <-> ~ x [= BOT.
+Proof.
+  split; intro H; auto.
+  - unfold code_le; intro Hneg.
+    apply (@not_conv_bot Var).
+    rewrite <- beta_i; rewrite <- (@var_monad_unit_right Var _).
+    apply Hneg; code_simpl; auto.
+  - admit. (* TODO induction or something *)
+Qed.
+
 Lemma not_conv_le_bot (Var : Set) (x : Code Var) :
   ~ conv x <-> x [= BOT.
 Proof.
