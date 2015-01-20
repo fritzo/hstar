@@ -335,6 +335,12 @@ Proof.
   transitivity (y||z); auto.
 Qed.
 
+Lemma code_le_j_ap_right (Var : Set) (f x y : Code Var) :
+  f * x || f * y [= f * (x || y).
+Proof.
+  apply code_le_join; split; monotonicity.
+Qed.
+
 Lemma code_le_j_bot_left (Var : Set) (x : Code Var) : BOT || x == x.
 Proof. split; auto. Qed.
 Hint Rewrite code_le_j_bot_left : code_simpl.
@@ -406,11 +412,8 @@ Ltac beta_eta :=
 
 Lemma code_eq_ap_top (Var : Set) (x : Code Var) : TOP * x == TOP.
 Proof.
-  split; auto.
-  (* OLD
-  rewrite (pi_top (K * TOP)); beta_simpl; auto.
-  *)
-Admitted.
+  split; [auto | rewrite <- pi_top at 1; beta_simpl; auto].
+Qed.
 Hint Rewrite code_eq_ap_top : code_simpl.
 
 Lemma code_eq_ap_bot (Var : Set) (x : Code Var) : BOT * x == BOT.
@@ -418,6 +421,23 @@ Proof.
   split; auto.
 Admitted.
 Hint Rewrite code_eq_ap_bot : code_simpl.
+
+Lemma code_eq_b_i (Var : Set) (x : Code Var) : I o x == x.
+Proof. beta_eta. Qed.
+Hint Rewrite code_eq_b_i : code_simpl.
+
+Lemma code_eq_c_b_i (Var : Set) (x : Code Var) : x o I == x.
+Proof. beta_eta. Qed.
+Hint Rewrite code_eq_b_i : code_simpl.
+
+Lemma code_eq_s_k_b (Var : Set) (x : Code Var) : S * (K * x) == B * x.
+Proof. beta_eta. Qed.
+Hint Rewrite code_eq_s_k_b : code_simpl.
+
+Lemma code_eq_s_k_c (Var : Set) (x y : Code Var) :
+  S * x * (K * y) == C * x * y.
+Proof. beta_eta. Qed.
+Hint Rewrite code_eq_s_k_c : code_simpl.
 
 (** We will use classical reasoning for case analysis. *)
 

@@ -107,13 +107,23 @@ Hint Rewrite Beta_i Beta_k Beta_b Beta_c Beta_j_ap Beta_r_ap Beta_r_idem
   : beta_safe.
 Hint Rewrite Beta_s : beta_unsafe.
 
-Tactic Notation "beta_simpl" := autorewrite with beta_safe.
-Tactic Notation "beta_simpl" "in" hyp(H) := autorewrite with beta_safe in H.
-Tactic Notation "beta_reduce" := autorewrite with beta_safe beta_unsafe.
+Tactic Notation "beta_simpl" :=
+  timeout 10
+  autorewrite with beta_safe.
+Tactic Notation "beta_simpl" "in" hyp(H) :=
+  timeout 10
+  autorewrite with beta_safe in H.
+Tactic Notation "beta_reduce" :=
+  timeout 10
+  autorewrite with beta_safe beta_unsafe.
 Tactic Notation "beta_reduce" "in" hyp(H) :=
+  timeout 10
   autorewrite with beta_safe beta_unsafe in H.
-Tactic Notation "code_simpl" := autorewrite with beta_safe code_simpl.
+Tactic Notation "code_simpl" :=
+  timeout 10
+  autorewrite with beta_safe code_simpl.
 Tactic Notation "code_simpl" "in" hyp(H) :=
+  timeout 10
   autorewrite with beta_safe code_simpl in H.
 
 (** To avoid nontermination in [beta_reduce],

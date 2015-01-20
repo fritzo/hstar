@@ -63,6 +63,11 @@ Proof.
   apply Y_limit_lub; auto.
 Qed.
 
+Lemma Y1_idem (Var : Set) (f : Code Var) : Y * (f o f) = Y * f.
+Proof.
+  (* easy *)
+Admitted.
+
 Lemma Y_ub (Var : Set) (f b : Code Var) :
   (forall x, x [= b -> f * x [= b) -> Y * f [= b.
 Proof.

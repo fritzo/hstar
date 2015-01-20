@@ -305,12 +305,12 @@ Proof.
   (* this requires reasoning about pairs and least fixed points *)
 Admitted.
 
-(* This is very powerful, but questionably useful. *)
-Theorem A_implicit (Var : Set) (x f : Code Var) :
-  x [= A * f <-> (forall s r : Code Var, r o s [= I -> x [= f * s * r).
+(* We will make much use of the following theorem *)
+
+Theorem A_fixes (Var : Set) (f x : Code Var) :
+  (forall s r : Code Var, r o s [= I -> f * s * r * x [= x) -> A * f * x [= x.
 Proof.
-  split; intro H.
-    intros s r Hl.
+  intro H.
 Admitted.
 
 Notation "\\ x , y ; z" := (A * \x, \y, z)%code : code_scope.

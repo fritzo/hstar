@@ -77,7 +77,7 @@ Qed.
 
 Lemma V_nondecreasing (Var : Set) : I [= (V : Code Var).
 Proof.
-  eta_expand as a.
+  eta_expand.
   rewrite beta_v; rewrite pi_j_right.
   rewrite beta_v; rewrite pi_j_left.
   beta_eta.
@@ -137,6 +137,12 @@ Proof.
   apply V_inhab; apply V_fixes_intro; apply V_closure.
 Qed.
 
+Lemma V_expand (Var : Set) (a : Code Var) : closure a -> a == V * a.
+Proof.
+  intro H; symmetry; fold (fixes V a).
+  apply V_complete; apply V_fixes_intro; auto.
+Qed.
+
 (* ------------------------------------------------------------------------ *)
 (** Next some lemmas about inhabinants of V. *)
 
@@ -151,6 +157,12 @@ Hint Rewrite V1_idempotent.
 Lemma V1_closure (Var : Set) (a : Code Var) : closure (V * a).
 Proof.
 Admitted.
+
+Lemma V1_inhab_top (Var : Set) (a : Code Var) : TOP :: V * a.
+Proof.
+  split; auto; rewrite <- V1_nondecreasing; code_simpl; auto.
+Qed.
+Hint Resolve V1_inhab_top.
 
 (* ------------------------------------------------------------------------ *)
 (** ** [P] is a powertype operator *)
@@ -186,7 +198,7 @@ Admitted.
 Lemma P1_nondecreasing (Var : Set) (a : Code Var) : I [= P * a.
 Proof.
   unfold P.
-  eta_expand as a'; rewrite beta_b; rewrite beta_b; rewrite pi_j_right.
+  eta_expand; rewrite beta_b; rewrite beta_b; rewrite pi_j_right.
   monotonicity; apply V_nondecreasing.
 Qed.
 
@@ -194,7 +206,7 @@ Lemma P1_idempotent (Var : Set) (a : Code Var) : (P * a) o (P * a) == P * a.
 Proof.
   apply nondecreasing_idempotent.
     apply P1_nondecreasing.
-  eta_expand as a'; rewrite beta_b.
+  eta_expand; rewrite beta_b.
 Admitted.
 Hint Rewrite P1_idempotent.
 
@@ -293,6 +305,28 @@ Proof.
 Qed.
 
 (* ------------------------------------------------------------------------ *)
+(** ** Closures constructed as [A * f] *)
+
+(* EXPERIMENTAL
+
+Inductive type_body {Var : Set} : Var -> Var -> Code Var -> Set :=
+  | type_body_eq n n' x y : x == y -> type_body n n' x -> type_body n n' y
+  | type_body_atom n n' v : v :: V -> type_body n n' v
+  | type_body_var n n' : type_body n n' (code_var n')
+  | type_body_exp n n' a b :
+      type_body n' n a -> type_body n n' b -> type_body n n' (exp * a * b)
+  | type_body_fix n n' f :
+      (forall x, type_body n n' x -> type_body n n' (f * x)) ->
+      type_body n n' (Y * f).
+
+Lemma V_fixes_constructed_types (Var : Set) (a a' : Var) (f : Code Var) :
+  type_body a a' f -> \\ f :: V.
+Proof.
+Admitted.
+
+*)
+
+(* ------------------------------------------------------------------------ *)
 (** ** [div] is inhabited by [{BOT, TOP}] *)
 
 Lemma div_nondecreasing (Var : Set) : I [= (div : Code Var).
@@ -310,6 +344,7 @@ Lemma div_closure {Var : Set} : closure (div : Code Var).
 Proof.
   split; [apply div_nondecreasing | apply div_idempotent].
 Qed.
+Hint Resolve div_closure.
 
 Lemma div_inhab_bot (Var : Set) : BOT :: (div : Code Var).
 Proof.
@@ -318,8 +353,7 @@ Qed.
 
 Lemma div_inhab_top (Var : Set) : TOP :: (div : Code Var).
 Proof.
-  unfold fixes; split; auto.
-  rewrite <- div_nondecreasing; rewrite beta_i; auto.
+  rewrite V_expand; auto.
 Qed.
 
 Inductive div_fixes {Var : Set} : Code Var -> Prop :=
@@ -356,7 +390,7 @@ Proof.
   apply div_inhab_top.
 Qed.
 
-(* We also have an algebraic definition of [div] as nil *)
+(* We also have an algebraic definition of [div] as nil. *)
 
 Section div'.
   Context {Var : Set}.
@@ -364,15 +398,6 @@ Section div'.
   Let a' := make_var Var 1.
   Definition div' := Eval compute in close (\\a,a'; a').
 End div'.
-
-(* TODO move to appropriate place *)
-Lemma code_eq_b_i (Var : Set) (x : Code Var) : I o x == x.
-Proof. beta_eta. Qed.
-Hint Rewrite code_eq_b_i : code_simpl.
-
-Lemma code_eq_c_b_i (Var : Set) (x : Code Var) : x o I == x.
-Proof. beta_eta. Qed.
-Hint Rewrite code_eq_b_i : code_simpl.
 
 Lemma div'_div (Var : Set) : (div' : Code Var) = div' o div.
 Proof.
@@ -411,7 +436,7 @@ Proof.
 Admitted.
 
 (* ------------------------------------------------------------------------ *)
-(** ** [semi] is Sierpinsky space, inhabited by [{BOT, I, TOP}] *)
+(** ** [semi] represents Sierpinsky space, inhabited by [{BOT, I, TOP}] *)
 
 Section semi.
   Context {Var : Set}.
@@ -423,7 +448,7 @@ End semi.
 Lemma semi_nondecreasing (Var : Set) : I [= (semi : Code Var).
 Proof.
   unfold semi.
-  eta_expand as a.
+  eta_expand.
   rewrite beta_y.
   rewrite beta_j_ap.
   rewrite beta_k.
@@ -434,27 +459,55 @@ Qed.
 Lemma semi_idempotent (Var : Set) : semi o semi == (semi : Code Var).
 Proof.
   eta_expand as a; rewrite beta_b.
+  unfold semi; fold (@V Var).
   (* TODO this requires a least-fixed-point argument *)
 Admitted.
 Hint Rewrite semi_idempotent.
 
+(* TODO prove by [apply V_fixes_constructed_types] *)
 Lemma semi_closure {Var : Set} : closure (semi : Code Var).
 Proof.
   split; [apply semi_nondecreasing | apply semi_idempotent].
 Qed.
+Hint Resolve semi_closure.
+
+Ltac A_fixes :=
+  let r := fresh "r" in
+  let s := fresh "s" in
+  let Hsr := fresh "H" s r in
+  match goal with
+    | [Var : Set |- _ :: ?a] =>
+      unfold fixes;
+      fold (@A Var); split;
+      [ apply A_fixes; intros r s Hsr; unfold a
+      | rewrite V_expand; unfold a; auto]
+  end.
 
 Lemma semi_inhab_bot (Var : Set) : BOT :: (semi : Code Var).
 Proof.
-Admitted.
+  unfold fixes; fold (@A Var); split.
+    apply A_fixes; intros r s Hsr; unfold semi.
+    eta_expand; code_simpl.
+    rewrite (code_le_bot _ (r * BOT)) at 1.
+    rewrite <- beta_b.
+    rewrite Hsr; auto.
+  rewrite <- semi_nondecreasing; beta_simpl; auto.
+Qed.
 
 Lemma semi_inhab_i (Var : Set) : I :: (semi : Code Var).
 Proof.
-  (* TODO this requires a least-fixed-point argument *)
-Admitted.
+  unfold fixes; fold (@A Var); split.
+    apply A_fixes; intros r s Hsr; unfold semi.
+    eta_expand; code_simpl.
+    rewrite <- beta_b.
+    rewrite Hsr; code_simpl; auto.
+  rewrite <- semi_nondecreasing; beta_simpl; auto.
+Qed.
 
 Lemma semi_inhab_top (Var : Set) : TOP :: (semi : Code Var).
 Proof.
-Admitted.
+  rewrite V_expand; auto.
+Qed.
 
 Inductive semi_fixes {Var : Set} : Code Var -> Prop :=
   | semi_fixes_eq x y : x == y -> semi_fixes x -> semi_fixes y
@@ -476,7 +529,7 @@ Theorem semi_sound (Var : Set) (x : Code Var) :
   x :: semi -> semi_fixes x.
 Proof.
   intros H; unfold fixes in H.
-  (* TODO this requires a Bohm-tree argument *)
+  (* TODO this requires a Bohm-out argument *)
 Admitted.
 
 Theorem semi_inhab (Var : Set) (x : Code Var) : x :: semi <-> semi_fixes x.
@@ -506,7 +559,7 @@ End boool.
 Lemma boool_nondecreasing (Var : Set) : I [= (boool : Code Var).
 Proof.
   unfold boool.
-  eta_expand as a.
+  eta_expand.
   rewrite beta_y.
   rewrite pi_j_left.
   rewrite beta_k.
@@ -526,26 +579,54 @@ Lemma boool_closure {Var : Set} : closure (boool : Code Var).
 Proof.
   split; [apply boool_nondecreasing | apply boool_idempotent].
 Qed.
+Hint Resolve boool_closure.
 
 Lemma boool_inhab_bot (Var : Set) : BOT :: (boool : Code Var).
 Proof.
-Admitted.
+  unfold fixes; fold (@A Var); split.
+    apply A_fixes; intros r s Hsr; unfold boool.
+    eta_expand; eta_expand; rewrite beta_s; code_simpl.
+    rewrite (code_le_bot _ (r * BOT)) at 1.
+    rewrite <- beta_b.
+    rewrite Hsr; auto.
+  auto.
+Qed.
 
 Lemma boool_inhab_k (Var : Set) : K :: (boool : Code Var).
 Proof.
-Admitted.
+  unfold fixes; fold (@A Var); split.
+    apply A_fixes; intros r s Hsr; unfold boool.
+    eta_expand; eta_expand; rewrite beta_s; code_simpl.
+    rewrite <- beta_b.
+    rewrite Hsr; auto.
+  rewrite <- boool_nondecreasing; beta_eta.
+Qed.
 
 Lemma boool_inhab_f (Var : Set) : K * I :: (boool : Code Var).
 Proof.
-Admitted.
+  unfold fixes; fold (@A Var); split.
+    apply A_fixes; intros r s Hsr; unfold boool.
+    eta_expand; eta_expand; rewrite beta_s; code_simpl.
+    rewrite <- beta_b.
+    rewrite Hsr; auto.
+  rewrite <- boool_nondecreasing; beta_eta.
+Qed.
 
 Lemma boool_inhab_j (Var : Set) : J :: (boool : Code Var).
 Proof.
-Admitted.
+  unfold fixes; fold (@A Var); split.
+    apply A_fixes; intros r s Hsr; unfold boool.
+    eta_expand; eta_expand; rewrite beta_s; code_simpl.
+    rewrite code_le_j_ap_right.
+    rewrite <- beta_b.
+    rewrite Hsr; auto.
+  rewrite <- boool_nondecreasing; beta_eta.
+Qed.
 
 Lemma boool_inhab_top (Var : Set) : TOP :: (boool : Code Var).
 Proof.
-Admitted.
+  rewrite V_expand; auto.
+Qed.
 
 Inductive boool_fixes {Var : Set} : Code Var -> Prop :=
   | boool_fixes_eq x y : x == y -> boool_fixes x -> boool_fixes y
@@ -608,6 +689,7 @@ Lemma bool_closure {Var : Set} : closure (bool : Code Var).
 Proof.
   split; [apply bool_nondecreasing | apply bool_idempotent].
 Qed.
+Hint Resolve bool_closure.
 
 Lemma bool_inhab_bot (Var : Set) : BOT :: (bool : Code Var).
 Proof.
@@ -623,7 +705,8 @@ Admitted.
 
 Lemma bool_inhab_top (Var : Set) : TOP :: (bool : Code Var).
 Proof.
-Admitted.
+  rewrite V_expand; auto.
+Qed.
 
 Inductive bool_fixes {Var : Set} : Code Var -> Prop :=
   | bool_fixes_eq x y : x == y -> bool_fixes x -> bool_fixes y
