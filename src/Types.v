@@ -10,23 +10,15 @@ Open Scope code_scope.
 
 (** ** Properties of types *)
 
+Notation "x :: a" := (a * x == x) : code_scope.
+
 Definition closure {Var : Set} (a : Code Var) := I [= a /\ a o a == a.
-Definition fixes {Var : Set} (a : Code Var) (x : Code Var) := a * x == x.
-Notation "x :: a" := (fixes a x) : code_scope.
-Hint Unfold fixes.
 
 Instance closure_proper_eq (Var : Set) :
   Proper (code_eq ==> iff) (@closure Var).
 Proof.
   simpl_relation; unfold closure; split; intros [Hn Hi]; split;
   (rewrite -> H || rewrite <- H); auto.
-Qed.
-
-Instance fixes_proper_eq (Var : Set) :
-  Proper (code_eq ==> code_eq ==> iff) (@fixes Var).
-Proof.
-  unfold fixes; intros a a' Ha x x' Hx.
-  rewrite Ha; rewrite Hx; firstorder.
 Qed.
 
 Lemma nondecreasing_idempotent (Var : Set) (a : Code Var) :
@@ -69,7 +61,7 @@ Qed.
 
 Theorem I_inhab (Var : Set) (x : Code Var) : x :: I <-> I_fixes x.
 Proof.
-  unfold fixes; beta_reduce; firstorder.
+  beta_reduce; firstorder.
 Qed.
 
 (* ------------------------------------------------------------------------ *)
@@ -108,7 +100,7 @@ Qed.
 
 Lemma V_sound (Var : Set) (x : Code Var) : x :: V -> V_fixes x.
 Proof.
-  unfold fixes, closure.
+  unfold closure.
   intros Hfix; apply V_fixes_intro.
   assert (I [= x).
     rewrite <- Hfix; rewrite beta_v; auto.
@@ -122,7 +114,7 @@ Qed.
 
 Lemma V_complete (Var : Set) (x : Code Var) : V_fixes x -> x :: V.
 Proof.
-  unfold fixes, closure; intros [Hn Hi].
+  unfold  closure; intros [Hn Hi].
   unfold V; fold (@Y Var).
   (* TODO this requires a least fixed point lemma *)
 Admitted.
@@ -132,14 +124,14 @@ Proof.
   split; [apply V_sound | apply V_complete].
 Qed.
 
-Corollary fixes_V_V (Var : Set) : fixes V (V : Code Var).
+Corollary fixes_V_V (Var : Set) : V :: (V : Code Var).
 Proof.
   apply V_inhab; apply V_fixes_intro; apply V_closure.
 Qed.
 
 Lemma V_expand (Var : Set) (a : Code Var) : closure a -> a == V * a.
 Proof.
-  intro H; symmetry; fold (fixes V a).
+  intro H; symmetry.
   apply V_complete; apply V_fixes_intro; auto.
 Qed.
 
@@ -158,11 +150,18 @@ Lemma V1_closure (Var : Set) (a : Code Var) : closure (V * a).
 Proof.
 Admitted.
 
+Lemma V1_inhab (Var : Set) (a x : Code Var) : a * x [= x -> V * a * x == x.
+Proof.
+  intro H; split.
+    admit. (* TODO requires an lfp principle *)
+  rewrite <- V1_nondecreasing; beta_simpl; auto.
+Qed.
+
 Lemma V1_inhab_top (Var : Set) (a : Code Var) : TOP :: V * a.
 Proof.
   split; auto; rewrite <- V1_nondecreasing; code_simpl; auto.
 Qed.
-Hint Resolve V1_inhab_top.
+Hint Rewrite V1_inhab_top : code_simpl.
 
 (* ------------------------------------------------------------------------ *)
 (** ** [P] is a powertype operator *)
@@ -230,26 +229,25 @@ Qed.
 
 Lemma P1_sound (Var : Set) (a x : Code Var) : x :: P * a -> P1_fixes a x.
 Proof.
-  unfold fixes, closure, P; fold (@V Var); beta_simpl.
+  unfold  closure, P; fold (@V Var); beta_simpl.
   intros Hfix.
   assert (I [= x).
     rewrite <- Hfix; rewrite beta_v; auto.
   assert (a [= x) as ax.
-    rewrite <- Hfix; rewrite <- V_nondecreasing; code_simpl; auto.
+    rewrite <- Hfix; rewrite <- V_nondecreasing; beta_simpl; auto.
   rewrite code_le_j_sym in Hfix.
   rewrite <- (proj1 (code_le_eq_j Var a x)) in Hfix; auto.
   split; auto.
-    apply V_sound; unfold fixes; auto.
+    apply V_sound; auto.
 Qed.
 
 Lemma P1_complete (Var : Set) (a x : Code Var) : P1_fixes a x -> x :: P * a.
 Proof.
-  unfold fixes, closure; intros [b Hf Hl]; split.
+  unfold  closure; intros [b Hf Hl]; split.
   - rewrite Hl.
     unfold P; fold (@V Var); beta_simpl.
     rewrite code_le_j_idem.
-    apply V_complete in Hf; unfold fixes in Hf.
-    rewrite Hf; auto.
+    apply V_complete in Hf; rewrite Hf; auto.
   - assert (b == I * b) as eq; beta_simpl; auto; rewrite eq at 1.
     monotonicity.
     apply (P1_nondecreasing _ a).
@@ -285,11 +283,19 @@ Proof.
   unfold P; fold (@V Var); beta_simpl; apply V1_closure.
 Qed.
 
+Lemma P2_inhab (Var : Set) (a b x : Code Var) :
+  a * x [= x -> b * x [= x -> P * a * b * x == x.
+Proof.
+  intros Ha Hb.
+  unfold P; fold (@V Var); beta_simpl.
+  apply V1_inhab; beta_simpl; auto.
+Qed.
+
 Inductive P2_fixes {Var : Set} (a b : Code Var) : Code Var -> Prop :=
-  P2_fixes_intro x : a * x [= x -> b * x [= x -> P2_fixes a b x.
-  (* Which of these forms is most convenient?
-  P2_fixes_intro x : V1_fixes a x -> V1_fixes b x -> P2_fixes a b x.
   P2_fixes_intro x : x :: V * a -> x :: V * b -> P2_fixes a b x.
+  (* Which of these forms is most convenient?
+  P2_fixes_intro x : a * x [= x -> b * x [= x -> P2_fixes a b x.
+  P2_fixes_intro x : V1_fixes a x -> V1_fixes b x -> P2_fixes a b x.
   *)
 
 Instance P2_fixes_proper (Var : Set) :
@@ -303,6 +309,12 @@ Proof.
     + rewrite aa'; rewrite xx'; auto.
     + rewrite bb'; rewrite xx'; auto.
 Qed.
+
+Lemma P2_fixes_simpl (Var : Set) (a b x : Code Var) :
+  x :: P * a * b <-> (x :: V * a /\ x :: V * b).
+Proof.
+  split; [intro Hab; split | intros [Ha Hb]].
+Admitted.
 
 (* ------------------------------------------------------------------------ *)
 (** ** Closures constructed as [A * f] *)
@@ -350,11 +362,13 @@ Lemma div_inhab_bot (Var : Set) : BOT :: (div : Code Var).
 Proof.
   apply div_bot.
 Qed.
+Hint Rewrite div_inhab_bot : code_simpl.
 
 Lemma div_inhab_top (Var : Set) : TOP :: (div : Code Var).
 Proof.
-  rewrite V_expand; auto.
+  rewrite V_expand; code_simpl; auto.
 Qed.
+Hint Rewrite div_inhab_top : code_simpl.
 
 Inductive div_fixes {Var : Set} : Code Var -> Prop :=
   | div_fixes_eq x y : x == y -> div_fixes x -> div_fixes y
@@ -372,7 +386,7 @@ Qed.
 Theorem div_sound (Var : Set) (x : Code Var) :
   x :: div -> div_fixes x.
 Proof.
-  intros H; unfold fixes in H.
+  intros H.
   case_le (x [= BOT) as H'.
   - assert (x == BOT) as eq. split; auto. rewrite eq; auto.
   - rewrite <- H; clear H.
@@ -384,10 +398,8 @@ Theorem div_inhab (Var : Set) (x : Code Var) : x :: div <-> div_fixes x.
 Proof.
   split.
     apply div_sound.
-  intro H; induction H.
+  intro H; induction H; code_simpl; auto.
   rewrite <- H; auto.
-  apply div_inhab_bot.
-  apply div_inhab_top.
 Qed.
 
 (* We also have an algebraic definition of [div] as nil. *)
@@ -406,9 +418,8 @@ Admitted.
 Lemma div_algebraic (Var : Set) : div' == (div : Code Var).
   rewrite div'_div; eta_expand as x; beta_simpl.
   set (y := div * x); subst; assert (y = div * x) as eq; auto.
-  assert (div * y == y).
+  assert (y :: div) as Hf.
     rewrite eq; rewrite <- beta_b; rewrite div_idempotent; auto.
-  assert (fixes div y) as Hf; auto.
   apply div_inhab in Hf; induction Hf.
   - admit. (* TODO *)
   - unfold div'; code_simpl. admit. (* TODO: case BOT *)
@@ -477,7 +488,7 @@ Ltac A_fixes :=
   let Hsr := fresh "H" s r in
   match goal with
     | [Var : Set |- _ :: ?a] =>
-      unfold fixes;
+
       fold (@A Var); split;
       [ apply A_fixes; intros r s Hsr; unfold a
       | rewrite V_expand; unfold a; auto]
@@ -485,7 +496,7 @@ Ltac A_fixes :=
 
 Lemma semi_inhab_bot (Var : Set) : BOT :: (semi : Code Var).
 Proof.
-  unfold fixes; fold (@A Var); split.
+  fold (@A Var); split.
     apply A_fixes; intros r s Hsr; unfold semi.
     eta_expand; code_simpl.
     rewrite (code_le_bot _ (r * BOT)) at 1.
@@ -493,21 +504,24 @@ Proof.
     rewrite Hsr; auto.
   rewrite <- semi_nondecreasing; beta_simpl; auto.
 Qed.
+Hint Rewrite semi_inhab_bot : code_simpl.
 
 Lemma semi_inhab_i (Var : Set) : I :: (semi : Code Var).
 Proof.
-  unfold fixes; fold (@A Var); split.
+  fold (@A Var); split.
     apply A_fixes; intros r s Hsr; unfold semi.
     eta_expand; code_simpl.
     rewrite <- beta_b.
     rewrite Hsr; code_simpl; auto.
   rewrite <- semi_nondecreasing; beta_simpl; auto.
 Qed.
+Hint Rewrite semi_inhab_i : code_simpl.
 
 Lemma semi_inhab_top (Var : Set) : TOP :: (semi : Code Var).
 Proof.
-  rewrite V_expand; auto.
+  rewrite (V_expand _ semi); code_simpl; auto.
 Qed.
+Hint Rewrite semi_inhab_top : code_simpl.
 
 Inductive semi_fixes {Var : Set} : Code Var -> Prop :=
   | semi_fixes_eq x y : x == y -> semi_fixes x -> semi_fixes y
@@ -528,7 +542,7 @@ Qed.
 Theorem semi_sound (Var : Set) (x : Code Var) :
   x :: semi -> semi_fixes x.
 Proof.
-  intros H; unfold fixes in H.
+  intros H.
   (* TODO this requires a Bohm-out argument *)
 Admitted.
 
@@ -536,11 +550,8 @@ Theorem semi_inhab (Var : Set) (x : Code Var) : x :: semi <-> semi_fixes x.
 Proof.
   split.
     apply semi_sound.
-  intro H; induction H.
+  intro H; induction H; code_simpl; auto.
   rewrite <- H; auto.
-  apply semi_inhab_bot.
-  apply semi_inhab_i.
-  apply semi_inhab_top.
 Qed.
 
 (* ------------------------------------------------------------------------ *)
@@ -583,7 +594,7 @@ Hint Resolve boool_closure.
 
 Lemma boool_inhab_bot (Var : Set) : BOT :: (boool : Code Var).
 Proof.
-  unfold fixes; fold (@A Var); split.
+  fold (@A Var); split.
     apply A_fixes; intros r s Hsr; unfold boool.
     eta_expand; eta_expand; rewrite beta_s; code_simpl.
     rewrite (code_le_bot _ (r * BOT)) at 1.
@@ -591,30 +602,33 @@ Proof.
     rewrite Hsr; auto.
   auto.
 Qed.
+Hint Rewrite boool_inhab_bot : code_simpl.
 
 Lemma boool_inhab_k (Var : Set) : K :: (boool : Code Var).
 Proof.
-  unfold fixes; fold (@A Var); split.
+  fold (@A Var); split.
     apply A_fixes; intros r s Hsr; unfold boool.
     eta_expand; eta_expand; rewrite beta_s; code_simpl.
     rewrite <- beta_b.
     rewrite Hsr; auto.
   rewrite <- boool_nondecreasing; beta_eta.
 Qed.
+Hint Rewrite boool_inhab_k : code_simpl.
 
 Lemma boool_inhab_f (Var : Set) : K * I :: (boool : Code Var).
 Proof.
-  unfold fixes; fold (@A Var); split.
+  fold (@A Var); split.
     apply A_fixes; intros r s Hsr; unfold boool.
     eta_expand; eta_expand; rewrite beta_s; code_simpl.
     rewrite <- beta_b.
     rewrite Hsr; auto.
   rewrite <- boool_nondecreasing; beta_eta.
 Qed.
+Hint Rewrite boool_inhab_f : code_simpl.
 
 Lemma boool_inhab_j (Var : Set) : J :: (boool : Code Var).
 Proof.
-  unfold fixes; fold (@A Var); split.
+  fold (@A Var); split.
     apply A_fixes; intros r s Hsr; unfold boool.
     eta_expand; eta_expand; rewrite beta_s; code_simpl.
     rewrite code_le_j_ap_right.
@@ -622,11 +636,13 @@ Proof.
     rewrite Hsr; auto.
   rewrite <- boool_nondecreasing; beta_eta.
 Qed.
+Hint Rewrite boool_inhab_j : code_simpl.
 
 Lemma boool_inhab_top (Var : Set) : TOP :: (boool : Code Var).
 Proof.
-  rewrite V_expand; auto.
+  rewrite (V_expand _ boool); code_simpl; auto.
 Qed.
+Hint Rewrite boool_inhab_top : code_simpl.
 
 Inductive boool_fixes {Var : Set} : Code Var -> Prop :=
   | boool_fixes_eq x y : x == y -> boool_fixes x -> boool_fixes y
@@ -646,20 +662,15 @@ Qed.
 
 Theorem boool_sound (Var : Set) (x : Code Var) : x :: boool -> boool_fixes x.
 Proof.
-  intros H; unfold fixes in H.
+  intros H.
 Admitted.
 
 Theorem boool_inhab (Var : Set) (x : Code Var) : x :: boool <-> boool_fixes x.
 Proof.
   split.
     apply boool_sound.
-  intro H; induction H.
+  intro H; induction H; code_simpl; auto.
   rewrite <- H; auto.
-  apply boool_inhab_bot.
-  apply boool_inhab_k.
-  apply boool_inhab_f.
-  apply boool_inhab_j.
-  apply boool_inhab_top.
 Qed.
 
 (* ------------------------------------------------------------------------ *)
@@ -677,36 +688,56 @@ End bool.
 
 Lemma bool_nondecreasing (Var : Set) : I [= (bool : Code Var).
 Proof.
-Admitted.
+  apply P2_nondecreasing.
+Qed.
 
 Lemma bool_idempotent (Var : Set) : bool o bool == (bool : Code Var).
 Proof.
-  eta_expand as a; rewrite beta_b.
-Admitted.
+  apply P2_idempotent.
+Qed.
 Hint Rewrite bool_idempotent.
 
 Lemma bool_closure {Var : Set} : closure (bool : Code Var).
 Proof.
-  split; [apply bool_nondecreasing | apply bool_idempotent].
+  apply P2_closure.
 Qed.
 Hint Resolve bool_closure.
 
 Lemma bool_inhab_bot (Var : Set) : BOT :: (bool : Code Var).
 Proof.
-Admitted.
+  unfold bool; fold (@P Var); fold (@boool Var).
+  apply P2_inhab; [ apply boool_inhab_bot | beta_reduce; code_simpl; auto ].
+Qed.
+Hint Rewrite bool_inhab_bot : code_simpl.
 
 Lemma bool_inhab_k (Var : Set) : K :: (bool : Code Var).
 Proof.
-Admitted.
+  unfold bool; fold (@P Var); fold (@boool Var).
+  apply P2_inhab; [ apply boool_inhab_k | beta_reduce; code_simpl; auto ].
+Qed.
+Hint Rewrite bool_inhab_k : code_simpl.
 
 Lemma bool_inhab_f (Var : Set) : K * I :: (bool : Code Var).
 Proof.
-Admitted.
+  unfold bool; fold (@P Var); fold (@boool Var).
+  apply P2_inhab; [ apply boool_inhab_f | beta_reduce; code_simpl; auto ].
+Qed.
+Hint Rewrite bool_inhab_f : code_simpl.
 
 Lemma bool_inhab_top (Var : Set) : TOP :: (bool : Code Var).
 Proof.
-  rewrite V_expand; auto.
+  rewrite (V_expand _ bool); code_simpl; auto.
 Qed.
+Hint Rewrite bool_inhab_top : code_simpl.
+
+Lemma bool_j_top (Var : Set) : bool * J == (TOP : Code Var).
+Proof.
+  split; auto.
+  unfold bool; fold (@boool Var); fold (@V Var); rewrite <- V_nondecreasing.
+  beta_simpl; rewrite pi_j_right.
+  rewrite beta_s; rewrite beta_s; code_simpl; auto.
+Qed.
+Hint Rewrite bool_j_top : code_simpl.
 
 Inductive bool_fixes {Var : Set} : Code Var -> Prop :=
   | bool_fixes_eq x y : x == y -> bool_fixes x -> bool_fixes y
@@ -723,21 +754,33 @@ Proof.
   intro H; induction H; eauto.
 Qed.
 
+Lemma code_nle_top_j (Var : Set) : ~ TOP [= (J : Code Var).
+Proof.
+  intro H.
+  apply (code_le_ap_left _ _ _ BOT) in H.
+  apply (code_le_ap_left _ _ _ BOT) in H.
+  code_simpl in H.
+  apply absolute_consistency in H; contradiction H.
+Qed.
+
 Theorem bool_sound (Var : Set) (x : Code Var) : x :: bool -> bool_fixes x.
 Proof.
-  intros H; unfold fixes in H.
-Admitted.
+  intro H; set (H' := H);
+  unfold bool in H'; fold (@boool Var) in H'; fold (@P Var) in H'.
+  apply P2_fixes_simpl in H'; destruct H' as [Hb Hd].
+  rewrite <- V_expand in Hb; auto.
+  rewrite boool_inhab in Hb; induction Hb; auto.
+    rewrite <- H0 in *; apply IHHb; auto.
+  code_simpl in H; destruct H as [H _].
+  apply code_nle_top_j in H; contradiction H.
+Qed.
 
 Theorem bool_inhab (Var : Set) (x : Code Var) : x :: bool <-> bool_fixes x.
 Proof.
   split.
     apply bool_sound.
-  intro H; induction H.
+  intro H; induction H; code_simpl; auto.
   rewrite <- H; auto.
-  apply bool_inhab_bot.
-  apply bool_inhab_k.
-  apply bool_inhab_f.
-  apply bool_inhab_top.
 Qed.
 
 (* ------------------------------------------------------------------------ *)
