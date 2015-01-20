@@ -13,6 +13,7 @@ Open Scope code_scope.
 Definition closure {Var : Set} (a : Code Var) := I [= a /\ a o a == a.
 Definition fixes {Var : Set} (a : Code Var) (x : Code Var) := a * x == x.
 Notation "x :: a" := (fixes a x) : code_scope.
+Hint Unfold fixes.
 
 Instance closure_proper_eq (Var : Set) :
   Proper (code_eq ==> iff) (@closure Var).
@@ -167,19 +168,19 @@ End P.
 
 Lemma P_idem (Var : Set) (a : Code Var) : P * a * a == V * a.
 Proof.
-  (* OLD
-  unfold P; beta_simpl; rewrite code_eq_j_idem; auto.
-  *)
-Admitted.
+  unfold P; fold (@V Var); beta_simpl; rewrite code_eq_j_idem; auto.
+Qed.
 Hint Rewrite P_idem.
 
 Lemma P_comm (Var : Set) (a b : Code Var) : P * a * b == P * b * a.
 Proof.
-Admitted.
+  unfold P; fold (@V Var); beta_simpl; rewrite code_le_j_sym at 1; auto.
+Qed.
 
 Lemma P_assoc (Var : Set) (a b c : Code Var) :
   P * a * (P * b * c) == P * (P * a * b) * c.
 Proof.
+  unfold P; fold (@V Var); beta_simpl.
 Admitted.
 
 Lemma P1_nondecreasing (Var : Set) (a : Code Var) : I [= P * a.
@@ -217,21 +218,17 @@ Qed.
 
 Lemma P1_sound (Var : Set) (a x : Code Var) : x :: P * a -> P1_fixes a x.
 Proof.
-  unfold fixes, closure, P; beta_simpl.
+  unfold fixes, closure, P; fold (@V Var); beta_simpl.
   intros Hfix.
   assert (I [= x).
-  (* OLD
     rewrite <- Hfix; rewrite beta_v; auto.
+  assert (a [= x) as ax.
+    rewrite <- Hfix; rewrite <- V_nondecreasing; code_simpl; auto.
+  rewrite code_le_j_sym in Hfix.
+  rewrite <- (proj1 (code_le_eq_j Var a x)) in Hfix; auto.
   split; auto.
-  *)
-  (* TODO adapt proof from V:
-  rewrite <- Hfix at 3; rewrite beta_v; rewrite Hfix.
-  split; auto.
-  apply code_le_j_ub; auto.
-  rewrite <- I_idempotent.
-  monotonicity; auto.
-  *)
-Admitted.
+    apply V_sound; unfold fixes; auto.
+Qed.
 
 Lemma P1_complete (Var : Set) (a x : Code Var) : P1_fixes a x -> x :: P * a.
 Proof.
@@ -261,10 +258,8 @@ Qed.
 
 Lemma P2_nondecreasing (Var : Set) (a b : Code Var) : I [= P * a * b.
 Proof.
-  (* OLD
-  unfold P; beta_simpl; apply V1_nondecreasing.
-  *)
-Admitted.
+  unfold P; fold (@V Var); beta_simpl; apply V1_nondecreasing.
+Qed.
 
 Lemma P2_idempotent (Var : Set) (a b : Code Var) :
   (P * a * b) o (P * a * b) == P * a * b.
@@ -370,12 +365,33 @@ Section div'.
   Definition div' := Eval compute in close (\\a,a'; a').
 End div'.
 
-Lemma div'_div (Var : Set) : (div' : Code Var) :: div --> I.
+(* TODO move to appropriate place *)
+Lemma code_eq_b_i (Var : Set) (x : Code Var) : I o x == x.
+Proof. beta_eta. Qed.
+Hint Rewrite code_eq_b_i : code_simpl.
+
+Lemma code_eq_c_b_i (Var : Set) (x : Code Var) : x o I == x.
+Proof. beta_eta. Qed.
+Hint Rewrite code_eq_b_i : code_simpl.
+
+Lemma div'_div (Var : Set) : (div' : Code Var) = div' o div.
 Proof.
 Admitted.
 
-(* this is an ugly proof. why not show [div' : div --> I] then [case_le]? *)
 Lemma div_algebraic (Var : Set) : div' == (div : Code Var).
+  rewrite div'_div; eta_expand as x; beta_simpl.
+  set (y := div * x); subst; assert (y = div * x) as eq; auto.
+  assert (div * y == y).
+    rewrite eq; rewrite <- beta_b; rewrite div_idempotent; auto.
+  assert (fixes div y) as Hf; auto.
+  apply div_inhab in Hf; induction Hf.
+  - admit. (* TODO *)
+  - unfold div'; code_simpl. admit. (* TODO: case BOT *)
+  - unfold div'; code_simpl. admit. (* TODO: case TOP *)
+Admitted.
+
+(* this is an ugly proof. why not show [div' : div --> I] then [case_le]? *)
+Lemma div_algebraic' (Var : Set) : div' == (div : Code Var).
 Proof.
   split.
   - eta_expand as x.
