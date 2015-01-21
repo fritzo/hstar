@@ -24,6 +24,12 @@ Proof. simpl; beta_simpl; auto. Qed.
 Lemma power_2 (Var : Set) (f x : Code Var) : f ^ 2 * x == f * (f * x).
 Proof. simpl; beta_simpl; auto. Qed.
 
+Definition code_le_limit {Var : Set} (x : Code Var) (f : nat -> Code Var) :=
+  forall n, f n [= x.
+
+Definition code_eq_limit {Var : Set} (x : Code Var) (f : nat -> Code Var) :=
+  code_le_limit x f /\ forall y, code_le_limit y f -> x [= y.
+
 Lemma Y_limit_ub (Var : Set) (f : Code Var) (n : nat) : f ^ n * BOT [= Y * f.
 Proof.
   induction n.
@@ -45,6 +51,14 @@ Lemma Y_limit_lub (Var : Set) (f x : Code Var) :
 Proof.
   unfold code_le; intros Hl Var' c b Hc.
   apply Y_limit_lb in Hc as [n Hn]; eauto.
+Qed.
+
+Lemma Y1_as_limit (Var : Set) (f : Code Var) :
+  code_eq_limit (Y * f) (fun n => f ^ n * BOT).
+Proof.
+  split; unfold code_le_limit.
+    apply Y_limit_ub.
+  apply Y_limit_lub.
 Qed.
 
 Lemma Y_fp (Var : Set) (f : Code Var) : Y * f == f * (Y * f).
@@ -75,4 +89,16 @@ Admitted.
 
 Lemma Y_ident (Var : Set) (y : Code Var) : y == S * I * y -> y = Y.
 Proof.
+Admitted.
+
+Lemma V_as_limit (Var : Set) (f : Code Var):
+  code_eq_limit (V * f) (fun n => f ^ n).
+Proof.
+  split; unfold code_le_limit.
+    induction n.
+      simpl; rewrite beta_v; rewrite pi_j_left; auto.
+    rewrite beta_v; rewrite pi_j_right.
+    unfold power; fold (@power Var).
+    monotonicity.
+  intros y Hy.
 Admitted.

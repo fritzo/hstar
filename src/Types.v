@@ -38,6 +38,22 @@ Qed.
 (* ------------------------------------------------------------------------ *)
 (** ** [V] is the type of all types *)
 
+Lemma V1_nondecreasing (Var : Set) (a : Code Var) : I [= V * a.
+Proof.
+  simpl; unfold V; fold (@Y Var).
+  eta_expand as x; code_simpl; rewrite beta_y; code_simpl; auto.
+Qed.
+
+Lemma V1_idempotent (Var : Set) (a : Code Var) : (V * a) o (V * a) == (V * a).
+Proof.
+  split.
+    unfold V; fold (@Y Var).
+    eta_expand; beta_simpl.
+    admit.
+  apply V_as_limit; intro n; induction n.
+Admitted.
+Hint Rewrite V1_idempotent.
+
 Lemma V_nondecreasing (Var : Set) : I [= (V : Code Var).
 Proof.
   eta_expand.
@@ -51,7 +67,12 @@ Proof.
   apply nondecreasing_idempotent.
     apply V_nondecreasing.
   eta_expand as a; rewrite beta_b.
-Admitted.
+  apply V_as_limit; intro n; induction n.
+    simpl; unfold V; fold (@Y Var).
+    eta_expand as x; code_simpl; rewrite beta_y; code_simpl; auto.
+   simpl; rewrite IHn.
+   apply V1_idempotent.
+Qed.
 Hint Rewrite V_idempotent.
 
 Lemma V_closure (Var : Set) : closure (V : Code Var).
@@ -110,14 +131,6 @@ Hint Rewrite V_V : code_simpl.
 
 (* ------------------------------------------------------------------------ *)
 (** Next some lemmas about inhabinants of V. *)
-
-Lemma V1_nondecreasing (Var : Set) (a : Code Var) : I [= V * a.
-Proof.
-Admitted.
-
-Lemma V1_idempotent (Var : Set) (a : Code Var) : (V * a) o (V * a) == (V * a).
-Admitted.
-Hint Rewrite V1_idempotent.
 
 Lemma V_V1 (Var : Set) (a : Code Var) : V * (V * a) == V * a.
 Proof.
