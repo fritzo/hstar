@@ -49,10 +49,15 @@ Proof.
   split.
     unfold V; fold (@Y Var).
     eta_expand; beta_simpl.
-    admit.
-  apply V_as_limit; intro n; induction n.
-Admitted.
-Hint Rewrite V1_idempotent.
+    admit. (* TODO *)
+  apply V_as_limit; intro n; induction n; simpl.
+    rewrite <- (V1_nondecreasing _ a); beta_eta.
+  rewrite IHn.
+  rewrite beta_v at 3.
+  rewrite pi_j_right.
+  eta_expand; beta_simpl; auto.
+Qed.
+Hint Rewrite V1_idempotent : code_simpl.
 
 Lemma V_nondecreasing (Var : Set) : I [= (V : Code Var).
 Proof.
@@ -61,19 +66,19 @@ Proof.
   rewrite beta_v; rewrite pi_j_left.
   beta_eta.
 Qed.
+Hint Resolve V_nondecreasing.
 
 Lemma V_idempotent (Var : Set) : V o V == (V : Code Var).
 Proof.
-  apply nondecreasing_idempotent.
-    apply V_nondecreasing.
+  apply nondecreasing_idempotent; auto.
   eta_expand as a; rewrite beta_b.
-  apply V_as_limit; intro n; induction n.
-    simpl; unfold V; fold (@Y Var).
+  apply V_as_limit; intro n; induction n; simpl.
+    unfold V; fold (@Y Var).
     eta_expand as x; code_simpl; rewrite beta_y; code_simpl; auto.
-   simpl; rewrite IHn.
+   rewrite IHn.
    apply V1_idempotent.
 Qed.
-Hint Rewrite V_idempotent.
+Hint Rewrite V_idempotent : code_simpl.
 
 Lemma V_closure (Var : Set) : closure (V : Code Var).
 Proof.
@@ -92,7 +97,6 @@ Qed.
 
 Lemma V_sound (Var : Set) (x : Code Var) : x :: V -> V_fixes x.
 Proof.
-  unfold closure.
   intros Hfix; apply V_fixes_intro.
   assert (I [= x).
     rewrite <- Hfix; rewrite beta_v; auto.
@@ -100,18 +104,18 @@ Proof.
   rewrite <- Hfix at 3; rewrite beta_v; rewrite Hfix.
   split; auto.
   apply code_le_j_ub; auto.
-  eta_expand as y.
-  rewrite beta_b.
-  rewrite <- beta_i at 1.
-  monotonicity; auto.
+  rewrite <- H; beta_eta.
 Qed.
 
 Lemma V_complete (Var : Set) (x : Code Var) : V_fixes x -> x :: V.
 Proof.
-  unfold  closure; intros [Hn Hi].
-  unfold V; fold (@Y Var).
-  (* TODO this requires a least fixed point lemma *)
-Admitted.
+  intros [a [Hn Hi]].
+  split.
+    unfold V; fold (@Y Var); beta_simpl.
+    apply Y_lfp; beta_simpl.
+    apply code_le_join; split; [auto | rewrite Hi; auto].
+  rewrite <- V_nondecreasing; beta_eta.
+Qed.
 
 Corollary V_fixes_closure (Var : Set) (a : Code Var) : closure a -> a :: V.
 Proof.
@@ -142,11 +146,13 @@ Lemma V1_inhab (Var : Set) (a x : Code Var) : a * x [= x <-> x :: V * a.
 Proof.
   split.
     intro H; split.
-      admit. (* TODO requires an lfp principle *)
+      apply V1_as_limit; unfold code_le_limit.
+      intro n; induction n; simpl; auto.
+      beta_simpl; rewrite IHn; auto.
     rewrite <- V1_nondecreasing; beta_simpl; auto.
   intro Hf.
   rewrite <- Hf at 2; rewrite <- V_nondecreasing; beta_eta.
-Admitted.
+Qed.
 
 Lemma V1_inhab_top (Var : Set) (a : Code Var) : TOP :: V * a.
 Proof.
@@ -162,7 +168,7 @@ Proof. auto. Qed.
 
 Lemma I_idempotent (Var : Set) : I o I == (I : Code Var).
 Proof. beta_eta. Qed.
-Hint Rewrite I_idempotent.
+Hint Rewrite I_idempotent : code_simpl.
 
 Lemma V_I (Var : Set) : I :: (V : Code Var).
 Proof.
@@ -203,33 +209,51 @@ Lemma P_idem (Var : Set) (a : Code Var) : P * a * a == V * a.
 Proof.
   unfold P; fold (@V Var); beta_simpl; rewrite code_eq_j_idem; auto.
 Qed.
-Hint Rewrite P_idem.
+Hint Rewrite P_idem : code_simpl.
 
 Lemma P_comm (Var : Set) (a b : Code Var) : P * a * b == P * b * a.
 Proof.
   unfold P; fold (@V Var); beta_simpl; rewrite code_le_j_sym at 1; auto.
 Qed.
 
+Lemma code_le_v_join (Var : Set ) (a b : Code Var) :
+  V * a || V * b [= V * (a || b).
+Proof.
+  apply code_le_j_ub; auto.
+Qed.
+
+Lemma code_eq_v_join (Var : Set ) (a b : Code Var) :
+  V * (V * a || V * b) == V * (a || b).
+Proof.
+  split.
+    rewrite code_le_v_join; code_simpl; auto.
+  rewrite <- (beta_ap_left (beta_ap_right beta_i)).
+  rewrite <- (beta_ap_right (beta_ap_right beta_i)).
+  monotonicity.
+Qed.
+
 Lemma P_assoc (Var : Set) (a b c : Code Var) :
   P * a * (P * b * c) == P * (P * a * b) * c.
 Proof.
   unfold P; fold (@V Var); beta_simpl.
+  split.
+    rewrite <- code_eq_v_join.
 Admitted.
 
 Lemma P1_nondecreasing (Var : Set) (a : Code Var) : I [= P * a.
 Proof.
-  unfold P.
+  unfold P; fold (@V Var).
   eta_expand; rewrite beta_b; rewrite beta_b; rewrite pi_j_right.
-  monotonicity; apply V_nondecreasing.
+  monotonicity.
 Qed.
 
 Lemma P1_idempotent (Var : Set) (a : Code Var) : (P * a) o (P * a) == P * a.
 Proof.
   apply nondecreasing_idempotent.
     apply P1_nondecreasing.
-  eta_expand; rewrite beta_b.
+  eta_expand as b; rewrite beta_b.
 Admitted.
-Hint Rewrite P1_idempotent.
+Hint Rewrite P1_idempotent : code_simpl.
 
 Lemma V_P1 (Var : Set) (a : Code Var) : V * (P * a) == P * a.
 Proof.
@@ -295,7 +319,7 @@ Lemma P2_idempotent (Var : Set) (a b : Code Var) :
 Proof.
   unfold P; fold (@V Var); beta_simpl; apply V1_idempotent.
 Qed.
-Hint Rewrite P1_idempotent.
+Hint Rewrite P1_idempotent : code_simpl.
 
 Lemma V_P2 (Var : Set) (a b : Code Var) : V * (P * a * b) == P * a * b.
 Proof.
@@ -393,7 +417,7 @@ Lemma div_idempotent (Var : Set) : div o div == (div : Code Var).
 Proof.
   unfold div; apply V1_idempotent.
 Qed.
-Hint Rewrite div_idempotent.
+Hint Rewrite div_idempotent : code_simpl.
 
 Lemma V_div (Var : Set) : V * div == (div : Code Var).
 Proof.
@@ -517,7 +541,7 @@ Proof.
   unfold semi; fold (@V Var).
   (* TODO this requires a least-fixed-point argument *)
 Admitted.
-Hint Rewrite semi_idempotent.
+Hint Rewrite semi_idempotent : code_simpl.
 
 (* TODO prove by [apply V_fixes_constructed_types] *)
 Lemma V_semi (Var : Set) : semi :: (V : Code Var).
@@ -629,7 +653,7 @@ Lemma boool_idempotent (Var : Set) : boool o boool == (boool : Code Var).
 Proof.
   eta_expand as a; rewrite beta_b.
 Admitted.
-Hint Rewrite boool_idempotent.
+Hint Rewrite boool_idempotent : code_simpl.
 
 Lemma V_boool (Var : Set) : boool :: (V : Code Var).
 Proof.
@@ -741,7 +765,7 @@ Lemma bool_idempotent (Var : Set) : bool o bool == (bool : Code Var).
 Proof.
   apply P2_idempotent.
 Qed.
-Hint Rewrite bool_idempotent.
+Hint Rewrite bool_idempotent : code_simpl.
 
 Lemma V_bool (Var : Set) : bool :: (V : Code Var).
 Proof.

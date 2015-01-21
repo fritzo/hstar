@@ -61,11 +61,6 @@ Proof.
   apply Y_limit_lub.
 Qed.
 
-Lemma Y_fp (Var : Set) (f : Code Var) : Y * f == f * (Y * f).
-Proof.
-  rewrite <- beta_y; reflexivity.
-Qed.
-
 Lemma Y_lfp (Var : Set) (f x : Code Var) : f * x [= x -> Y * f [= x.
 Proof.
   intro Hl.
@@ -79,7 +74,14 @@ Qed.
 
 Lemma Y1_idem (Var : Set) (f : Code Var) : Y * (f o f) = Y * f.
 Proof.
-  (* easy *)
+Admitted.
+
+Lemma Y_S_right (Var : Set) (f g : Code Var) :
+  Y * (S * f * g) = Y * (C * f * (Y * (S * f * g))).
+Admitted.
+
+Lemma Y_S_left (Var : Set) (f g : Code Var) :
+  Y * (S * f * g) = Y * (B * (Y * (S * f * g)) * g).
 Admitted.
 
 Lemma Y_ub (Var : Set) (f b : Code Var) :
@@ -95,10 +97,20 @@ Lemma V_as_limit (Var : Set) (f : Code Var):
   code_eq_limit (V * f) (fun n => f ^ n).
 Proof.
   split; unfold code_le_limit.
-    induction n.
-      simpl; rewrite beta_v; rewrite pi_j_left; auto.
+    induction n; simpl.
+      rewrite beta_v; rewrite pi_j_left; auto.
     rewrite beta_v; rewrite pi_j_right.
-    unfold power; fold (@power Var).
-    monotonicity.
+    rewrite IHn; auto.
+  intros y Hy.
+Admitted.
+
+Lemma V1_as_limit (Var : Set) (f x : Code Var):
+  code_eq_limit (V * f * x) (fun n => f ^ n * x).
+Proof.
+  split; unfold code_le_limit.
+    induction n; simpl.
+      rewrite beta_v; rewrite pi_j_left; auto.
+    rewrite beta_v; rewrite pi_j_right.
+    beta_simpl; monotonicity.
   intros y Hy.
 Admitted.
