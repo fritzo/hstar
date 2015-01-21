@@ -1,4 +1,4 @@
-all: src sandbox doc
+all: src sandbox doc badge
 
 src: FORCE
 	cd src ; ./make.sh
@@ -10,6 +10,9 @@ sandbox: FORCE
 
 doc: FORCE
 	$(MAKE) -C doc
+
+badge: FORCE
+	./proof_badge.sh
 
 clean:
 	git clean -dfx
