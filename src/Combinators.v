@@ -49,14 +49,15 @@ Section beta_abs_sub.
   Variable y : Code Var'.
   Let f v := match b v with None => y | Some v' => code_var v' end.
 
+  Ltac beta_s_ap := rewrite beta_s; apply beta_ap; auto.
+
   Lemma beta_abs_sub : beta (code_abs b x * y) (code_sub f x).
   Proof.
     induction x; try (unfold f; simpl; auto; fail).
       compute; case (b v); auto.
-    (* TODO this only works for simple I,K,S-abstraction.
-    compute; rewrite beta_s.
-    transitivity (code_abs b c1 * y * (code_sub f c2)); auto.
-    *)
+    rewrite code_sub_ap.
+    unfold code_abs; fold (@code_abs Var).
+    destruct (code_abs b c1); destruct (code_abs b c2); try beta_s_ap.
   Admitted.
 End beta_abs_sub.
 Hint Resolve beta_abs_sub.
@@ -91,15 +92,21 @@ Section Y.
   Let f := make_var Var 0.
   Let x := make_var Var 1.
   Definition Y := Eval compute in close
-    ((\f, \x, f * (x * x * f)) * (\f, \x, f * (x * x * f))).
-    (* (\f, (\x, f * (x * x)) * (\x, f * (x * x))).  *)
+    (\f, (\x, f * (x * x)) * (\x, f * (x * x))).
+    (* ((\x, \f, f * (x * x * f)) * (\x, \f, f * (x * x * f))). *)
 End Y.
 
-Lemma beta_y (Var : Set) (f : Code Var) : beta (Y * f) (f * (Y * f)).
+Lemma code_eq_y (Var : Set) (f : Code Var) : code_eq (Y * f) (f * (Y * f)).
 Proof.
   unfold Y.
-Admitted.
-Hint Rewrite beta_y : beta_unsafe.
+  rewrite beta_s at 1.
+  rewrite beta_c at 1.
+  rewrite beta_b at 1.
+  rewrite beta_s at 1.
+  rewrite beta_i.
+  rewrite <- beta_s at 1.
+  reflexivity.
+Qed.
 
 Section V.
   Context {Var : Set}.
@@ -108,32 +115,41 @@ Section V.
   Definition V := Eval compute in close (\a, Y * \x, I || a o x).
 End V.
 
-(* FIXME this is only true up to undirected [beta_eta] *)
-Lemma beta_v (Var : Set) (a : Code Var) : beta (V * a) (I || a o (V * a)).
+Lemma code_eq_v (Var : Set) (a : Code Var) : code_eq (V * a) (I || a o (V * a)).
 Proof.
-  unfold V; fold (@Y Var).
-Admitted.
-Hint Rewrite beta_v : beta_unsafe.
+  unfold V at 1; fold (@Y Var).
+  rewrite beta_b at 1.
+  rewrite code_eq_y.
+  rewrite <- (beta_ap_right beta_b) at 1.
+  unfold Y; fold (@V Var).
+  beta_simpl; reflexivity.
+Qed.
 
 (* The [div] combinator is useful in convergence testing *)
 
 Definition div {Var : Set} : Code Var := Eval compute in V * (C * I * TOP).
 
-Lemma beta_div (Var : Set) (x : Code Var) :
-  beta (div * x) (x || div * x * TOP).
+Lemma code_eq_div (Var : Set) (x : Code Var) :
+  code_eq (div * x) (x || div * x * TOP).
 Proof.
   unfold div; fold (@V Var).
-  rewrite beta_v at 1; beta_simpl; auto.
+  rewrite code_eq_v at 1; beta_simpl; auto.
 Qed.
-Hint Rewrite beta_div : beta_unsafe.
 
 Lemma conv_div (Var : Set) (x : Code Var) :
   conv x <-> div * x == TOP.
 Proof.
   split.
   intro H; induction H.
+      split; auto; intros Var' c f Hc.
       admit.
     admit.
   intros [H' H]; clear H'.
   unfold code_le in H.
+  assert (conv (I * (TOP @ code_var) : Code Var)) as Ht; code_simpl; auto.
+  set (Hd := H Var I code_var Ht).
+  code_simpl in Hd.
+  inversion Hd.
+    admit.
+  admit.
 Admitted.

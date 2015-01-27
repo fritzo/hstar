@@ -274,25 +274,25 @@ Proof.
   intros H; apply A_above_complete in H.
   induction H; auto.
   - transitivity y; auto.
-  - rewrite beta_y; beta_simpl.
+  - rewrite code_eq_y; beta_simpl.
     rewrite pi_j_left.
     rewrite pi_j_left.
     rewrite pi_j_left.
     auto.
-  - rewrite beta_y; beta_simpl.
+  - rewrite code_eq_y; beta_simpl.
     rewrite pi_j_left.
     rewrite pi_j_left.
     rewrite pi_j_right.
     auto.
-  - rewrite beta_y; beta_simpl.
+  - rewrite code_eq_y; beta_simpl.
     rewrite pi_j_left.
     rewrite pi_j_right.
     auto.
-  - rewrite beta_y; beta_simpl.
+  - rewrite code_eq_y; beta_simpl.
     rewrite pi_j_right.
     rewrite pi_j_left.
     rewrite IHA_above; auto.
-  - rewrite beta_y; beta_simpl.
+  - rewrite code_eq_y; beta_simpl.
     rewrite pi_j_right.
     rewrite pi_j_right.
     rewrite IHA_above; auto.

@@ -154,6 +154,12 @@ Proof.
   intros x x' Hx y y' Hy; transitivity (x * y'); auto.
 Qed.
 
+Lemma beta_ap {Var : Set} {x x' y y' : Code Var} :
+  beta x x' -> beta y y' -> beta (x * y) (x' * y').
+Proof.
+  transitivity (x' * y); auto.
+Qed.
+
 Lemma beta_confluent (Var : Set) (x y y' : Code Var) :
   beta x y -> beta x y' -> exists z, beta y z /\ beta y' z.
 Proof.

@@ -35,7 +35,7 @@ Proof.
   induction n.
     simpl; beta_simpl; auto.
   unfold power; fold (@power Var); rewrite beta_b.
-  rewrite beta_y; monotonicity.
+  rewrite code_eq_y; monotonicity.
 Qed.
 
 Lemma Y_limit_lb
@@ -43,7 +43,7 @@ Lemma Y_limit_lb
   (Var' : Set) (c : Code Var') (b : Var -> Code Var') :
   conv (c * (Y * f @ b)) -> exists n, conv (c * (f ^ n * BOT @ b)).
 Proof.
-  (* sketch: prove the only beta path from [Y * f] to [f ...] is [beta_y]. *)
+  (* sketch: prove the only beta path from [Y * f] to [f ...] is [code_eq_y]. *)
 Admitted.
 
 Lemma Y_limit_lub (Var : Set) (f x : Code Var) :
@@ -98,8 +98,8 @@ Lemma V_as_limit (Var : Set) (f : Code Var):
 Proof.
   split; unfold code_le_limit.
     induction n; simpl.
-      rewrite beta_v; rewrite pi_j_left; auto.
-    rewrite beta_v; rewrite pi_j_right.
+      rewrite code_eq_v; rewrite pi_j_left; auto.
+    rewrite code_eq_v; rewrite pi_j_right.
     rewrite IHn; auto.
   intros y Hy.
 Admitted.
@@ -109,8 +109,8 @@ Lemma V1_as_limit (Var : Set) (f x : Code Var):
 Proof.
   split; unfold code_le_limit.
     induction n; simpl.
-      rewrite beta_v; rewrite pi_j_left; auto.
-    rewrite beta_v; rewrite pi_j_right.
+      rewrite code_eq_v; rewrite pi_j_left; auto.
+    rewrite code_eq_v; rewrite pi_j_right.
     beta_simpl; monotonicity.
   intros y Hy.
 Admitted.

@@ -8,14 +8,17 @@ import glob
 BADGE = '![Proof Status](https://img.shields.io/badge/{}.svg?style=flat)'
 
 
+def re_count(patt, text, flags=0):
+    return sum(1 for _ in re.finditer(patt, text, re.MULTILINE | re.DOTALL))
+
+
 def count_holes():
     hole_counts = []
     for filename in glob.glob('src/*.v'):
         with open(filename) as f:
-            hole_count = sum(
-                1
-                for line in f
-                if re.search(r'\b(admit|Admitted)\.', line))
+            text = f.read()
+            hole_count = re_count(r'\bAdmitted\.', text)
+            hole_count += re_count(r'\badmit\..*?(Qed|Defined)\.', text)
         if hole_count:
             stem = filename[4:-2]
             hole_counts.append({'count': hole_count, 'name': stem})

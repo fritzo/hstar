@@ -44,7 +44,7 @@ Qed.
 Lemma V1_nondecreasing (Var : Set) (a : Code Var) : I [= V * a.
 Proof.
   simpl; unfold V; fold (@Y Var).
-  eta_expand as x; code_simpl; rewrite beta_y; code_simpl; auto.
+  eta_expand as x; code_simpl; rewrite code_eq_y; code_simpl; auto.
 Qed.
 
 Lemma V1_idempotent (Var : Set) (a : Code Var) : (V * a) o (V * a) == (V * a).
@@ -56,7 +56,7 @@ Proof.
   apply V_as_limit; intro n; induction n; simpl.
     rewrite <- (V1_nondecreasing _ a); beta_eta.
   rewrite IHn.
-  rewrite beta_v at 3.
+  rewrite code_eq_v at 3.
   rewrite pi_j_right.
   eta_expand; beta_simpl; auto.
 Qed.
@@ -65,8 +65,8 @@ Hint Rewrite V1_idempotent : code_simpl.
 Lemma V_nondecreasing (Var : Set) : I [= (V : Code Var).
 Proof.
   eta_expand.
-  rewrite beta_v; rewrite pi_j_right.
-  rewrite beta_v; rewrite pi_j_left.
+  rewrite code_eq_v; rewrite pi_j_right.
+  rewrite code_eq_v; rewrite pi_j_left.
   beta_eta.
 Qed.
 Hint Resolve V_nondecreasing.
@@ -77,7 +77,7 @@ Proof.
   eta_expand as a; rewrite beta_b.
   apply V_as_limit; intro n; induction n; simpl.
     unfold V; fold (@Y Var).
-    eta_expand as x; code_simpl; rewrite beta_y; code_simpl; auto.
+    eta_expand as x; code_simpl; rewrite code_eq_y; code_simpl; auto.
    rewrite IHn.
    apply V1_idempotent.
 Qed.
@@ -102,9 +102,9 @@ Lemma V_sound (Var : Set) (x : Code Var) : x :: V -> V_fixes x.
 Proof.
   intros Hfix; apply V_fixes_intro.
   assert (I [= x).
-    rewrite <- Hfix; rewrite beta_v; auto.
+    rewrite <- Hfix; rewrite code_eq_v; auto.
   split; auto.
-  rewrite <- Hfix at 3; rewrite beta_v; rewrite Hfix.
+  rewrite <- Hfix at 3; rewrite code_eq_v; rewrite Hfix.
   split; auto.
   apply code_le_j_ub; auto.
   rewrite <- H; beta_eta.
@@ -283,7 +283,7 @@ Proof.
   unfold  closure, P; fold (@V Var); beta_simpl.
   intros Hfix.
   assert (I [= x).
-    rewrite <- Hfix; rewrite beta_v; auto.
+    rewrite <- Hfix; rewrite code_eq_v; auto.
   assert (a [= x) as ax.
     rewrite <- Hfix; rewrite <- V_nondecreasing; beta_simpl; auto.
   rewrite code_le_j_sym in Hfix.
@@ -531,7 +531,7 @@ Lemma semi_nondecreasing (Var : Set) : I [= (semi : Code Var).
 Proof.
   unfold semi.
   eta_expand.
-  rewrite beta_y.
+  rewrite code_eq_y.
   rewrite beta_j_ap.
   rewrite beta_k.
   repeat rewrite pi_j_left.
@@ -643,7 +643,7 @@ Lemma boool_nondecreasing (Var : Set) : I [= (boool : Code Var).
 Proof.
   unfold boool.
   eta_expand.
-  rewrite beta_y.
+  rewrite code_eq_y.
   rewrite pi_j_left.
   rewrite beta_k.
   rewrite beta_j_ap.
