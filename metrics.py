@@ -29,11 +29,10 @@ def get_metrics():
         total = sum(item['count'] for item in hole_counts)
         lines = [BADGE.format('proofs-{}_holes-red'.format(total))]
         lines.append('')
-        lines.append('-' * 40)
-        lines.append('*Holes* | *Name*')
+        lines.append('Holes | Name')
+        lines.append('-----:|:' + '-' * 60)
         for item in hole_counts:
-            lines.append('{count: >7d} | [{name}](src/{name}.v)'.format(**item))
-        lines.append('-' * 40)
+            lines.append('{count: >5d} | [{name}](src/{name}.v)'.format(**item))
         lines.append('')
     else:
         lines = [BADGE.format('proofs-complete-green')]

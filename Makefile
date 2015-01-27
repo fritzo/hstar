@@ -1,4 +1,4 @@
-all: src sandbox doc badge
+all: src sandbox doc metrics
 
 src: FORCE
 	cd src ; ./make.sh
@@ -11,7 +11,7 @@ sandbox: FORCE
 doc: FORCE
 	$(MAKE) -C doc
 
-badge: FORCE
+metrics: FORCE
 	./metrics.py
 
 clean:
