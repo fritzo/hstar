@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/fritzo/hstar.svg?branch=master)](https://travis-ci.org/fritzo/hstar)
 ![Proof Status](https://img.shields.io/badge/proofs-75_holes-red.svg?style=flat)
 
-<div style="font-size:small">
+<style> table { font-size: small } </style>
 
 Holes | File
 -----:|:------------------------------------------------------------
@@ -12,8 +12,6 @@ Holes | File
     8 | [LeastFixedPoint](src/LeastFixedPoint.v)
     7 | [Codes](src/Codes.v)
     6 | [Combinators](src/Combinators.v)
-
-</div>
 
 # Inadvertently typed &lambda;-join-calculus
 
