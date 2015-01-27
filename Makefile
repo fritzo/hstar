@@ -12,6 +12,7 @@ doc: FORCE
 	$(MAKE) -C doc
 
 metrics: FORCE
+	pyflakes metrics.py
 	./metrics.py
 
 clean:

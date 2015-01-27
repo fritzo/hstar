@@ -1,8 +1,6 @@
 [![Build Status](https://travis-ci.org/fritzo/hstar.svg?branch=master)](https://travis-ci.org/fritzo/hstar)
 ![Proof Status](https://img.shields.io/badge/proofs-75_holes-red.svg?style=flat)
 
-<style> table { font-size: small } </style>
-
 Holes | File
 -----:|:------------------------------------------------------------
    17 | [InformationOrdering](src/InformationOrdering.v)

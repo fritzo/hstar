@@ -67,5 +67,4 @@ def update_readme(filename='README.md'):
 
 
 if __name__ == '__main__':
-    print count_holes()
     update_readme()
