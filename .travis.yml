@@ -13,4 +13,3 @@ env:
     - TARGET=sandbox
 script:
     - make $TARGET
-    - ./metrics.sh
