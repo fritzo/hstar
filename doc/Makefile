@@ -13,8 +13,6 @@ body.tex: FORCE
 	$(SRC)/BohmTrees.v \
 	$(SRC)/TypeConstructor.v \
 	$(SRC)/Types.v \
-	$(SRC)/DirectedSets.v \
-	$(SRC)/Points.v \
 	$(SRC)/Applications.v \
 	#
 
