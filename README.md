@@ -1,6 +1,17 @@
 [![Build Status](https://travis-ci.org/fritzo/hstar.svg?branch=master)](https://travis-ci.org/fritzo/hstar)
 ![Proof Status](https://img.shields.io/badge/proofs-75_holes-red.svg?style=flat)
 
+----------------------------------------
+*Holes* | *Name*
+     17 | [InformationOrdering](src/InformationOrdering.v)
+     17 | [Types](src/Types.v)
+     12 | [Nontermination](src/Nontermination.v)
+      8 | [TypeConstructor](src/TypeConstructor.v)
+      8 | [LeastFixedPoint](src/LeastFixedPoint.v)
+      7 | [Codes](src/Codes.v)
+      6 | [Combinators](src/Combinators.v)
+----------------------------------------
+
 # Inadvertently typed &lambda;-join-calculus
 
 This project attempts to formally reason in Coq about

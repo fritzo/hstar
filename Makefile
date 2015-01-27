@@ -12,7 +12,7 @@ doc: FORCE
 	$(MAKE) -C doc
 
 badge: FORCE
-	./proof_badge.sh
+	./metrics.py
 
 clean:
 	git clean -dfx
