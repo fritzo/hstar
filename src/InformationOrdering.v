@@ -2,6 +2,7 @@
 
 Require Import Coq.Logic.Classical_Prop.
 Require Import Coq.Program.Basics.
+Require Import Coq.Program.Equality.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
@@ -115,33 +116,31 @@ Proof. simpl_relation. Qed.
 Lemma code_le_ap_right (Var : Set) (x y y' : Code Var) :
   y [= y' -> x * y [= x * y'.
 Proof.
-  (* OLD
-  unfold code_le, conv; intros H Var' c f.
+  unfold code_le; intros H Var' c f.
   repeat rewrite code_sub_ap.
   intros Hconv.
-  rewrite <- (beta_ap_right beta_b); apply H.
-  rewrite -> (beta_ap_right beta_b); auto.
-  *)
-Admitted.
+  rewrite <- beta_b.
+  apply H.
+  rewrite -> beta_b.
+  auto.
+Qed.
 Hint Resolve code_le_ap_right.
 
 Lemma code_le_ap_left (Var : Set) (x x' y : Code Var) :
   x [= x' -> x * y [= x' * y.
 Proof.
-  (* OLD
-  unfold code_le, conv; intros H Var' c f.
+  unfold code_le; intros H Var' c f.
   repeat rewrite code_sub_ap.
   intros Hconv.
-  rewrite <- (beta_ap_right (beta_ap_right (beta_ap_left beta_i))).
-  rewrite <- (beta_ap_right (beta_ap_right beta_c)).
-  rewrite <- (beta_ap_right beta_b).
+  rewrite <- (beta_ap_right (beta_ap_left beta_i)).
+  rewrite <- (beta_ap_right beta_c).
+  rewrite <- beta_b.
   apply H.
-  rewrite -> (beta_ap_right beta_b).
-  rewrite -> (beta_ap_right (beta_ap_right beta_c)).
-  rewrite -> (beta_ap_right (beta_ap_right (beta_ap_left beta_i))).
+  rewrite -> beta_b.
+  rewrite -> (beta_ap_right beta_c).
+  rewrite -> (beta_ap_right (beta_ap_left beta_i)).
   auto.
-  *)
-Admitted.
+Qed.
 Hint Resolve code_le_ap_left.
 
 Lemma code_le_ap (Var : Set) (x x' y y' : Code Var) :
@@ -204,38 +203,31 @@ Ltac monotonicity :=
 
 Lemma code_le_top_closed (x : Code Empty_set) : x [= TOP.
 Proof.
-  (* OLD
-  unfold code_le, conv.
-  induction x; intros Var' c f;
-  intro Hc; inversion Hc as [? y ? Hb Hp e1 e2]; clear e1 e2; auto.
-    inversion v.
-    admit. (* easy context twiddling *)
-  *)
+  unfold code_le.
+  induction x; intros Var' c f Hc.
 Admitted.
 
 Lemma code_le_top (Var : Set) (x : Code Var) : x [= TOP.
 Proof.
-  (* OLD
-  unfold code_le, conv ; intros Var' c f Hred.
-  simpl.
+  intros Var' c f Hc.
+  dependent induction Hc; auto.
+    admit.
+  apply conv_ap.
+  rewrite <- (beta_ap_left beta_i).
+  rewrite <- beta_c.
   rewrite <- beta_b.
-  *)
-  (* OLD
-  rewrite -> (pi_top (x @ f)) at 1.
-  rewrite -> beta_b; auto.
-  *)
+  apply IHHc with x.
+  beta_simpl.
 Admitted.
 Hint Resolve code_le_top.
 
 Lemma code_le_bot (Var : Set) (x : Code Var) : BOT [= x.
 Proof.
-  (* OLD
-  unfold code_le, conv; intros Var' c f Hred.
-  rewrite <- beta_b.
+  unfold code_le; intros Var' c f Hred.
+  simpl in Hred.
   rewrite -> (pi_ap_right (pi_bot _)).
-  rewrite -> beta_b; auto.
-  *)
-Admitted.
+  auto.
+Qed.
 Hint Resolve code_le_bot.
 
 Lemma absolute_consistency (Var : Set) : ~ TOP [= (BOT : Code Var).
@@ -274,28 +266,22 @@ Qed.
 
 Lemma code_le_j_left (Var : Set) (x y : Code Var) : x [= x || y.
 Proof.
-  (* OLD
-  unfold code_le, conv; intros Var' c f Hred.
+  unfold code_le; intros Var' c f Hred.
   rewrite pi_j_left; auto.
-  *)
-Admitted.
+Qed.
 Hint Resolve code_le_j_left.
 
 Lemma code_le_j_right (Var : Set) (x y : Code Var) : y [= x || y.
 Proof.
-  (* OLD
-  unfold code_le, conv; intros Var' c f Hred.
+  unfold code_le; intros Var' c f Hred.
   rewrite pi_j_right; auto.
-  *)
-Admitted.
+Qed.
 Hint Resolve code_le_j_right.
 
 Lemma code_le_j_ub (Var : Set) (x y z : Code Var) :
   x [= z -> y [= z -> x || y [= z.
 Proof.
-  (* OLD
-  unfold code_le, conv; intros Hx Hy Var' c f Hconv.
-  *)
+  unfold code_le; intros Hx Hy Var' c f Hc.
 Admitted.
 Hint Resolve code_le_j_ub.
 
@@ -478,7 +464,7 @@ Qed.
 Lemma code_le_empty_sound (Var : Set) (x x' : Code Var) :
   code_le_empty x x' -> x [= x'.
 Proof.
-  unfold code_le; intros H Var' c f Hconv.
+  unfold code_le; intros H Var' c f Hc.
 Admitted.
 
 Theorem code_le_empty_equiv (Var : Set) (x x' : Code Var) :
