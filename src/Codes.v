@@ -313,6 +313,13 @@ Proof.
   compute; intros x x' xx' Ha.
 Admitted.
 
+Instance conv_proper_approx (Var : Set) : Proper (approx --> impl) (@conv Var).
+Proof.
+  intros x z Hxz Hc.
+  destruct Hxz as [x y z Hxy Hyz].
+  rewrite Hxy; rewrite Hyz; auto.
+Qed.
+
 (** ** Substitution *)
 
 Fixpoint code_sub {Var Var' : Set}

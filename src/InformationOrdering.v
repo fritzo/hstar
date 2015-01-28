@@ -185,6 +185,19 @@ Proof.
   apply code_eq_trans with (x * y'); auto.
 Qed.
 
+Instance conv_le_proper (Var : Set) : Proper (code_le ++> impl) (@conv Var).
+Proof.
+  intros x y Hxy Hc; unfold code_le in Hxy.
+  rewrite <- var_monad_unit_right; rewrite <- beta_i.
+  apply Hxy; code_simpl; auto.
+Qed.
+
+Instance conv_eq_proper (Var : Set) : Proper (code_eq ==> iff) (@conv Var).
+Proof.
+  intros x y [Hxy Hyx]; split; intro Hc;
+  [rewrite <- Hxy | rewrite <- Hyx]; auto.
+Qed.
+
 Ltac code_le_monotonicity := repeat ((
   apply code_le_ap_left ||
   apply code_le_ap_right ||

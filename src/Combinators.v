@@ -179,8 +179,8 @@ Lemma conv_div (Var : Set) (x : Code Var) :
   conv x <-> div * x == TOP.
 Proof.
   split.
-  intro H; induction H.
-      split; auto; intros Var' c f Hc.
+    intro H; induction H; split; auto; intros Var' c f Hc.
+      rewrite H.
       admit.
     admit.
   intros [H' H]; clear H'.
