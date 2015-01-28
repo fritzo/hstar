@@ -6,8 +6,8 @@ Holes | File
    14 | [Types](src/Types.v)
    12 | [InformationOrdering](src/InformationOrdering.v)
    12 | [Nontermination](src/Nontermination.v)
-    8 | [TypeConstructor](src/TypeConstructor.v)
     8 | [LeastFixedPoint](src/LeastFixedPoint.v)
+    8 | [TypeConstructor](src/TypeConstructor.v)
     7 | [Codes](src/Codes.v)
     2 | [Combinators](src/Combinators.v)
 

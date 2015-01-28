@@ -22,7 +22,7 @@ def count_holes():
         if hole_count:
             stem = filename[4:-2]
             hole_counts.append({'count': hole_count, 'name': stem})
-    hole_counts.sort(key=(lambda item: item['count']), reverse=True)
+    hole_counts.sort(key=(lambda item: (-item['count'], item['name'])))
     return hole_counts
 
 
