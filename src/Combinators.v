@@ -11,6 +11,30 @@ Require Export InformationOrdering.
 
 (** ** Abstraction *)
 
+(** Simple I,K,S-abstraction *)
+
+Fixpoint code_abs0 {Var Var' : Set} (b : Var -> option Var') (x : Code Var) :
+  Code Var' :=
+  match x with
+  | code_var v =>
+      match b v with
+      | None => I
+      | Some v' => K * (code_var v')
+      end
+  | l * r => S * code_abs0 b l * code_abs0 b r
+  | TOP => K * TOP
+  | BOT => K * BOT
+  | J => K * J
+  | R => K * R
+  | I => K * I
+  | K => K * K
+  | B => K * B
+  | C => K * C
+  | S => K * S
+  end.
+
+(** Efficient I,K,B,C,S,eta-abstraction *)
+
 Fixpoint code_abs {Var Var' : Set} (b : Var -> option Var') (x : Code Var) :
   Code Var' :=
   match x with
@@ -21,14 +45,10 @@ Fixpoint code_abs {Var Var' : Set} (b : Var -> option Var') (x : Code Var) :
       end
   | l * r =>
       match code_abs b l, code_abs b r with
-      (* TODO switch to more efficient lambda abstraction once proof passes
-      *)
       | K * l', I => l'
       | K * l', K * r' => K * (l' * r')
       | K * l', r' => B * l' * r'
       | l', K * r' => C * l' * r'
-      (*
-      *)
       | l', r' => S * l' * r'
       end
   | TOP => K * TOP
@@ -42,25 +62,44 @@ Fixpoint code_abs {Var Var' : Set} (b : Var -> option Var') (x : Code Var) :
   | S => K * S
   end.
 
-Section beta_abs_sub.
+Section code_eq_abs_sub.
   Variable Var Var' : Set.
   Variable b : Var -> option Var'.
   Variable x : Code Var.
   Variable y : Code Var'.
   Let f v := match b v with None => y | Some v' => code_var v' end.
 
-  Ltac beta_s_ap := rewrite beta_s; apply beta_ap; auto.
-
-  Lemma beta_abs_sub : beta (code_abs b x * y) (code_sub f x).
+  Lemma code_eq_abs0_sub : code_abs0 b x * y == code_sub f x.
   Proof.
     induction x; try (unfold f; simpl; auto; fail).
-      compute; case (b v); auto.
+      unfold f; simpl; destruct (b v); beta_simpl; auto.
     rewrite code_sub_ap.
-    unfold code_abs; fold (@code_abs Var).
-    destruct (code_abs b c1); destruct (code_abs b c2); try beta_s_ap.
-  Admitted.
-End beta_abs_sub.
-Hint Resolve beta_abs_sub.
+    unfold code_abs0; fold (@code_abs0 Var).
+    rewrite beta_s; auto.
+  Qed.
+
+  Lemma code_eq_abs_abs0 : code_abs b x * y == code_abs0 b x * y.
+  Proof.
+    induction x; unfold f; simpl; auto.
+    rewrite beta_s.
+    rewrite <- IHc1; clear IHc1.
+    rewrite <- IHc2; clear IHc2.
+    destruct (code_abs b c1);
+    destruct (code_abs b c2);
+    try rewrite beta_s; auto;
+    reflexivity || (
+        destruct c3; (rewrite beta_s || beta_simpl); auto; reflexivity || (
+            destruct c5; (rewrite beta_s || beta_simpl); auto
+    )).
+  Qed.
+
+  Lemma code_eq_abs_sub : code_abs b x * y == code_sub f x.
+  Proof.
+    transitivity (code_abs0 b x * y);
+    [apply code_eq_abs_abs0 | apply code_eq_abs0_sub].
+  Qed.
+End code_eq_abs_sub.
+Hint Resolve code_eq_abs_sub.
 
 (** ** Informal lambda notation *)
 
