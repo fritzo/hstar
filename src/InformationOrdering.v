@@ -185,19 +185,6 @@ Proof.
   apply code_eq_trans with (x * y'); auto.
 Qed.
 
-Instance conv_le_proper (Var : Set) : Proper (code_le ++> impl) (@conv Var).
-Proof.
-  intros x y Hxy Hc; unfold code_le in Hxy.
-  rewrite <- var_monad_unit_right; rewrite <- beta_i.
-  apply Hxy; code_simpl; auto.
-Qed.
-
-Instance conv_eq_proper (Var : Set) : Proper (code_eq ==> iff) (@conv Var).
-Proof.
-  intros x y [Hxy Hyx]; split; intro Hc;
-  [rewrite <- Hxy | rewrite <- Hyx]; auto.
-Qed.
-
 Ltac code_le_monotonicity := repeat ((
   apply code_le_ap_left ||
   apply code_le_ap_right ||
@@ -213,6 +200,38 @@ Ltac monotonicity :=
   | [|- _ [= _] => code_le_monotonicity
   | [|- _ == _] => code_eq_monotonicity
   end.
+
+Instance conv_le_proper (Var : Set) : Proper (code_le ++> impl) (@conv Var).
+Proof.
+  intros x y Hxy Hc; unfold code_le in Hxy.
+  rewrite <- var_monad_unit_right; rewrite <- beta_i.
+  apply Hxy; code_simpl; auto.
+Qed.
+
+Instance conv_eq_proper (Var : Set) : Proper (code_eq ==> iff) (@conv Var).
+Proof.
+  intros x y [Hxy Hyx]; split; intro Hc;
+  [rewrite <- Hxy | rewrite <- Hyx]; auto.
+Qed.
+
+Lemma code_sub_eq_left
+  (Var Var' : Set) (f g : Var -> Code Var') (x : Code Var) :
+  (forall v, f v == g v) -> x @ f == x @ g.
+Proof.
+Admitted.
+
+Lemma code_sub_eq_right
+  (Var Var' : Set) (f : Var -> Code Var') (x y : Code Var) :
+  x == y -> x @ f == y @ f.
+Proof.
+Admitted.
+
+Instance code_sub_eq (Var Var' : Set) :
+  Proper ((eq ==> code_eq) ==> code_eq ==> code_eq) (@code_sub Var Var').
+Proof.
+  intros f g Hfg x y Hxy; transitivity (y @ f);
+  [apply code_sub_eq_right | apply code_sub_eq_left]; auto.
+Qed.
 
 Lemma code_le_top_closed (x : Code Empty_set) : x [= TOP.
 Proof.

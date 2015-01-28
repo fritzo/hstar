@@ -135,7 +135,7 @@ Section Y.
     (* ((\x, \f, f * (x * x * f)) * (\x, \f, f * (x * x * f))). *)
 End Y.
 
-Lemma code_eq_y (Var : Set) (f : Code Var) : code_eq (Y * f) (f * (Y * f)).
+Lemma code_eq_y (Var : Set) (f : Code Var) : Y * f == f * (Y * f).
 Proof.
   unfold Y.
   rewrite beta_s at 1.
@@ -154,7 +154,7 @@ Section V.
   Definition V := Eval compute in close (\a, Y * \x, I || a o x).
 End V.
 
-Lemma code_eq_v (Var : Set) (a : Code Var) : code_eq (V * a) (I || a o (V * a)).
+Lemma code_eq_v (Var : Set) (a : Code Var) : V * a == I || a o (V * a).
 Proof.
   unfold V at 1; fold (@Y Var).
   rewrite beta_b at 1.
@@ -164,15 +164,25 @@ Proof.
   beta_simpl; reflexivity.
 Qed.
 
+Lemma code_eq_v' (Var : Set) (a : Code Var) : V * a == I || (V * a) o a.
+Proof.
+Admitted.
+
 (* The [div] combinator is useful in convergence testing *)
 
 Definition div {Var : Set} : Code Var := Eval compute in V * (C * I * TOP).
 
-Lemma code_eq_div (Var : Set) (x : Code Var) :
-  code_eq (div * x) (x || div * x * TOP).
+Lemma code_eq_div (Var : Set) (x : Code Var) : div * x == x || div * x * TOP.
 Proof.
   unfold div; fold (@V Var).
   rewrite code_eq_v at 1; beta_simpl; auto.
+Qed.
+
+Lemma code_eq_div' (Var : Set) (x : Code Var) :
+  div * x == x || div * (x * TOP).
+Proof.
+  unfold div; fold (@V Var).
+  rewrite code_eq_v' at 1; beta_simpl; auto.
 Qed.
 
 Lemma conv_div (Var : Set) (x : Code Var) :
@@ -180,11 +190,10 @@ Lemma conv_div (Var : Set) (x : Code Var) :
 Proof.
   split.
     intro H; induction H; split; auto; intros Var' c f Hc.
-      rewrite H.
-      admit.
-    admit.
-  intros [H' H]; clear H'.
-  unfold code_le in H.
+      rewrite H; rewrite code_eq_div; rewrite pi_j_left; auto.
+    rewrite code_eq_div'; rewrite pi_j_right; rewrite IHconv; auto.
+  intros [H' H]; clear H'; unfold code_le in H.
+  (* rewrite <- var_monad_unit_right; rewrite <- beta_i. *)
   assert (conv (I * (TOP @ code_var) : Code Var)) as Ht; code_simpl; auto.
   set (Hd := H Var I code_var Ht).
   code_simpl in Hd.
