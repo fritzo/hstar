@@ -88,8 +88,8 @@ Section code_eq_abs_sub.
     destruct (code_abs b c2);
     try rewrite beta_s; auto;
     reflexivity || (
-        destruct c3; (rewrite beta_s || beta_simpl); auto; reflexivity || (
-            destruct c5; (rewrite beta_s || beta_simpl); auto
+        destruct c3; try rewrite beta_s; beta_simpl; auto; reflexivity || (
+            destruct c5; try rewrite beta_s; beta_simpl; auto
     )).
   Qed.
 
@@ -159,7 +159,7 @@ Proof.
   unfold V at 1; fold (@Y Var).
   rewrite beta_b at 1.
   rewrite code_eq_y.
-  rewrite <- (beta_ap_right beta_b) at 1.
+  rewrite <- (astar_right _ (astar_step _ beta_b)) at 1.
   unfold Y; fold (@V Var).
   beta_simpl; reflexivity.
 Qed.
@@ -188,7 +188,9 @@ Qed.
 Lemma conv_div (Var : Set) (x : Code Var) : conv x <-> conv (div * x).
 Proof.
   split; intro Hc.
-    rewrite code_eq_div; rewrite test_j_left; auto.
+    rewrite code_eq_div.
+    rewrite (astar_step _ test_j_left).
+    auto.
   admit.
 Qed.
 

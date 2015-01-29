@@ -98,8 +98,8 @@ Lemma V_as_limit (Var : Set) (f : Code Var):
 Proof.
   split; unfold code_le_limit.
     induction n; simpl.
-      rewrite code_eq_v; rewrite test_j_left; auto.
-    rewrite code_eq_v; rewrite test_j_right.
+      rewrite code_eq_v; rewrite (astar_step _ test_j_left); auto.
+    rewrite code_eq_v; rewrite (astar_step _ test_j_right).
     rewrite IHn; auto.
   intros y Hy.
 Admitted.

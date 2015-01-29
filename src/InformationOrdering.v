@@ -68,8 +68,8 @@ Instance code_le_test_proper (Var : Set) :
 Proof.
   intros x x' Hx y y' Hy; unfold code_le; intros Hle Var' c f Hc.
   unfold flip in *.
-  rewrite (test_ap_right (code_sub_test_right _ _ _ _ _ Hy)).
-  apply Hle. rewrite -> Hx. auto.
+  rewrite (astar_right _ (code_sub_test_right _ _ _ _ _ Hy)).
+  apply Hle; rewrite -> Hx; auto.
 Qed.
 
 Instance code_le_test_subrelation (Var : Set) :
@@ -132,13 +132,13 @@ Proof.
   unfold code_le; intros H Var' c f.
   repeat rewrite code_sub_ap.
   intros Hconv.
-  rewrite <- (beta_ap_right (beta_ap_left beta_i)).
-  rewrite <- (beta_ap_right beta_c).
+  rewrite <- (astar_right _ (astar_left _ (astar_step _ beta_i))).
+  rewrite <- (astar_right _ (astar_step _ beta_c)).
   rewrite <- beta_b.
   apply H.
   rewrite -> beta_b.
-  rewrite -> (beta_ap_right beta_c).
-  rewrite -> (beta_ap_right (beta_ap_left beta_i)).
+  rewrite -> (astar_right _ (astar_step _ beta_c)).
+  rewrite -> (astar_right _ (astar_left _ (astar_step _ beta_i))).
   auto.
 Qed.
 Hint Resolve code_le_ap_left.
@@ -249,7 +249,7 @@ Lemma code_le_bot (Var : Set) (x : Code Var) : BOT [= x.
 Proof.
   unfold code_le; intros Var' c f Hred.
   simpl in Hred.
-  rewrite -> (test_ap_right (test_bot _)).
+  rewrite -> (astar_right _ (astar_step _ (test_bot _))).
   auto.
 Qed.
 Hint Resolve code_le_bot.
