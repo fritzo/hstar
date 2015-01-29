@@ -7,7 +7,7 @@ Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
 Require Import Coq.Lists.List.
-Require Export Codes.
+Require Export Substitution.
 Open Scope code_scope.
 
 Definition code_le {Var : Set} (x y : Code Var) :=

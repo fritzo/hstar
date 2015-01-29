@@ -6,6 +6,7 @@ body.tex: FORCE
 	coqdoc --short --light --body-only --latex -o body.tex \
 	$(SRC)/Notations.v \
 	$(SRC)/Codes.v \
+	$(SRC)/Substitution.v \
 	$(SRC)/InformationOrdering.v \
 	$(SRC)/Combinators.v \
 	$(SRC)/Nontermination.v \
