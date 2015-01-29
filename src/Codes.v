@@ -3,6 +3,7 @@
 Definition Succ := S%nat.  (* an alias for later *)
 
 Require Import Coq.Program.Basics.
+Require Import Coq.Program.Equality.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
@@ -54,6 +55,13 @@ Inductive star {Var : Set} (r : relation (Code Var)) : relation (Code Var) :=
   | star_trans {x} y {z} : star r x y -> star r y z -> star r x z.
 Hint Constructors star.
 
+Inductive weak_star {Var : Set} (r : relation (Code Var)) :
+  relation (Code Var) :=
+  | weak_star_step {x y} : r x y -> weak_star r x y
+  | weak_star_refl {x} : weak_star r x x
+  | weak_star_trans {x} y {z} : r x y -> weak_star r y z -> weak_star r x z.
+Hint Constructors weak_star.
+
 Inductive astar {Var : Set} (r : relation (Code Var)) : relation (Code Var) :=
   | astar_step {x y} : r x y -> astar r x y
   | astar_refl {x} : astar r x x
@@ -62,8 +70,34 @@ Inductive astar {Var : Set} (r : relation (Code Var)) : relation (Code Var) :=
   | astar_right {x y y'} : astar r y y' -> astar r (x * y) (x * y').
 Hint Constructors astar.
 
+Inductive weak_astar {Var : Set} (r : relation (Code Var)) :
+  relation (Code Var) :=
+  | weak_astar_step {x y} : r x y -> weak_astar r x y
+  | weak_astar_left {x x' y} :
+      weak_astar r x x' -> weak_astar r (x * y) (x' * y)
+  | weak_astar_right {x y y'} :
+      weak_astar r y y' -> weak_astar r (x * y) (x * y').
+Hint Constructors weak_astar.
+
+Lemma weaken_star (Var : Set) (r : relation (Code Var)) (x y : Code Var) :
+  star r x y <-> weak_star r x y.
+Proof.
+  split; intro H; induction H; eauto.
+  clear H H0; induction IHstar1; eauto.
+Qed.
+
+Lemma weaken_astar (Var : Set) (r : relation (Code Var)) (x y : Code Var) :
+  astar r x y <-> weak_star (weak_astar r) x y.
+Proof.
+  rewrite <- weaken_star.
+  split; intro H; induction H; eauto.
+  - clear H; induction IHastar; eauto.
+  - clear H; induction IHastar; eauto.
+  - induction H; eauto.
+Qed.
+
 Inductive probe_step {Var : Set} : Code Var -> Code Var -> Prop :=
-  | probe_top {x y} : probe_step x y -> probe_step x (y * TOP).
+  | probe_top {x} : probe_step x (x * TOP).
 Hint Constructors probe_step.
 
 Definition probe {Var : Set} : relation (Code Var) := star probe_step.
@@ -170,11 +204,31 @@ Instance probe_subrelation (Var : Set) :
   @subrelation (Code Var) probe_step probe.
 Proof. simpl_relation. Qed.
 
+Ltac simpl_probe_step :=
+  repeat
+  match goal with
+    | [H : probe_step _ _ |- _] => destruct H
+    | [H : probe_step ?x ?x -> _ |- _] => clear H
+  end.
+
 Instance probe_confluent (Var : Set) :
   Commuting (flip (@probe Var)) (@probe Var).
 Proof.
-  unfold flip; intros x y z xy yz; induction xy; induction yz; eauto.
-Admitted.
+  unfold flip, probe; intros x y z xy yz.
+  rewrite weaken_star in xy, yz.
+  induction xy; induction yz; eauto; simpl_probe_step.
+  - exists (x * TOP); auto.
+  - exists z; split; auto.
+    apply weaken_star; auto.
+  - exists z; split; auto.
+    apply weaken_star.
+    apply weak_star_trans with (x * TOP); auto.
+  - apply IHxy; auto.
+  - exists z0; split; auto.
+    apply weaken_star.
+    apply weak_star_trans with (x * TOP); auto.
+  - apply IHxy; auto.
+Qed.
 
 
 Instance beta_reflexive (Var : Set) : Reflexive (@beta Var).
@@ -200,10 +254,20 @@ Proof.
   intros x x' Hx y y' Hy; transitivity (x * y'); auto.
 Qed.
 
+Ltac beta_confluent_induction :=
+  timeout 10
+  repeat
+  match goal with
+    | [H : weak_star _ _ _ |- _] => induction H
+    | [H : weak_astar _ _ _ |- _] => induction H
+  end.
+
 Instance beta_confluent (Var : Set) :
   Commuting (flip (@beta Var)) (@beta Var).
 Proof.
-  unfold flip; intros x y z xy yz; induction xy; induction yz; auto.
+  unfold flip, beta; intros x y z xy yz.
+  rewrite weaken_astar in xy, yz.
+  induction xy; induction yz; eauto.
 Admitted.
 
 
