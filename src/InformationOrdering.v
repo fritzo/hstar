@@ -63,17 +63,17 @@ Hint Resolve code_eq_beta.
 Instance code_eq_beta_subrelation (Var : Set) :
   subrelation beta code_eq := code_eq_beta Var.
 
-Instance code_le_pi_proper (Var : Set) :
-  Proper (pi ++> pi --> impl) (@code_le Var).
+Instance code_le_test_proper (Var : Set) :
+  Proper (test ++> test --> impl) (@code_le Var).
 Proof.
   intros x x' Hx y y' Hy; unfold code_le; intros Hle Var' c f Hc.
   unfold flip in *.
-  rewrite (pi_ap_right (code_sub_pi_right _ _ _ _ _ Hy)).
+  rewrite (test_ap_right (code_sub_test_right _ _ _ _ _ Hy)).
   apply Hle. rewrite -> Hx. auto.
 Qed.
 
-Instance code_le_pi_subrelation (Var : Set) :
-  subrelation (inverse pi) (@code_le Var).
+Instance code_le_test_subrelation (Var : Set) :
+  subrelation (inverse test) (@code_le Var).
 Proof.
   unfold subrelation, predicate_implication, pointwise_lifting, flip.
   intros x y H; unfold code_le; intros Var' c f Hc.
@@ -242,14 +242,6 @@ Admitted.
 Lemma code_le_top (Var : Set) (x : Code Var) : x [= TOP.
 Proof.
   intros Var' c f Hc.
-  dependent induction Hc; auto.
-    admit.
-  apply conv_ap.
-  rewrite <- (beta_ap_left beta_i).
-  rewrite <- beta_c.
-  rewrite <- beta_b.
-  apply IHHc with x.
-  beta_simpl.
 Admitted.
 Hint Resolve code_le_top.
 
@@ -257,7 +249,7 @@ Lemma code_le_bot (Var : Set) (x : Code Var) : BOT [= x.
 Proof.
   unfold code_le; intros Var' c f Hred.
   simpl in Hred.
-  rewrite -> (pi_ap_right (pi_bot _)).
+  rewrite -> (test_ap_right (test_bot _)).
   auto.
 Qed.
 Hint Resolve code_le_bot.
@@ -299,14 +291,14 @@ Qed.
 Lemma code_le_j_left (Var : Set) (x y : Code Var) : x [= x || y.
 Proof.
   unfold code_le; intros Var' c f Hred.
-  rewrite pi_j_left; auto.
+  rewrite test_j_left; auto.
 Qed.
 Hint Resolve code_le_j_left.
 
 Lemma code_le_j_right (Var : Set) (x y : Code Var) : y [= x || y.
 Proof.
   unfold code_le; intros Var' c f Hred.
-  rewrite pi_j_right; auto.
+  rewrite test_j_right; auto.
 Qed.
 Hint Resolve code_le_j_right.
 
@@ -430,7 +422,7 @@ Ltac beta_eta :=
 
 Lemma code_eq_ap_top (Var : Set) (x : Code Var) : TOP * x == TOP.
 Proof.
-  split; [auto | rewrite <- pi_top at 1; beta_simpl; auto].
+  split; [auto | rewrite <- test_top at 1; beta_simpl; auto].
 Qed.
 Hint Rewrite code_eq_ap_top : code_simpl.
 

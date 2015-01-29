@@ -24,12 +24,6 @@ Inductive code {Var : Set} : Set :=
 Hint Constructors code.
 Definition Code (Var : Set) := @code Var.
 
-Notation "x * y" := (code_ap x y) : code_scope.
-
-Open Scope code_scope.
-Delimit Scope code_scope with code.
-Bind Scope code_scope with code.
-
 Notation "'TOP'" := code_top : code_scope.
 Notation "'BOT'" := code_bot : code_scope.
 Notation "'J'" := code_j : code_scope.
@@ -39,11 +33,22 @@ Notation "'K'" := code_k : code_scope.
 Notation "'B'" := code_b : code_scope.
 Notation "'C'" := code_c : code_scope.
 Notation "'S'" := code_s : code_scope.
+
+Open Scope code_scope.
+Delimit Scope code_scope with code.
+Bind Scope code_scope with code.
+
+Notation "x * y" := (code_ap x y) : code_scope.
 Notation "x 'o' y" := (code_b * x * y) : code_scope.
 Notation "x || y" := (code_j * x * y) : code_scope.
 Notation "x (+) y" := (code_r * x * y) : code_scope.
 
 Definition code_join {Var : Set} x y : Code Var := x || y.
+
+Inductive probe {Var : Set} : Code Var -> Code Var -> Prop :=
+  | probe_refl {x} : probe x x
+  | probe_trans {x} y {z} : probe x y -> probe y z -> probe x z
+  | probe_top {x y} : probe x y -> probe x (y * TOP).
 
 Inductive beta {Var : Set} : Code Var -> Code Var -> Prop :=
   | beta_refl {x} : beta x x
@@ -61,38 +66,31 @@ Inductive beta {Var : Set} : Code Var -> Code Var -> Prop :=
   | beta_r_sym {x y} : beta (x (+) y) (y (+) x)
   | beta_r_sym_sym {w x y z} : beta ((w(+)x) (+) (y(+)z)) ((x(+)y) (+) (z(+)w)).
 
-Inductive pi {Var : Set} : Code Var -> Code Var -> Prop :=
-  | pi_refl {x} : pi x x
-  | pi_trans {x} y {z} : pi x y -> pi y z -> pi x z
-  | pi_ap_left {x x' y} : pi x x' -> pi (x * y) (x' * y)
-  | pi_ap_right {x y y'} : pi y y' -> pi (x * y) (x * y')
-  | pi_top x : pi (TOP * x) TOP
-  | pi_bot x : pi x BOT
-  | pi_j_left {x y} : pi (x || y) x
-  | pi_j_right {x y} : pi (x || y) y.
+Inductive test {Var : Set} : Code Var -> Code Var -> Prop :=
+  | test_refl {x} : test x x
+  | test_trans {x} y {z} : test x y -> test y z -> test x z
+  | test_ap_left {x x' y} : test x x' -> test (x * y) (x' * y)
+  | test_ap_right {x y y'} : test y y' -> test (x * y) (x * y')
+  | test_top x : test (TOP * x) TOP
+  | test_bot x : test x BOT
+  | test_j_left {x y} : test (x || y) x
+  | test_j_right {x y} : test (x || y) y.
 
-Inductive approx {Var : Set} : Code Var -> Code Var -> Prop :=
-  approx_intro x y z : beta x y -> pi y z -> approx x z.
-
-Inductive conv {Var : Set} : Code Var -> Prop :=
-  | conv_approx {x} : approx x TOP -> conv x
-  | conv_ap {x} : conv (x * TOP) -> conv x.
+Definition conv {Var : Set} (x : Code Var) : Prop :=
+  exists y z, probe x y /\ beta y z /\ test z TOP.
 
 Inductive prob {Var : Set} : Code Var -> Prop :=
   | prob_top : prob TOP
   | prob_bot : prob BOT
   | prob_r p q : prob p -> prob q -> prob (p (+) q).
 
-Inductive pconv {Var : Set} : Code Var -> Code Var -> Prop :=
-  | pconv_approx {p x} : prob p -> approx x p -> pconv p x
-  | pconv_ap {p x} : pconv p (x * TOP) -> pconv p x.
+Definition pconv {Var : Set} (x p : Code Var) : Prop :=
+  prob p /\ exists y z, probe x y /\ beta y z /\ test z p.
 
+Hint Constructors probe.
 Hint Constructors beta.
-Hint Constructors pi.
-Hint Constructors approx.
-Hint Constructors conv.
+Hint Constructors test.
 Hint Constructors prob.
-Hint Constructors pconv.
 
 Definition Beta_i (Var : Set) := (@beta_i Var).
 Definition Beta_k (Var : Set) := (@beta_k Var).
@@ -135,6 +133,39 @@ Tactic Notation "freeze" reference(c) "in" tactic(tac) :=
   [ exists c; reflexivity
   | destruct H as [v H]; rewrite H; tac; destruct H].
 
+
+Class Commuting {a} (r s : relation a) :=
+  commuting : forall x y z, r x y -> s y z -> exists y', s x y' /\ r y' z.
+
+Ltac commute x y z xy yz :=
+  let w := fresh "w" in
+  let xw := fresh x w in
+  let wz := fresh w z in
+  let H := fresh in
+  set (H := commuting _ _ x y z xy yz);
+  destruct H as [w [xw wz]].
+
+
+Instance probe_reflexive (Var : Set) : Reflexive (@probe Var).
+Proof. auto. Qed.
+
+Instance probe_transitive (Var : Set) : Transitive (@probe Var).
+Proof.
+  intros x y z; apply probe_trans.
+Qed.
+
+Instance probe_preorder (Var : Set) : PreOrder (@probe Var).
+Proof.
+  split; [apply probe_reflexive | apply probe_transitive].
+Qed.
+
+Instance probe_confluent (Var : Set) :
+  Commuting (flip (@probe Var)) (@probe Var).
+Proof.
+  unfold flip; intros x y z xy yz; induction xy; induction yz; eauto.
+Admitted.
+
+
 Instance beta_reflexive (Var : Set) : Reflexive (@beta Var).
 Proof. auto. Qed.
 
@@ -154,171 +185,85 @@ Proof.
   intros x x' Hx y y' Hy; transitivity (x * y'); auto.
 Qed.
 
-Lemma beta_ap {Var : Set} {x x' y y' : Code Var} :
-  beta x x' -> beta y y' -> beta (x * y) (x' * y').
+Instance beta_confluent (Var : Set) :
+  Commuting (flip (@beta Var)) (@beta Var).
 Proof.
-  transitivity (x' * y); auto.
-Qed.
-
-Lemma beta_confluent (Var : Set) (x y y' : Code Var) :
-  beta x y -> beta x y' -> exists z, beta y z /\ beta y' z.
-Proof.
+  unfold flip; intros x y z xy yz; induction xy; induction yz; auto.
 Admitted.
 
-Ltac beta_confluent x y y' xy xy' :=
-  let w := fresh "w" in
-  let yw := fresh y w in
-  let y'w := fresh y' w in
-  let H := fresh in
-  set (H := beta_confluent _ x y y' xy xy');
-  destruct H as [w [yw y'w]].
 
-Instance pi_transitive (Var : Set) : Transitive (@pi Var).
+Instance test_transitive (Var : Set) : Transitive (@test Var).
 Proof.
-  intros x y z Hxy Hyz; apply pi_trans with y; auto.
+  intros x y z Hxy Hyz; apply test_trans with y; auto.
 Qed.
 
-Instance pi_reflexive (Var : Set) : Reflexive (@pi Var).
+Instance test_reflexive (Var : Set) : Reflexive (@test Var).
 Proof. auto. Qed.
 
-Instance pi_preorder (Var : Set) : PreOrder (@pi Var).
+Instance test_preorder (Var : Set) : PreOrder (@test Var).
 Proof.
-  split; [apply pi_reflexive | apply pi_transitive].
+  split; [apply test_reflexive | apply test_transitive].
 Qed.
 
-Instance code_ap_pi (Var : Set) : Proper (pi ++> pi ++> pi) (@code_ap Var).
+Instance code_ap_test (Var : Set) : Proper (test ++> test ++> test) (@code_ap Var).
 Proof.
   intros x x' Hx y y' Hy; transitivity (x * y'); auto.
 Qed.
 
-Lemma pi_beta_to_beta_pi (Var : Set) (x y z : Code Var) :
-  pi x y -> beta y z -> exists y', beta x y' /\ pi y' z.
+Instance test_beta_to_beta_test (Var : Set) :
+  Commuting (@test Var) (@beta Var).
 Proof.
-  intros Hp; generalize z as w; clear z; induction Hp; intros z' Hb; eauto.
-  (* TODO this requires a confluence-like argument. *)
+  intros x y z xy yz; induction xy; induction yz; auto.
 Admitted.
 
-Ltac pi_beta_to_beta_pi x y z xy yz :=
-  let w := fresh y "_" in
-  let xw := fresh x w in
-  let wz := fresh w z in
-  let H := fresh in
-  set (H := pi_beta_to_beta_pi _ x y z xy yz);
-  destruct H as [w [xw wz]].
-
-Lemma beta_pi_confluent (Var : Set) (x y y' : Code Var) :
-  beta x y -> pi x y' -> exists z, pi y z /\ beta y' z.
+Instance beta_test_confluent (Var : Set) :
+  Commuting (flip (@beta Var)) (@test Var).
 Proof.
 Admitted.
 
-Ltac beta_pi_confluent x y y' xy xy' :=
-  let w := fresh "w" in
-  let yw := fresh y w in
-  let y'w := fresh y' w in
-  let H := fresh in
-  set (H := beta_pi_confluent _ x y y' xy xy');
-  destruct H as [w [yw y'w]].
-
-Instance approx_transitive (Var : Set) : Transitive (@approx Var).
-Proof.
-  unfold Transitive; intros x y z Hxy Hyz.
-  destruct Hxy as [x u y xu uy].
-  destruct Hyz as [y v z yv vz].
-  pi_beta_to_beta_pi u y v uy yv.
-  apply approx_intro with y_.
-  transitivity u; auto.
-  apply pi_trans with v; auto.
-Qed.
-
-Instance approx_reflexive (Var : Set) : Reflexive (@approx Var).
-Proof.
-  unfold Reflexive; intro x; apply approx_intro with x; auto.
-Qed.
-
-Instance approx_preorder (Var : Set) : PreOrder (@approx Var).
-Proof.
-  split; [apply approx_reflexive | apply approx_transitive].
-Qed.
-
-Instance approx_beta (Var : Set) :
-  Proper (beta --> beta ++> impl) (@approx Var).
-Proof.
-  intros x x' xx' z z' zz' xyz.
-  destruct xyz as [x y z xy yz].
-  pi_beta_to_beta_pi y z z' yz zz'.
-  apply approx_intro with z_; auto.
-  transitivity x; auto.
-  transitivity y; auto.
-Qed.
-
-(* Is this needed?
-Instance approx_beta' (Var : Set) :
-  Proper (beta ++> beta --> impl) (@approx Var).
-Proof.
-  compute; intros x x' xx' z z' zz' xyz.
-  destruct xyz as [x y z xy yz].
-  beta_confluent x x' y xx' xy.
-  beta_pi_confluent y w z yw yz.
-  apply approx_intro with ; auto.
-  transitivity w0; auto.
-  transitivity w0; auto.
-Qed.
-*)
-
-Instance approx_pi (Var : Set) : Proper (pi --> pi ++> impl) (@approx Var).
-Proof.
-  intros x x' xx' z z' zz' Ha; destruct Ha as [x y z xy yz].
-  set (wHw := pi_beta_to_beta_pi _ x' x y xx' xy); destruct wHw as [w [xw wy]].
-  apply approx_intro with w; auto.
-  transitivity y; auto.
-  transitivity z; auto.
-Qed.
-
-Instance approx_beta_pi (Var : Set) :
-  Proper (beta --> pi ++> impl) (@approx Var).
-Proof.
-  intros x x' Hx z z' Hz Ha; destruct Ha as [x y z xy yz].
-  apply approx_intro with y.
-    transitivity x; auto.
-  transitivity z; auto.
-Qed.
-
-Instance code_ap_approx (Var : Set) :
-  Proper (approx ++> approx ++> approx) (@code_ap Var).
-Proof.
-  intros x z xz x' z' x'z'.
-  destruct xz as [x y z xy yz];  rewrite xy; rewrite yz;
-  destruct x'z' as [x' y' z' x'y' y'z']; rewrite x'y'; rewrite y'z';
-  reflexivity.
-Qed.
 
 Lemma conv_top (Var : Set) : conv (TOP : Code Var).
-Proof. eauto. Qed.
+Proof.
+  exists TOP, TOP; repeat split; auto.
+Qed.
 Hint Resolve conv_top.
+
+Lemma conv_join_left (Var : Set) (w x : Code Var) : conv w -> conv (w || x).
+Proof.
+  intros [y [z [wy [yz zt]]]].
+Admitted.
+Hint Resolve conv_join_left.
+
+Lemma conv_join_right (Var : Set) (w x : Code Var) : conv x -> conv (w || x).
+Proof.
+  intros [y [z [xy [yz zt]]]].
+Admitted.
+Hint Resolve conv_join_right.
 
 Lemma not_conv_bot (Var : Set) : ~ conv (BOT : Code Var).
 Proof.
 Admitted.
 Hint Resolve not_conv_bot.
 
-Instance conv_beta (Var : Set) : Proper (beta ==> iff) (@conv Var).
+
+Instance conv_proper_probe (Var : Set) : Proper (probe ==> iff) (@conv Var).
 Proof.
-  intros x x' xx'; split.
-    intros Hc; induction Hc; apply conv_approx; admit.
-  intros Hc; induction Hc; apply conv_approx; rewrite xx'; auto.
 Admitted.
 
-Instance conv_pi (Var : Set) : Proper (pi --> impl) (@conv Var).
+Instance conv_proper_beta (Var : Set) : Proper (beta ==> iff) (@conv Var).
+Proof.
+  intros x x' xx'; split; intros [y [z [xy [yz zt]]]].
+  (* OLD
+    beta_confluent x x' y xx' xy.
+    intros Hc; induction Hc; apply conv_approx; admit.
+  intros Hc; induction Hc; apply conv_approx; rewrite xx'; auto.
+  *)
+Admitted.
+
+Instance conv_proper_test (Var : Set) : Proper (test --> impl) (@conv Var).
 Proof.
   compute; intros x x' xx' Ha.
 Admitted.
-
-Instance conv_proper_approx (Var : Set) : Proper (approx --> impl) (@conv Var).
-Proof.
-  intros x z Hxz Hc.
-  destruct Hxz as [x y z Hxy Hyz].
-  rewrite Hxy; rewrite Hyz; auto.
-Qed.
 
 (** ** Substitution *)
 
@@ -383,83 +328,65 @@ Proof.
   rewrite IHx1; rewrite IHx2; auto.
 Qed.
 
-Lemma code_sub_beta_left (Var Var' : Set)
-  (f g : Var -> Code Var') (fg : forall v, beta (f v) (g v))
-  (x : Code Var) : beta (x @ f) (x @ g).
+Lemma code_sub_proper_probe (Var Var' : Set)
+  (f : Var -> Code Var') (x y : Code Var) :
+  probe x y -> probe (x @ f) (y @ f).
 Proof.
-  induction x; auto.
+  intro xy; induction xy; auto.
+    transitivity (y @ f); auto.
+  simpl; apply probe_top; auto.
+Qed.
+
+Lemma code_sub_beta_left
+  (Var Var' : Set) (f g : Var -> Code Var') (x : Code Var) :
+  (forall v, beta (f v) (g v)) -> beta (x @ f) (x @ g).
+Proof.
+  intros fg; induction x; auto.
     compute; auto.
   unfold code_sub; fold (@code_sub Var Var').
   transitivity ((x1 @ g) * (x2 @ f)); auto.
 Qed.
 Hint Resolve code_sub_beta_left.
 
-Lemma code_sub_beta_right (Var Var' : Set)
-  (f : Var -> Code Var') (x y : Code Var)
-  (xy : beta x y) : beta (x @ f) (y @ f).
+Lemma code_sub_beta_right
+  (Var Var' : Set) (f : Var -> Code Var') (x y : Code Var) :
+  beta x y -> beta (x @ f) (y @ f).
 Proof.
-  induction xy; repeat rewrite code_sub_ap; simpl; auto.
+  intro xy; induction xy; repeat rewrite code_sub_ap; simpl; auto.
   transitivity (y @ f); auto.
 Qed.
 Hint Resolve code_sub_beta_right.
 
-Instance code_sub_beta (Var Var' : Set) :
+Instance code_sub_proper_beta (Var Var' : Set) :
   Proper ((eq ==> beta) ==> beta ==> beta) (@code_sub Var Var').
 Proof.
   intros f g Hfg x y Hxy; transitivity (y @ f);
   [apply code_sub_beta_right | apply code_sub_beta_left]; auto.
 Qed.
 
-Lemma code_sub_pi_left (Var Var' : Set)
-  (f g : Var -> Code Var') (fg : forall v, pi (f v) (g v))
-  (x : Code Var) : pi (x @ f) (x @ g).
+Lemma code_sub_test_left
+  (Var Var' : Set) (f g : Var -> Code Var') (x : Code Var) :
+  (forall v, test (f v) (g v)) -> test (x @ f) (x @ g).
 Proof.
-  induction x; auto.
+  intros fg; induction x; auto.
     compute; auto.
   unfold code_sub; fold (@code_sub Var Var').
   rewrite IHx1; rewrite IHx2; auto.
 Qed.
-Hint Resolve code_sub_pi_left.
+Hint Resolve code_sub_test_left.
 
-Lemma code_sub_pi_right (Var Var' : Set)
-  (f : Var -> Code Var') (x y : Code Var)
-  (xy : pi x y) : pi (x @ f) (y @ f).
+Lemma code_sub_test_right
+  (Var Var' : Set) (f : Var -> Code Var') (x y : Code Var) :
+  test x y -> test (x @ f) (y @ f).
 Proof.
-  induction xy; repeat rewrite code_sub_ap; simpl; auto.
+  intro xy; induction xy; repeat rewrite code_sub_ap; simpl; auto.
   transitivity (y @ f); auto.
 Qed.
-Hint Resolve code_sub_pi_right.
+Hint Resolve code_sub_test_right.
 
-Instance code_sub_pi (Var Var' : Set) :
-  Proper ((eq ==> pi) ==> pi ==> pi) (@code_sub Var Var').
+Instance code_sub_proper_test (Var Var' : Set) :
+  Proper ((eq ==> test) ==> test ==> test) (@code_sub Var Var').
 Proof.
   intros f g Hfg x y Hxy; transitivity (y @ f);
-  [apply code_sub_pi_right | apply code_sub_pi_left]; auto.
-Qed.
-
-Lemma code_sub_approx_right (Var Var' : Set)
-  (f : Var -> Code Var') (x y : Code Var)
-  (xy : approx x y) : approx (x @ f) (y @ f).
-Proof.
-  induction xy; repeat rewrite code_sub_ap; simpl; auto.
-  apply approx_intro with (y @ f); auto.
-Qed.
-Hint Resolve code_sub_approx_right.
-
-Lemma code_sub_approx_left (Var Var' : Set)
-  (f g : Var -> Code Var') (fg : forall v, approx (f v) (g v))
-  (x : Code Var) : approx (x @ f) (x @ g).
-Proof.
-  induction x; try (compute ; reflexivity).
-    compute; auto.
-  unfold code_sub; fold (@code_sub Var Var').
-  rewrite IHx1; rewrite IHx2; reflexivity.
-Qed.
-Hint Resolve code_sub_approx_left.
-
-Instance code_sub_approx (Var Var' : Set) :
-  Proper ((eq ==> approx) ==> approx ==> approx) (@code_sub Var Var').
-Proof.
-  intros f h fh x z xz.
-  transitivity (x @ h); auto.
+  [apply code_sub_test_right | apply code_sub_test_left]; auto.
 Qed.

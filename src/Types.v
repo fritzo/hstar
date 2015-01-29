@@ -57,7 +57,7 @@ Proof.
     rewrite <- (V1_nondecreasing _ a); beta_eta.
   rewrite IHn.
   rewrite code_eq_v at 3.
-  rewrite pi_j_right.
+  rewrite test_j_right.
   eta_expand; beta_simpl; auto.
 Qed.
 Hint Rewrite V1_idempotent : code_simpl.
@@ -65,8 +65,8 @@ Hint Rewrite V1_idempotent : code_simpl.
 Lemma V_nondecreasing (Var : Set) : I [= (V : Code Var).
 Proof.
   eta_expand.
-  rewrite code_eq_v; rewrite pi_j_right.
-  rewrite code_eq_v; rewrite pi_j_left.
+  rewrite code_eq_v; rewrite test_j_right.
+  rewrite code_eq_v; rewrite test_j_left.
   beta_eta.
 Qed.
 Hint Resolve V_nondecreasing.
@@ -246,7 +246,7 @@ Admitted.
 Lemma P1_nondecreasing (Var : Set) (a : Code Var) : I [= P * a.
 Proof.
   unfold P; fold (@V Var).
-  eta_expand; rewrite beta_b; rewrite beta_b; rewrite pi_j_right.
+  eta_expand; rewrite beta_b; rewrite beta_b; rewrite test_j_right.
   monotonicity.
 Qed.
 
@@ -462,7 +462,7 @@ Proof.
   - assert (x == BOT) as eq. split; auto. rewrite eq; auto.
   - rewrite <- H; clear H.
     rewrite <- conv_nle_bot in H'.
-    apply conv_div in H'; rewrite H'; auto.
+    apply conv_div_top in H'; rewrite H'; auto.
 Qed.
 
 Theorem div_inhab (Var : Set) (x : Code Var) : x :: div <-> div_fixes x.
@@ -508,11 +508,11 @@ Proof.
       unfold div'; fold (@Y Var); code_simpl.
       admit. (* TODO lfp argument *)
     + rewrite <- conv_nle_bot in H.
-      apply conv_div in H; rewrite H; auto.
+      apply conv_div_top in H; rewrite H; auto.
   - unfold div, div'; fold (@Y Var).
-    rewrite pi_j_left at 1.
-    rewrite pi_j_left at 1.
-    rewrite pi_j_right at 1.
+    rewrite test_j_left at 1.
+    rewrite test_j_left at 1.
+    rewrite test_j_right at 1.
     beta_simpl.
     (* FIXME it looks like A may need to use Y instead of V *)
 Admitted.
@@ -534,7 +534,7 @@ Proof.
   rewrite code_eq_y.
   rewrite beta_j_ap.
   rewrite beta_k.
-  repeat rewrite pi_j_left.
+  repeat rewrite test_j_left.
   beta_eta.
 Qed.
 
@@ -644,10 +644,10 @@ Proof.
   unfold boool.
   eta_expand.
   rewrite code_eq_y.
-  rewrite pi_j_left.
+  rewrite test_j_left.
   rewrite beta_k.
   rewrite beta_j_ap.
-  repeat rewrite pi_j_left.
+  repeat rewrite test_j_left.
   beta_simpl.
   beta_eta.
 Qed.
@@ -810,7 +810,7 @@ Lemma bool_j_top (Var : Set) : bool * J == (TOP : Code Var).
 Proof.
   split; auto.
   unfold bool; fold (@boool Var); fold (@V Var); rewrite <- V_nondecreasing.
-  beta_simpl; rewrite pi_j_right.
+  beta_simpl; rewrite test_j_right.
   rewrite beta_s; rewrite beta_s; code_simpl; auto.
 Qed.
 Hint Rewrite bool_j_top : code_simpl.

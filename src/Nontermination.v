@@ -32,22 +32,24 @@ Lemma beta_self_div' (Var : Set) (x : Code Var) :
 Proof.
 Admitted.
 
-Fixpoint probe {Var : Set} (n : nat) (x : Code Var) : Code Var :=
+Fixpoint probed {Var : Set} (n : nat) (x : Code Var) : Code Var :=
   match n with
   | 0%nat => x
-  | (Succ n')%nat => (probe n' x) * code_top
+  | (Succ n')%nat => (probed n' x) * code_top
   end.
 
-Lemma probe_bot_top (Var : Set) : forall n, probe n (@code_bot Var) <> TOP.
+Lemma probe_bot_top (Var : Set) : forall n, probed n (@code_bot Var) <> TOP.
 Proof.
-  intros n; induction n; compute; fold (@probe Var); discriminate.
+  intros n; induction n; compute; fold (@probed Var); discriminate.
 Qed.
 
+(* OLD
 Lemma approx_probe_bot_top (Var : Set) :
-  forall n, ~ approx (probe n (@code_bot Var)) TOP.
+  forall n, ~ approx (probed n (@code_bot Var)) TOP.
 Proof.
   intros n H; induction n; auto.
 Admitted.
+*)
 
 Lemma ap_top_div (Var : Set) (x : Code Var) : div * (x * TOP) == div * x.
 Proof.
@@ -76,7 +78,7 @@ Proof.
 Admitted.
 
 Lemma div_probe_bot (Var : Set) :
-  forall n : nat, ~ conv (probe n (@code_bot Var)).
+  forall n : nat, ~ conv (probed n (@code_bot Var)).
 Proof.
   intros n H; inversion H.
 Admitted.

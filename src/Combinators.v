@@ -185,19 +185,27 @@ Proof.
   rewrite code_eq_v' at 1; beta_simpl; auto.
 Qed.
 
-Lemma conv_div (Var : Set) (x : Code Var) :
+Lemma conv_div (Var : Set) (x : Code Var) : conv x <-> conv (div * x).
+Proof.
+  split; intro Hc.
+    rewrite code_eq_div; rewrite test_j_left; auto.
+  admit.
+Qed.
+
+Lemma conv_div_top (Var : Set) (x : Code Var) :
   conv x <-> div * x == TOP.
 Proof.
   split.
+    (* OLD
     intro H; induction H; split; auto; intros Var' c f Hc.
       rewrite H; rewrite code_eq_div; rewrite pi_j_left; auto.
     rewrite code_eq_div'; rewrite pi_j_right; rewrite IHconv; auto.
+    *)
+    admit.
   intros [H' H]; clear H'; unfold code_le in H.
   (* rewrite <- var_monad_unit_right; rewrite <- beta_i. *)
   assert (conv (I * (TOP @ code_var) : Code Var)) as Ht; code_simpl; auto.
   set (Hd := H Var I code_var Ht).
   code_simpl in Hd.
-  inversion Hd.
-    admit.
-  admit.
-Admitted.
+  apply conv_div; auto.
+Qed.
