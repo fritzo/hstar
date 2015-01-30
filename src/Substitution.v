@@ -64,20 +64,14 @@ Proof.
   rewrite IHx1; rewrite IHx2; auto.
 Qed.
 
-Lemma code_sub_proper_probe_step (Var Var' : Set)
-  (f : Var -> Code Var') (x y : Code Var) :
-  probe_step x y -> probe_step (x @ f) (y @ f).
-Proof.
-  intro xy; induction xy; simpl; apply probe_top; auto.
-Qed.
-
 Lemma code_sub_proper_probe (Var Var' : Set)
   (f : Var -> Code Var') (x y : Code Var) :
   probe x y -> probe (x @ f) (y @ f).
 Proof.
-  intro xy; induction xy; auto.
-    apply star_step; apply code_sub_proper_probe_step; auto.
-  transitivity (y @ f); auto.
+  intro xy; induction xy; simpl.
+  - reflexivity.
+  - transitivity (y @ f); auto.
+  - apply probe_top; auto.
 Qed.
 
 Lemma code_sub_beta_left
@@ -85,7 +79,7 @@ Lemma code_sub_beta_left
   (forall v, beta (f v) (g v)) -> beta (x @ f) (x @ g).
 Proof.
   intros fg; induction x; auto.
-    compute; fold (@beta Var'); auto.
+    compute; auto.
   unfold code_sub; fold (@code_sub Var Var').
   transitivity ((x1 @ g) * (x2 @ f)); auto.
 Qed.
@@ -96,7 +90,6 @@ Lemma code_sub_beta_right
   beta x y -> beta (x @ f) (y @ f).
 Proof.
   intro xy; induction xy; repeat rewrite code_sub_ap; simpl; auto.
-    induction H; repeat rewrite code_sub_ap; simpl; auto.
   transitivity (y @ f); auto.
 Qed.
 Hint Resolve code_sub_beta_right.
@@ -113,7 +106,7 @@ Lemma code_sub_test_left
   (forall v, test (f v) (g v)) -> test (x @ f) (x @ g).
 Proof.
   intros fg; induction x; auto.
-    compute; fold (@test Var'); auto.
+    compute; auto.
   unfold code_sub; fold (@code_sub Var Var').
   rewrite IHx1; rewrite IHx2; auto.
 Qed.
@@ -124,7 +117,6 @@ Lemma code_sub_test_right
   test x y -> test (x @ f) (y @ f).
 Proof.
   intro xy; induction xy; repeat rewrite code_sub_ap; simpl; auto.
-    induction H; repeat rewrite code_sub_ap; simpl; auto.
   transitivity (y @ f); auto.
 Qed.
 Hint Resolve code_sub_test_right.

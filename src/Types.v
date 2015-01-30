@@ -65,8 +65,8 @@ Hint Rewrite V1_idempotent : code_simpl.
 Lemma V_nondecreasing (Var : Set) : I [= (V : Code Var).
 Proof.
   eta_expand.
-  rewrite code_eq_v; rewrite (astar_step _ test_j_right).
-  rewrite code_eq_v; rewrite (astar_step _ test_j_left).
+  rewrite code_eq_v; rewrite test_j_right.
+  rewrite code_eq_v; rewrite test_j_left.
   beta_eta.
 Qed.
 Hint Resolve V_nondecreasing.
@@ -230,8 +230,8 @@ Lemma code_eq_v_join (Var : Set ) (a b : Code Var) :
 Proof.
   split.
     rewrite code_le_v_join; code_simpl; auto.
-  rewrite <- (astar_left _ (astar_right _ (astar_step _ beta_i))).
-  rewrite <- (astar_right _ (astar_right _ (astar_step _ beta_i))).
+  rewrite <- (beta_left (beta_right beta_i)).
+  rewrite <- (beta_right (beta_right beta_i)).
   monotonicity.
 Qed.
 
@@ -837,7 +837,7 @@ Lemma bool_j_top (Var : Set) : bool * J == (TOP : Code Var).
 Proof.
   split; auto.
   unfold bool; fold (@boool Var); fold (@V Var); rewrite <- V_nondecreasing.
-  beta_simpl; rewrite (astar_step _ test_j_right).
+  beta_simpl; rewrite test_j_right.
   rewrite beta_s; rewrite beta_s; code_simpl; auto.
 Qed.
 Hint Rewrite bool_j_top : code_simpl.

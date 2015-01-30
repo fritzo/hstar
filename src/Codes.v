@@ -49,6 +49,7 @@ Definition code_join {Var : Set} x y : Code Var := x || y.
 
 (** ** Reduction relations *)
 
+(* OLD
 Inductive star {Var : Set} (r : relation (Code Var)) : relation (Code Var) :=
   | star_step {x y} : r x y -> star r x y
   | star_refl {x} : star r x x
@@ -95,40 +96,113 @@ Proof.
   - clear H; induction IHastar; eauto.
   - induction H; eauto.
 Qed.
+*)
 
-Inductive probe_step {Var : Set} : Code Var -> Code Var -> Prop :=
-  | probe_top {x} : probe_step x (x * TOP).
+Inductive star {Var : Set} (r : relation (Code Var)) : relation (Code Var) :=
+  | star_step {x y} : r x y -> star r x y
+  | star_refl {x} : star r x x
+  | star_trans {x} y {z} : star r x y -> star r y z -> star r x z.
+Hint Constructors star.
+
+
+Inductive probe {Var : Set} : relation (Code Var) :=
+  | probe_refl {x} : probe x x
+  | probe_trans {x} y {z} : probe x y -> probe y z -> probe x z
+  | probe_top {x} : probe x (x * TOP).
+Hint Constructors probe.
+
+Inductive probe_step {Var : Set} : relation (Code Var) :=
+  | probe_step_top {x} : probe_step x (x * TOP).
 Hint Constructors probe_step.
 
-Definition probe {Var : Set} : relation (Code Var) := star probe_step.
-Hint Unfold probe.
+Definition weak_probe {Var : Set} : relation (Code Var) := star probe_step.
+Hint Unfold weak_probe.
 
-Inductive beta_step {Var : Set} : Code Var -> Code Var -> Prop :=
-  | beta_i {x} : beta_step (I * x) x
-  | beta_k {x y} : beta_step (K * x * y) x
-  | beta_b {x y z} : beta_step (B * x * y * z) (x * (y * z))
-  | beta_c {x y z} : beta_step (C * x * y * z) (x * z * y)
-  | beta_s {x y z} : beta_step (S * x * y * z) (x * z * (y * z))
-  | beta_j_ap {x y z} : beta_step ((x || y) * z) (x * z || y * z)
-  | beta_r_ap {x y z} : beta_step ((x (+) y) * z) (x * z (+) y * z)
-  | beta_r_idem {x} : beta_step (x (+) x) x
-  | beta_r_sym {x y} : beta_step (x (+) y) (y (+) x)
+Lemma weaken_probe (Var : Set) (x y : Code Var) : probe x y <-> weak_probe x y.
+Proof.
+  split; intro H; induction H; eauto.
+  inversion H; auto.
+Qed.
+
+
+Inductive beta {Var : Set} : relation (Code Var) :=
+  | beta_refl {x} : beta x x
+  | beta_trans {x} y {z} : beta x y -> beta y z -> beta x z
+  | beta_left {x x' y} : beta x x' -> beta (x * y) (x' * y)
+  | beta_right {x y y'} : beta y y' -> beta (x * y) (x * y')
+  | beta_i {x} : beta (I * x) x
+  | beta_k {x y} : beta (K * x * y) x
+  | beta_b {x y z} : beta (B * x * y * z) (x * (y * z))
+  | beta_c {x y z} : beta (C * x * y * z) (x * z * y)
+  | beta_s {x y z} : beta (S * x * y * z) (x * z * (y * z))
+  | beta_j_ap {x y z} : beta ((x || y) * z) (x * z || y * z)
+  | beta_r_ap {x y z} : beta ((x (+) y) * z) (x * z (+) y * z)
+  | beta_r_idem {x} : beta (x (+) x) x
+  | beta_r_sym {x y} : beta (x (+) y) (y (+) x)
   | beta_r_sym_sym {w x y z} :
+      beta ((w(+)x) (+) (y(+)z)) ((x(+)y) (+) (z(+)w)).
+Hint Constructors beta.
+
+Inductive beta_step {Var : Set} : relation (Code Var) :=
+  | beta_step_left {x x' y} : beta_step x x' -> beta_step (x * y) (x' * y)
+  | beta_step_right {x y y'} : beta_step y y' -> beta_step (x * y) (x * y')
+  | beta_step_i {x} : beta_step (I * x) x
+  | beta_step_k {x y} : beta_step (K * x * y) x
+  | beta_step_b {x y z} : beta_step (B * x * y * z) (x * (y * z))
+  | beta_step_c {x y z} : beta_step (C * x * y * z) (x * z * y)
+  | beta_step_s {x y z} : beta_step (S * x * y * z) (x * z * (y * z))
+  | beta_step_j_ap {x y z} : beta_step ((x || y) * z) (x * z || y * z)
+  | beta_step_r_ap {x y z} : beta_step ((x (+) y) * z) (x * z (+) y * z)
+  | beta_step_r_idem {x} : beta_step (x (+) x) x
+  | beta_step_r_sym {x y} : beta_step (x (+) y) (y (+) x)
+  | beta_step_r_sym_sym {w x y z} :
       beta_step ((w(+)x) (+) (y(+)z)) ((x(+)y) (+) (z(+)w)).
 Hint Constructors beta_step.
 
-Definition beta {Var : Set} : relation (Code Var) := astar beta_step.
-Hint Unfold beta.
+Definition weak_beta {Var : Set} : relation (Code Var) := star beta_step.
+Hint Unfold weak_beta.
 
-Inductive test_step {Var : Set} : Code Var -> Code Var -> Prop :=
-  | test_top x : test_step (TOP * x) TOP
-  | test_bot x : test_step x BOT
-  | test_j_left {x y} : test_step (x || y) x
-  | test_j_right {x y} : test_step (x || y) y.
+Lemma weaken_beta (Var : Set) (x y : Code Var) : beta x y <-> weak_beta x y.
+Proof.
+  split; intro H; induction H; eauto.
+  - clear H; induction IHbeta; eauto.
+  - clear H; induction IHbeta; eauto.
+  - induction H; auto.
+Qed.
+
+
+Inductive test {Var : Set} : relation (Code Var) :=
+  | test_refl {x} : test x x
+  | test_trans {x} y {z} : test x y -> test y z -> test x z
+  | test_left {x x' y} : test x x' -> test (x * y) (x' * y)
+  | test_right {x y y'} : test y y' -> test (x * y) (x * y')
+  | test_top x : test (TOP * x) TOP
+  | test_bot x : test x BOT
+  | test_j_left {x y} : test (x || y) x
+  | test_j_right {x y} : test (x || y) y.
+Hint Constructors test.
+
+Inductive test_step {Var : Set} : relation (Code Var) :=
+  | test_step_trans {x} y {z} : test_step x y -> test_step y z -> test_step x z
+  | test_step_left {x x' y} : test_step x x' -> test_step (x * y) (x' * y)
+  | test_step_right {x y y'} : test_step y y' -> test_step (x * y) (x * y')
+  | test_step_top x : test_step (TOP * x) TOP
+  | test_step_bot x : test_step x BOT
+  | test_step_j_left {x y} : test_step (x || y) x
+  | test_step_j_right {x y} : test_step (x || y) y.
 Hint Constructors test_step.
 
-Definition test {Var : Set} : relation (Code Var) := astar test_step.
-Hint Unfold test.
+Definition weak_test {Var : Set} : relation (Code Var) := star test_step.
+Hint Unfold weak_test.
+
+Lemma weaken_test (Var : Set) (x y : Code Var) : test x y <-> weak_test x y.
+Proof.
+  split; intro H; induction H; eauto.
+  - clear H; induction IHtest; eauto.
+  - clear H; induction IHtest; eauto.
+  - induction H; eauto.
+Qed.
+
 
 Definition conv {Var : Set} (x : Code Var) : Prop :=
   exists y z, probe x y /\ beta y z /\ test z TOP.
@@ -192,7 +266,7 @@ Proof. auto. Qed.
 
 Instance probe_transitive (Var : Set) : Transitive (@probe Var).
 Proof.
-  intros x y z; apply star_trans.
+  intros x y z; apply probe_trans.
 Qed.
 
 Instance probe_preorder (Var : Set) : PreOrder (@probe Var).
@@ -200,35 +274,38 @@ Proof.
   split; [apply probe_reflexive | apply probe_transitive].
 Qed.
 
-Instance probe_subrelation (Var : Set) :
-  @subrelation (Code Var) probe_step probe.
-Proof. simpl_relation. Qed.
+Lemma probe_step_probe (Var : Set) (x y : Code Var) :
+  probe_step x y -> probe x y.
+Proof.
+  intro H; inversion H; auto.
+Qed.
 
 Ltac simpl_probe_step :=
   repeat
   match goal with
     | [H : probe_step _ _ |- _] => destruct H
+  (*
+    | [H : star probe_step _ _ |- _] => induction H
+  *)
     | [H : probe_step ?x ?x -> _ |- _] => clear H
-  end.
+  end;
+  auto.
 
 Instance probe_confluent (Var : Set) :
   Commuting (flip (@probe Var)) (@probe Var).
 Proof.
-  unfold flip, probe; intros x y z xy yz.
-  rewrite weaken_star in xy, yz.
-  induction xy; induction yz; eauto; simpl_probe_step.
-  - exists (x * TOP); auto.
-  - exists z; split; auto.
-    apply weaken_star; auto.
-  - exists z; split; auto.
-    apply weaken_star.
-    apply weak_star_trans with (x * TOP); auto.
-  - apply IHxy; auto.
-  - exists z0; split; auto.
-    apply weaken_star.
-    apply weak_star_trans with (x * TOP); auto.
-  - apply IHxy; auto.
-Qed.
+  unfold flip; intros x y z xy yz.
+  rewrite weaken_probe in xy, yz.
+  induction xy; induction yz; eauto.
+  - exists (x * TOP); simpl_probe_step.
+  - exists y; split; simpl_probe_step.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+Admitted.
 
 
 Instance beta_reflexive (Var : Set) : Reflexive (@beta Var).
@@ -236,7 +313,7 @@ Proof. auto. Qed.
 
 Instance beta_transitive (Var : Set) : Transitive (@beta Var).
 Proof.
-  intros x y z; apply astar_trans.
+  intros x y z; apply beta_trans.
 Qed.
 
 Instance beta_preorder (Var : Set) : PreOrder (@beta Var).
@@ -244,36 +321,44 @@ Proof.
   split; [apply beta_reflexive | apply beta_transitive].
 Qed.
 
-Instance beta_subrelation (Var : Set) :
-  @subrelation (Code Var) beta_step beta.
-Proof. simpl_relation. Qed.
-
 Instance code_ap_beta (Var : Set) :
   Proper (beta ==> beta ==> beta) (@code_ap Var).
 Proof.
   intros x x' Hx y y' Hy; transitivity (x * y'); auto.
 Qed.
 
-Ltac beta_confluent_induction :=
-  timeout 10
-  repeat
+Ltac simpl_beta_step :=
+  (* repeat *)
   match goal with
-    | [H : weak_star _ _ _ |- _] => induction H
-    | [H : weak_astar _ _ _ |- _] => induction H
+    | [H : beta_step _ _ |- _] => induction H
+    | [H : beta_step ?x ?x -> _ |- _] => clear H
   end.
 
-Instance beta_confluent (Var : Set) :
-  Commuting (flip (@beta Var)) (@beta Var).
+Lemma beta_step_beta (Var : Set) (x y : Code Var) :
+  beta_step x y -> beta x y.
 Proof.
-  unfold flip, beta; intros x y z xy yz.
-  rewrite weaken_astar in xy, yz.
+  intro H; induction H; auto.
+Qed.
+
+Instance beta_confluent (Var : Set) : Commuting (flip (@beta Var)) (@beta Var).
+Proof.
+  unfold flip; intros x y z xy yz.
+  rewrite weaken_beta in xy, yz.
   induction xy; induction yz; eauto.
+  - admit.
+  - exists y; auto using beta_step_beta.
+  - admit.
+  - exists y; auto using beta_step_beta.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
 Admitted.
 
 
 Instance test_transitive (Var : Set) : Transitive (@test Var).
 Proof.
-  intros x y z Hxy Hyz; apply astar_trans with y; auto.
+  intros x y z Hxy Hyz; apply test_trans with y; auto.
 Qed.
 
 Instance test_reflexive (Var : Set) : Reflexive (@test Var).
@@ -283,10 +368,6 @@ Instance test_preorder (Var : Set) : PreOrder (@test Var).
 Proof.
   split; [apply test_reflexive | apply test_transitive].
 Qed.
-
-Instance test_subrelation (Var : Set) :
-  @subrelation (Code Var) test_step test.
-Proof. simpl_relation. Qed.
 
 Instance code_ap_test (Var : Set) : Proper (test ++> test ++> test) (@code_ap Var).
 Proof.

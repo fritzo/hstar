@@ -159,7 +159,7 @@ Proof.
   unfold V at 1; fold (@Y Var).
   rewrite beta_b at 1.
   rewrite code_eq_y.
-  rewrite <- (astar_right _ (astar_step _ beta_b)) at 1.
+  rewrite <- (beta_right beta_b) at 1.
   unfold Y; fold (@V Var).
   beta_simpl; reflexivity.
 Qed.
@@ -189,7 +189,7 @@ Lemma conv_div (Var : Set) (x : Code Var) : conv x <-> conv (div * x).
 Proof.
   split; intro Hc.
     rewrite code_eq_div.
-    rewrite (astar_step _ test_j_left).
+    rewrite test_j_left.
     auto.
   admit.
 Qed.
