@@ -386,30 +386,6 @@ Proof.
 Admitted.
 
 
-Lemma conv_top (Var : Set) : conv (TOP : Code Var).
-Proof.
-  exists TOP, TOP; repeat split; auto.
-Qed.
-Hint Resolve conv_top.
-
-Lemma conv_join_left (Var : Set) (w x : Code Var) : conv w -> conv (w || x).
-Proof.
-  intros [y [z [wy [yz zt]]]].
-Admitted.
-Hint Resolve conv_join_left.
-
-Lemma conv_join_right (Var : Set) (w x : Code Var) : conv x -> conv (w || x).
-Proof.
-  intros [y [z [xy [yz zt]]]].
-Admitted.
-Hint Resolve conv_join_right.
-
-Lemma not_conv_bot (Var : Set) : ~ conv (BOT : Code Var).
-Proof.
-Admitted.
-Hint Resolve not_conv_bot.
-
-
 Instance conv_proper_probe (Var : Set) : Proper (probe ==> iff) (@conv Var).
 Proof.
 Admitted.
@@ -428,3 +404,68 @@ Instance conv_proper_test (Var : Set) : Proper (test --> impl) (@conv Var).
 Proof.
   compute; intros x x' xx' Ha.
 Admitted.
+
+
+Lemma conv_top (Var : Set) : conv (TOP : Code Var).
+Proof.
+  exists TOP, TOP; repeat split; auto.
+Qed.
+Hint Resolve conv_top.
+
+Lemma conv_join_left (Var : Set) (w x : Code Var) : conv w -> conv (w || x).
+Proof.
+  intros [y [z [wy [yz zt]]]].
+Admitted.
+Hint Resolve conv_join_left.
+
+Lemma conv_join_right (Var : Set) (w x : Code Var) : conv x -> conv (w || x).
+Proof.
+  intros [y [z [xy [yz zt]]]].
+Admitted.
+Hint Resolve conv_join_right.
+
+(** ** A [heads] relation for proving nontermination *)
+
+Inductive heads {Var : Set} : relation (Code Var) :=
+  | heads_refl x : heads x x
+  | heads_ap h x y : heads h x -> heads h (x * y).
+
+Ltac heads :=
+  auto using heads_refl, heads_ap;
+  match goal with
+  | [H : heads ?x ?y |- _] => inversion_clear H; heads
+  end.
+
+Lemma heads_probe (Var : Set) (h x y : Code Var) :
+  probe x y -> heads h x -> heads h y.
+Proof.
+  rewrite weaken_probe.
+  intro xy; induction xy; simpl_probe_step; heads.
+Qed.
+
+Lemma heads_beta_bot (Var : Set) (x y : Code Var) :
+  beta x y -> heads BOT x -> heads BOT y.
+Proof.
+  intros Ht; induction Ht; intros; heads.
+Qed.
+
+Lemma heads_test_bot (Var : Set) (x y : Code Var) :
+  test x y -> heads BOT x -> heads BOT y.
+Proof.
+  intros Ht; induction Ht; intros; heads.
+Qed.
+
+Lemma not_conv_heads_bot (Var : Set) (x : Code Var) : heads BOT x -> ~ conv x.
+Proof.
+  intros H [y [z [xy [yz zt]]]].
+  apply (heads_probe _ _ _ y) in H; auto.
+  apply (heads_beta_bot _ _ z) in H; auto.
+  apply (heads_test_bot _ _ TOP) in H; auto.
+  inversion H; auto.
+Qed.
+
+Lemma not_conv_bot (Var : Set) : ~ conv (BOT : Code Var).
+Proof.
+  apply not_conv_heads_bot; heads.
+Qed.
+Hint Resolve not_conv_bot.
