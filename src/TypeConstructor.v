@@ -305,12 +305,24 @@ Proof.
   (* this requires reasoning about pairs and least fixed points *)
 Admitted.
 
-(* We will make much use of the following theorem *)
+(* We will make much use of the following theorems *)
 
 Theorem A_fixes (Var : Set) (f x : Code Var) :
   (forall s r : Code Var, r o s [= I -> f * s * r * x [= x) -> A * f * x [= x.
 Proof.
   intro H.
+Admitted.
+
+Theorem A_repairs (Var : Set) (i : Code Var) :
+  ~ i [= BOT -> I [= A * exp * i.
+Proof.
+  (* TODO this requires a Bohm-out argument *)
+Admitted.
+
+Theorem A_raises (Var : Set) (i : Code Var) :
+  ~ i [= I -> TOP [= A * exp * i.
+Proof.
+  (* TODO this requires a Bohm-out argument *)
 Admitted.
 
 Notation "\\ x , y ; z" := (A * \x, \y, z)%code : code_scope.

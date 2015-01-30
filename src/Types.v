@@ -527,6 +527,11 @@ Section semi.
   Definition semi := Eval compute in close (\\a,a'; a --> a').
 End semi.
 
+Lemma A_exp_semi (Var : Set) : A * exp == (semi : Code Var).
+Proof.
+  unfold A, exp, semi; beta_simpl; auto.
+Qed.
+
 Lemma semi_nondecreasing (Var : Set) : I [= (semi : Code Var).
 Proof.
   unfold semi.
@@ -611,12 +616,21 @@ Qed.
 
 (* main theorem *)
 
-Theorem semi_sound (Var : Set) (x : Code Var) :
-  x :: semi -> semi_fixes x.
+Theorem semi_sound (Var : Set) (x : Code Var) : x :: semi -> semi_fixes x.
 Proof.
   intros H.
-  (* TODO this requires a Bohm-out argument *)
-Admitted.
+  case_le (x [= BOT) as Hbot.
+    assert (x == BOT) as eq.
+      split; auto.
+    rewrite eq; auto.
+  case_le (x [= I) as Hi.
+    assert (x == I) as eq.
+      split; [|rewrite <- H; apply A_repairs]; auto.
+    rewrite eq; auto.
+  assert (x == TOP) as eq.
+    split; [|rewrite <- H; apply A_raises]; auto.
+  rewrite eq; auto.
+Qed.
 
 Theorem semi_inhab (Var : Set) (x : Code Var) : x :: semi <-> semi_fixes x.
 Proof.
@@ -736,6 +750,19 @@ Qed.
 Theorem boool_sound (Var : Set) (x : Code Var) : x :: boool -> boool_fixes x.
 Proof.
   intros H.
+  case_le (x [= BOT) as Hbot.
+    assert (x == BOT) as eq.
+      split; auto.
+    rewrite eq; auto.
+  (* TODO adapt this argument from semi:
+  case_le (x [= I) as Hi.
+    assert (x == I) as eq.
+      split; [|rewrite <- H; apply A_repairs]; auto.
+    rewrite eq; auto.
+  assert (x == TOP) as eq.
+    split; [|rewrite <- H; apply A_raises]; auto.
+  rewrite eq; auto.
+  *)
 Admitted.
 
 Theorem boool_inhab (Var : Set) (x : Code Var) : x :: boool <-> boool_fixes x.
