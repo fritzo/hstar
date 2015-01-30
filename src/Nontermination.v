@@ -22,16 +22,6 @@ Proof.
   *)
 Admitted.
 
-Lemma beta_self_div (Var : Set) (x : Code Var) :
-  (forall ys z, beta (x ** ys) z -> x ** ys = z) -> ~ conv x.
-Proof.
-Admitted.
-
-Lemma beta_self_div' (Var : Set) (x : Code Var) :
-  conv x -> exists ys z, beta (x ** ys) z /\ x ** ys <> z.
-Proof.
-Admitted.
-
 Fixpoint probed {Var : Set} (n : nat) (x : Code Var) : Code Var :=
   match n with
   | 0%nat => x
@@ -57,31 +47,32 @@ Admitted.
 
 Lemma div_ap_top (Var : Set) (x : Code Var) : div * x * TOP == div * x.
 Proof.
-  (* OLD
   split.
-    rewrite beta_div at 2; rewrite pi_j_right; auto.
-  unfold code_le, conv; intros Var' c f H.
-  simpl in *; auto.
-  *)
+    rewrite code_eq_div at 2. rewrite test_j_right; auto.
+  intros Var' c f [y [z [xy [yz zt]]]].
 Admitted.
 
 Lemma div_repeat_top (Var : Set) (x : Code Var) (n : nat) :
   (div * x) ** TOP ^^ n == div * x.
 Proof.
   induction n; simpl; auto.
-Admitted.
+  rewrite div_ap_top; auto.
+Qed.
 
 Lemma repeat_top_div (Var : Set) (x : Code Var) (n : nat) :
   div * (x ** TOP ^^ n) == div * x.
 Proof.
   induction n; simpl; auto.
-Admitted.
+  rewrite code_repeat_commute_1.
+  rewrite ap_top_div; auto.
+Qed.
 
 Lemma div_probe_bot (Var : Set) :
   forall n : nat, ~ conv (probed n (@code_bot Var)).
 Proof.
-  intros n H; inversion H.
-Admitted.
+  intros n; apply not_conv_heads_bot.
+  induction n; simpl; heads.
+Qed.
 
 Lemma div_bot (Var : Set) : div * BOT == (BOT : Code Var).
 Proof.

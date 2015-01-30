@@ -508,6 +508,20 @@ Fixpoint code_apply {Var : Set} (x : Code Var) (ys : list (Code Var)) :
 
 Notation "x ** y" := (code_apply x y) : code_scope.
 
+Instance code_apply_proper_le (Var : Set) :
+  Proper (code_le ==> eq ==> code_le) (@code_apply Var).
+Proof.
+  intros x x' xx' y y' yy'; subst.
+  revert x x' xx'; induction y'; simpl; auto.
+Qed.
+
+Instance code_apply_proper_eq (Var : Set) :
+  Proper (code_eq ==> eq ==> code_eq) (@code_apply Var).
+Proof.
+  intros x x' [xx' x'x] y y' yy'; subst; split;
+  [rewrite xx' | rewrite x'x]; auto.
+Qed.
+
 Fixpoint code_repeat {Var : Set} (x : Code Var) (n : nat) : list (Code Var) :=
   match n with
   | 0 => nil
@@ -536,7 +550,13 @@ Proof.
   intros xs xs' xsxs'; induction xsxs'; simpl; auto.
 Qed.
 
-Lemma code_repeat_top (Var : Set) (ys : list (Code Var)):
+Lemma code_repeat_commute_1 (Var : Set) (x y : Code Var) (n : nat) :
+  (x * y) ** y ^^ n = (x ** y ^^ n) * y.
+Proof.
+  revert x y; induction n; simpl; auto.
+Qed.
+
+Lemma code_repeat_top (Var : Set) (ys : list (Code Var)) :
   Forall2 code_le ys (TOP ^^ length ys).
 Proof.
   induction ys; simpl; auto.
