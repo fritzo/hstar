@@ -106,8 +106,18 @@ Hint Resolve code_eq_abs_sub.
 Definition make_var (Var : Set) (n : nat) : Code (nat + Var) :=
   code_var (@inl nat Var n).
 
+Definition open {Var : Set} (x : Code Var) : Code (nat + Var) :=
+  code_sub (fun v => code_var (inr v)) x.
+
 Definition close {Var : Set} (x : Code (nat + Var)) : Code Var :=
   code_sub (fun v => match v with inr v' => code_var v' | _ => code_top end) x.
+
+Lemma close_open (Var : Set) (x : Code Var) : close (open x) = x.
+Proof.
+  unfold close, open.
+  induction x; simpl; auto.
+  rewrite IHx1; rewrite IHx2; auto.
+Qed.
 
 Definition code_lambda {Var : Set} (x y : Code (nat + Var)) :
   Code (nat + Var) :=

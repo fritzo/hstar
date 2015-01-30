@@ -201,36 +201,48 @@ Ltac monotonicity :=
   | [|- _ == _] => code_eq_monotonicity
   end.
 
-Instance conv_le_proper (Var : Set) : Proper (code_le ++> impl) (@conv Var).
+Instance conv_proper_le (Var : Set) : Proper (code_le ++> impl) (@conv Var).
 Proof.
   intros x y Hxy Hc; unfold code_le in Hxy.
   rewrite <- var_monad_unit_right; rewrite <- beta_i.
   apply Hxy; code_simpl; auto.
 Qed.
 
-Instance conv_eq_proper (Var : Set) : Proper (code_eq ==> iff) (@conv Var).
+Instance conv_proper_eq (Var : Set) : Proper (code_eq ==> iff) (@conv Var).
 Proof.
   intros x y [Hxy Hyx]; split; intro Hc;
   [rewrite <- Hxy | rewrite <- Hyx]; auto.
 Qed.
 
-Lemma code_sub_eq_left
+Lemma code_sub_le_left
   (Var Var' : Set) (f g : Var -> Code Var') (x : Code Var) :
-  (forall v, f v == g v) -> x @ f == x @ g.
+  (forall v, f v [= g v) -> x @ f [= x @ g.
 Proof.
-Admitted.
+  induction x; simpl; auto.
+Qed.
 
-Lemma code_sub_eq_right
+Lemma code_sub_le_right
   (Var Var' : Set) (f : Var -> Code Var') (x y : Code Var) :
-  x == y -> x @ f == y @ f.
+  x [= y -> x @ f [= y @ f.
 Proof.
-Admitted.
+  intros H Var'' c f'; repeat rewrite var_monad_assoc; auto.
+Qed.
+
+Instance code_sub_le (Var Var' : Set) :
+  Proper ((eq ==> code_le) ==> code_le ==> code_le) (@code_sub Var Var').
+Proof.
+  intros f g Hfg x y Hxy; transitivity (y @ f);
+  [apply code_sub_le_right | apply code_sub_le_left]; auto.
+Qed.
 
 Instance code_sub_eq (Var Var' : Set) :
   Proper ((eq ==> code_eq) ==> code_eq ==> code_eq) (@code_sub Var Var').
 Proof.
-  intros f g Hfg x y Hxy; transitivity (y @ f);
-  [apply code_sub_eq_right | apply code_sub_eq_left]; auto.
+  intros f g Hfg x y Hxy; transitivity (y @ f); split.
+  - rewrite Hxy; auto.
+  - rewrite <- Hxy; auto.
+  - rewrite Hfg; auto.
+  - rewrite <- Hfg; auto.
 Qed.
 
 Lemma code_le_top_closed (x : Code Empty_set) : x [= TOP.
@@ -271,7 +283,9 @@ Proof.
     apply (@not_conv_bot Var).
     rewrite <- beta_i; rewrite <- (@var_monad_unit_right Var _).
     apply Hneg; code_simpl; auto.
-  - admit. (* TODO induction or something *)
+  - unfold code_le in H.
+    (* TODO use classical reasoning *)
+    admit.
 Qed.
 
 Lemma not_conv_le_bot (Var : Set) (x : Code Var) :
@@ -428,7 +442,7 @@ Hint Rewrite code_eq_ap_top : code_simpl.
 
 Lemma code_eq_ap_bot (Var : Set) (x : Code Var) : BOT * x == BOT.
 Proof.
-  split; auto.
+  split; auto; intros Var' c f H.
 Admitted.
 Hint Rewrite code_eq_ap_bot : code_simpl.
 
@@ -565,7 +579,9 @@ Hint Resolve code_repeat_top.
 
 Lemma ap_top_conv (Var : Set) (x : Code Var) : conv x <-> conv (x * TOP).
 Proof.
-Admitted.
+  assert (probe x (x * TOP)) as eq; auto.
+  rewrite <- eq; reflexivity.
+Qed.
 
 Definition code_le_apply {Var : Set} (x x' : Code Var) : Prop :=
   forall (Var' : Set) (ys : list (Code Var')) (f : Var -> Code Var'),
@@ -597,11 +613,16 @@ Qed.
 
 Ltac code_le_apply := apply code_le_apply_equiv; unfold code_le_apply.
 
+Lemma conv_ap (Var : Set) (x a : Code Var) : conv (x * a) -> conv x.
+Proof.
+  rewrite (code_le_top _ a).
+  intros [y [z [xy [yz zt]]]].
+  exists y, z; repeat split; auto.
+  transitivity (x * TOP); auto.
+Qed.
+
 Lemma code_le_apply_weaken (Var : Set) (x : Code Var) (ys : list (Code Var)) :
   conv (x ** ys) -> conv x.
 Proof.
-  induction ys.
-    simpl; auto.
-  unfold code_apply; fold (@code_apply Var).
-  (* TODO *)
-Admitted.
+  revert x; induction ys; simpl; intros; eauto using conv_ap.
+Qed.
