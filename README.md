@@ -13,7 +13,7 @@ Holes | File
 
 # Inadvertently typed &lambda;-join-calculus
 
-This project attempts to formally reason in Coq about
+This project provides a Coq library to formally reason about
 two untyped &lambda;-calculi that act like typed &lambda;-calculi.
 
 ## Introduction
@@ -31,7 +31,7 @@ datatypes are definable with only &lambda;-calculus and a binary join operator,
 after a suitable extensional collapse by
 Hyland and Wadsworth's axiom H&#42;:
 
-    M = N   iff   forall context C[ ], C[M] converges <--> C[N] converges
+    M = N   iff   forall context C[ ], C[M] converges <-> C[N] converges
 
 The Coq developments in this project attempt to formalize the construction in
 <a href="#user-content-2">[2]</a>
@@ -46,7 +46,7 @@ The type system supports algebraic, dependent, polymorphic, and intersection
 types, as well as atomic types and a type of all types; for example
 
     I [= a    a = a o a            a : type    a x = x
-    =================== closures   ================== fixedpoints
+    =================== closures   =================== fixedpoints
           a : type                        x : a
 
     forall x:a, f x [= g x
