@@ -49,55 +49,6 @@ Definition code_join {Var : Set} x y : Code Var := x || y.
 
 (** ** Reduction relations *)
 
-(* OLD
-Inductive star {Var : Set} (r : relation (Code Var)) : relation (Code Var) :=
-  | star_step {x y} : r x y -> star r x y
-  | star_refl {x} : star r x x
-  | star_trans {x} y {z} : star r x y -> star r y z -> star r x z.
-Hint Constructors star.
-
-Inductive weak_star {Var : Set} (r : relation (Code Var)) :
-  relation (Code Var) :=
-  | weak_star_step {x y} : r x y -> weak_star r x y
-  | weak_star_refl {x} : weak_star r x x
-  | weak_star_trans {x} y {z} : r x y -> weak_star r y z -> weak_star r x z.
-Hint Constructors weak_star.
-
-Inductive astar {Var : Set} (r : relation (Code Var)) : relation (Code Var) :=
-  | astar_step {x y} : r x y -> astar r x y
-  | astar_refl {x} : astar r x x
-  | astar_trans {x} y {z} : astar r x y -> astar r y z -> astar r x z
-  | astar_left {x x' y} : astar r x x' -> astar r (x * y) (x' * y)
-  | astar_right {x y y'} : astar r y y' -> astar r (x * y) (x * y').
-Hint Constructors astar.
-
-Inductive weak_astar {Var : Set} (r : relation (Code Var)) :
-  relation (Code Var) :=
-  | weak_astar_step {x y} : r x y -> weak_astar r x y
-  | weak_astar_left {x x' y} :
-      weak_astar r x x' -> weak_astar r (x * y) (x' * y)
-  | weak_astar_right {x y y'} :
-      weak_astar r y y' -> weak_astar r (x * y) (x * y').
-Hint Constructors weak_astar.
-
-Lemma weaken_star (Var : Set) (r : relation (Code Var)) (x y : Code Var) :
-  star r x y <-> weak_star r x y.
-Proof.
-  split; intro H; induction H; eauto.
-  clear H H0; induction IHstar1; eauto.
-Qed.
-
-Lemma weaken_astar (Var : Set) (r : relation (Code Var)) (x y : Code Var) :
-  astar r x y <-> weak_star (weak_astar r) x y.
-Proof.
-  rewrite <- weaken_star.
-  split; intro H; induction H; eauto.
-  - clear H; induction IHastar; eauto.
-  - clear H; induction IHastar; eauto.
-  - induction H; eauto.
-Qed.
-*)
-
 Inductive star {Var : Set} (r : relation (Code Var)) : relation (Code Var) :=
   | star_step {x y} : r x y -> star r x y
   | star_refl {x} : star r x x
@@ -249,16 +200,30 @@ Tactic Notation "freeze" reference(c) "in" tactic(tac) :=
   | destruct H as [v H]; rewrite H; tac; destruct H].
 
 
-Class Commuting {a} (r s : relation a) :=
+Class Commuting (Var : Set) (r s : relation (Code Var)) :=
   commuting : forall x y z, r x y -> s y z -> exists y', s x y' /\ r y' z.
 
-Ltac commute x y z xy yz :=
-  let w := fresh "w" in
+Tactic Notation
+  "commute" ident(x) ident(y) ident(z) constr(xy) constr(yz)
+  "as" ident(w) :=
+  let xy := fresh x y in
+  let yx := fresh y x in
+  let yz := fresh y z in
+  let zy := fresh z y in
   let xw := fresh x w in
   let wz := fresh w z in
   let H := fresh in
-  set (H := commuting _ _ x y z xy yz);
-  destruct H as [w [xw wz]].
+  match type of xy with
+    | ?r y x => assert (flip r x y) as xy; [unfold flip; assumption | idtac]
+    | ?r x y => idtac
+  end;
+  match type of yz with
+    | ?r z y => assert (flip r y z) as yz; [unfold flip; assumption | idtac]
+    | ?r y z => idtac
+  end;
+  set (H := commuting x y z xy yz);
+  destruct H as [w [xw wz]];
+  try unfold flip in xw, wz.
 
 
 Instance probe_reflexive (Var : Set) : Reflexive (@probe Var).
@@ -291,8 +256,8 @@ Ltac simpl_probe_step :=
   end;
   auto.
 
-Instance probe_confluent (Var : Set) :
-  Commuting (flip (@probe Var)) (@probe Var).
+Instance commuting_flip_probe_probe (Var : Set) :
+  Commuting Var (flip probe) probe.
 Proof.
   unfold flip; intros x y z xy yz.
   rewrite weaken_probe in xy, yz.
@@ -340,7 +305,7 @@ Proof.
   intro H; induction H; auto.
 Qed.
 
-Instance beta_confluent (Var : Set) : Commuting (flip (@beta Var)) (@beta Var).
+Instance commuting_flip_beta_beta (Var : Set) : Commuting Var (flip beta) beta.
 Proof.
   unfold flip; intros x y z xy yz.
   rewrite weaken_beta in xy, yz.
@@ -353,6 +318,15 @@ Proof.
   - admit.
   - admit.
   - admit.
+Admitted.
+
+Instance commuting_flip_probe_beta (Var : Set) :
+  Commuting Var (flip probe) beta.
+Proof.
+Admitted.
+
+Instance commuting_beta_probe (Var : Set) : Commuting Var beta probe.
+Proof.
 Admitted.
 
 
@@ -374,55 +348,66 @@ Proof.
   intros x x' Hx y y' Hy; transitivity (x * y'); auto.
 Qed.
 
-Instance test_beta_to_beta_test (Var : Set) :
-  Commuting (@test Var) (@beta Var).
+Instance commuting_test_beta (Var : Set) : Commuting Var test beta.
 Proof.
   intros x y z xy yz; induction xy; induction yz; auto.
 Admitted.
 
-Instance beta_test_confluent (Var : Set) :
-  Commuting (flip (@beta Var)) (@test Var).
+Instance commuting_flip_test_beta (Var : Set) :
+  Commuting Var (flip test) beta.
 Proof.
 Admitted.
 
-
-Instance conv_proper_probe (Var : Set) : Proper (probe ==> iff) (@conv Var).
+Instance commuting_flip_probe_test (Var : Set) :
+  Commuting Var (flip probe) test.
 Proof.
+  intros x y z xy yz; induction xy; induction yz; auto.
+Admitted.
+
+Lemma probe_test_top (Var : Set) (x y : Code Var) :
+  probe x y -> test x TOP -> test y TOP.
+Proof.
+  intro Hp; rewrite weaken_probe in Hp; induction Hp; simpl_probe_step.
+  intros; transitivity (TOP * TOP : Code Var); auto.
+Qed.
+
+
+Instance conv_proper_test (Var : Set) : Proper (test --> impl) (@conv Var).
+Proof.
+  intros x x' xx' [y [z [xy [yz zt]]]].
 Admitted.
 
 Instance conv_proper_beta (Var : Set) : Proper (beta ==> iff) (@conv Var).
 Proof.
-  intros x x' xx'; split; intros [y [z [xy [yz zt]]]].
-  (* OLD
-    beta_confluent x x' y xx' xy.
-    intros Hc; induction Hc; apply conv_approx; admit.
-  intros Hc; induction Hc; apply conv_approx; rewrite xx'; auto.
-  *)
-Admitted.
+  intros x x' xx'; split.
+  - intros [y [z [xy [yz zt]]]].
+    admit.
+  - intros [y' [z' [x'y' [y'z' z't]]]].
+    commute x x' y' xx' x'y' as y; exists y.
+    exists z'; repeat split; auto.
+    transitivity y'; auto.
+Qed.
 
-Instance conv_proper_test (Var : Set) : Proper (test --> impl) (@conv Var).
+Instance conv_proper_probe (Var : Set) : Proper (probe ==> iff) (@conv Var).
 Proof.
-  compute; intros x x' xx' Ha.
-Admitted.
-
+  intros x x' xx'; split.
+  - intros [y [z [xy [yz zt]]]].
+    commute x' x y xx' xy as y'; exists y'.
+    commute y' y z y'y yz as z'; exists z'.
+    set (t := @code_top Var); assert (test z t) as zt0; auto.
+    commute z' z t z'z zt0 as t'.
+    repeat split; auto.
+    apply probe_test_top with z; auto.  (* UGLY *)
+  - intros [y' [z' [x'y' [y'z' z't]]]].
+    exists y', z'; repeat split; auto.
+    transitivity x'; auto.
+Qed.
 
 Lemma conv_top (Var : Set) : conv (TOP : Code Var).
 Proof.
   exists TOP, TOP; repeat split; auto.
 Qed.
 Hint Resolve conv_top.
-
-Lemma conv_join_left (Var : Set) (w x : Code Var) : conv w -> conv (w || x).
-Proof.
-  intros [y [z [wy [yz zt]]]].
-Admitted.
-Hint Resolve conv_join_left.
-
-Lemma conv_join_right (Var : Set) (w x : Code Var) : conv x -> conv (w || x).
-Proof.
-  intros [y [z [xy [yz zt]]]].
-Admitted.
-Hint Resolve conv_join_right.
 
 (** ** A [heads] relation for proving nontermination *)
 
