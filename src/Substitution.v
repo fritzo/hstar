@@ -56,6 +56,21 @@ Proof.
 Qed.
 Hint Rewrite var_monad_assoc : code_simpl.
 
+Lemma code_sub_inverse
+  (Var : Set) (f : Var -> Code Empty_set) (x : Code Empty_set) :
+  exists y, y @ f = x.
+Proof.
+  induction x;
+  match goal with
+  | [v : Empty_set |- _] => case v
+  | [|- exists y : Code Var, _ = ?x Empty_set] => exists (@x Var); auto
+  | _ =>
+    destruct IHx1 as [y1 Hy1];
+    destruct IHx2 as [y2 Hy2];
+    exists (y1 * y2); code_simpl; subst; auto
+  end.
+Qed.
+
 Lemma code_sub_ext (Var Var' : Set)
   (f g : Var -> Code Var') (fg : forall v, f v = g v) x :
   x @ f = x @ g.

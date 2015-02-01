@@ -7,10 +7,7 @@ import subprocess
 import multiprocessing
 import parsable
 
-
 BADGE = '![Proof Status](https://img.shields.io/badge/{}.svg?style=flat)'
-
-DEVNULL = open(os.devnull, 'w')
 
 
 def re_count(patt, text, flags=0):

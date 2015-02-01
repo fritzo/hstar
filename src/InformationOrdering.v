@@ -228,14 +228,14 @@ Proof.
   intros H Var'' c f'; repeat rewrite var_monad_assoc; auto.
 Qed.
 
-Instance code_sub_le (Var Var' : Set) :
+Instance code_sub_proper_le (Var Var' : Set) :
   Proper ((eq ==> code_le) ==> code_le ==> code_le) (@code_sub Var Var').
 Proof.
   intros f g Hfg x y Hxy; transitivity (y @ f);
   [apply code_sub_le_right | apply code_sub_le_left]; auto.
 Qed.
 
-Instance code_sub_eq (Var Var' : Set) :
+Instance code_sub_proper_eq (Var Var' : Set) :
   Proper ((eq ==> code_eq) ==> code_eq ==> code_eq) (@code_sub Var Var').
 Proof.
   intros f g Hfg x y Hxy; transitivity (y @ f); split.
@@ -350,7 +350,7 @@ Hint Resolve code_eq_j_idem.
 Lemma code_le_j_sym (Var : Set) (x y : Code Var) : x||y == y||x.
 Proof. split; auto. Qed.
 
-Lemma code_le_j_assoc (Var : Set) (x y z : Code Var) : x||(y||z) == (x||y)||z.
+Lemma code_eq_j_assoc (Var : Set) (x y z : Code Var) : x||(y||z) == (x||y)||z.
 Proof.
   split; auto.
     apply code_le_j_ub; auto.
@@ -511,7 +511,7 @@ Proof.
   split; [apply code_le_empty_complete | apply code_le_empty_sound].
 Qed.
 
-(** ** Head-normalized versions of convergence and ordering  *)
+(** ** Simpler versions of convergence and ordering  *)
 
 Fixpoint code_apply {Var : Set} (x : Code Var) (ys : list (Code Var)) :
   Code Var :=
@@ -583,20 +583,20 @@ Proof.
   rewrite <- eq; reflexivity.
 Qed.
 
-Definition code_le_apply {Var : Set} (x x' : Code Var) : Prop :=
-  forall (Var' : Set) (ys : list (Code Var')) (f : Var -> Code Var'),
+Definition weak_code_le {Var : Set} (x x' : Code Var) : Prop :=
+  forall (ys : list (Code Empty_set)) (f : Var -> Code Empty_set),
   conv ((x @ f) ** ys) -> conv ((x' @ f) ** ys).
 
-Lemma code_le_apply_complete (Var : Set) (x x' : Code Var) :
-  x [= x' -> code_le_apply x x'.
+Lemma weak_code_le_complete (Var : Set) (x x' : Code Var) :
+  x [= x' -> weak_code_le x x'.
 Proof.
-  unfold code_le; intros H Var' ys f Hconv.
+  unfold code_le; intros H ys f Hconv.
   rewrite <- beta_tuple_apply; apply H.
   rewrite beta_tuple_apply; auto.
 Qed.
 
-Lemma code_le_apply_sound (Var : Set) (x x' : Code Var) :
-  code_le_apply x x' -> x [= x'.
+Lemma weak_code_le_sound (Var : Set) (x x' : Code Var) :
+  weak_code_le x x' -> x [= x'.
 Proof.
   unfold code_le; intros H Var' c f Hconv.
   assert (forall (ys : list (Code Var')),
@@ -605,13 +605,13 @@ Proof.
   inversion Hconv; simpl; auto.
 Admitted.
 
-Theorem code_le_apply_equiv (Var : Set) (x x' : Code Var) :
-  x [= x' <-> code_le_apply x x'.
+Theorem code_le_weaken (Var : Set) (x x' : Code Var) :
+  x [= x' <-> weak_code_le x x'.
 Proof.
-  split; [apply code_le_apply_complete | apply code_le_apply_sound].
+  split; [apply weak_code_le_complete | apply weak_code_le_sound].
 Qed.
 
-Ltac code_le_apply := apply code_le_apply_equiv; unfold code_le_apply.
+Ltac code_le_weaken := apply code_le_weaken; unfold weak_code_le.
 
 Lemma conv_ap (Var : Set) (x a : Code Var) : conv (x * a) -> conv x.
 Proof.
@@ -621,7 +621,7 @@ Proof.
   transitivity (x * TOP); auto.
 Qed.
 
-Lemma code_le_apply_weaken (Var : Set) (x : Code Var) (ys : list (Code Var)) :
+Lemma conv_apply (Var : Set) (x : Code Var) (ys : list (Code Var)) :
   conv (x ** ys) -> conv x.
 Proof.
   revert x; induction ys; simpl; intros; eauto using conv_ap.

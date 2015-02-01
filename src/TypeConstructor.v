@@ -127,7 +127,9 @@ Section raise.
   Definition push := Eval compute in close (\x, x * BOT).
 
   Lemma lower_raise : lower o raise == I.
-  Proof. unfold lower, raise; beta_eta. Qed.
+  Proof.
+    unfold lower, raise; beta_eta.
+  Qed.
 
   Lemma push_pull : push o pull == I.
   Proof.
@@ -137,10 +139,14 @@ Section raise.
   Qed.
 
   Lemma A_raise_lower : A_prop <<raise, lower>>.
-  Proof. A_prop_pair; apply lower_raise. Qed.
+  Proof.
+    A_prop_pair; apply lower_raise.
+  Qed.
 
   Lemma A_pull_push : A_prop <<pull, push>>.
-  Proof. A_prop_pair; apply push_pull. Qed.
+  Proof.
+    A_prop_pair; apply push_pull.
+  Qed.
 End raise.
 Hint Resolve A_raise_lower.
 Hint Resolve A_pull_push.

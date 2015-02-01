@@ -3,24 +3,25 @@
 Require Export Combinators.
 Open Scope code_scope.
 
-Definition sub_top {Var : Set} (Var' : Set) (x : Var) : Code Var' := TOP.
+Definition sub_top {Var : Set} (v : Var) : Code Empty_set := TOP.
 
-Lemma conv_sub_top (Var Var' : Set) (x : Code Var) (f : Var -> Code Var') :
-  conv (x @ f) -> conv (x @ sub_top Var').
+Lemma sub_top_le (Var : Set) (x : Code Var) (f : Var -> Code Empty_set) :
+  x @ f [= x @ sub_top.
 Proof.
   induction x; simpl; intros; auto.
-Admitted.
+  freeze code_le in compute.
+  auto.
+Qed.
 
 Lemma not_conv_eq_bot (Var : Set) (x : Code Var) :
-  ~ conv (x @ sub_top Var) -> x == BOT.
+  ~ conv (x @ sub_top) -> x == BOT.
 Proof.
   intro Hd; split; auto.
-  apply code_le_apply_equiv; unfold code_le_apply.
-  unfold code_le; intros Var' c f Hc.
-  (* TODO
-  apply conv_sub_top in Hc.
-  *)
-Admitted.
+  code_le_weaken; intros c f Hc.
+  rewrite sub_top_le in Hc.
+  apply conv_apply in Hc.
+  contradiction.
+Qed.
 
 Fixpoint probed {Var : Set} (n : nat) (x : Code Var) : Code Var :=
   match n with
@@ -33,16 +34,10 @@ Proof.
   intros n; induction n; compute; fold (@probed Var); discriminate.
 Qed.
 
-(* OLD
-Lemma approx_probe_bot_top (Var : Set) :
-  forall n, ~ approx (probed n (@code_bot Var)) TOP.
-Proof.
-  intros n H; induction n; auto.
-Admitted.
-*)
-
 Lemma ap_top_div (Var : Set) (x : Code Var) : div * (x * TOP) == div * x.
 Proof.
+  split.
+    rewrite (@code_eq_div' _ x); auto.
 Admitted.
 
 Lemma div_ap_top (Var : Set) (x : Code Var) : div * x * TOP == div * x.

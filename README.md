@@ -1,14 +1,14 @@
 [![Build Status](https://travis-ci.org/fritzo/hstar.svg?branch=master)](https://travis-ci.org/fritzo/hstar)
-![Proof Status](https://img.shields.io/badge/proofs-60_holes-red.svg?style=flat)
+![Proof Status](https://img.shields.io/badge/proofs-56_holes-red.svg?style=flat)
 
 Holes | File
 -----:|:------------------------------------------------------------
-   13 | [Types](src/Types.v)
+   12 | [Types](src/Types.v)
    11 | [Codes](src/Codes.v)
     9 | [InformationOrdering](src/InformationOrdering.v)
     9 | [TypeConstructor](src/TypeConstructor.v)
     8 | [LeastFixedPoint](src/LeastFixedPoint.v)
-    7 | [Nontermination](src/Nontermination.v)
+    4 | [Nontermination](src/Nontermination.v)
     3 | [Combinators](src/Combinators.v)
 
 # Inadvertently typed &lambda;-join-calculus

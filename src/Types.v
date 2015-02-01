@@ -167,10 +167,14 @@ Hint Rewrite V1_inhab_top : code_simpl.
 (** ** [I] is the largest type, the type of everyting *)
 
 Lemma I_nondecreasing (Var : Set) : I [= (I : Code Var).
-Proof. auto. Qed.
+Proof.
+  auto.
+Qed.
 
 Lemma I_idempotent (Var : Set) : I o I == (I : Code Var).
-Proof. beta_eta. Qed.
+Proof.
+  beta_eta.
+Qed.
 Hint Rewrite I_idempotent : code_simpl.
 
 Lemma V_I (Var : Set) : I :: (V : Code Var).
@@ -235,13 +239,34 @@ Proof.
   monotonicity.
 Qed.
 
+Lemma code_eq_v_idem (Var : Set ) (a : Code Var) : V * (V * a) == V * a.
+Proof.
+  rewrite <- beta_b; rewrite V_idempotent; auto.
+Qed.
+Hint Rewrite code_eq_v_join : code_simpl.
+
+Lemma code_eq_v_join_left (Var : Set ) (a b : Code Var) :
+  V * (V * a || b) == V * (a || b).
+Proof.
+  rewrite <- code_eq_v_join; rewrite code_eq_v_idem.
+  rewrite <- (code_eq_v_join _ a b); reflexivity.
+Qed.
+Hint Rewrite code_eq_v_join_left : code_simpl.
+
+Lemma code_eq_v_join_right (Var : Set ) (a b : Code Var) :
+  V * (a || V * b) == V * (a || b).
+Proof.
+  rewrite <- code_eq_v_join; rewrite code_eq_v_idem.
+  rewrite <- (code_eq_v_join _ a b); reflexivity.
+Qed.
+Hint Rewrite code_eq_v_join_right : code_simpl.
+
 Lemma P_assoc (Var : Set) (a b c : Code Var) :
   P * a * (P * b * c) == P * (P * a * b) * c.
 Proof.
-  unfold P; fold (@V Var); beta_simpl.
-  split.
-    rewrite <- code_eq_v_join.
-Admitted.
+  unfold P; fold (@V Var); code_simpl.
+  rewrite code_eq_j_assoc; reflexivity.
+Qed.
 
 Lemma P1_nondecreasing (Var : Set) (a : Code Var) : I [= P * a.
 Proof.
@@ -389,24 +414,31 @@ Qed.
 (* ------------------------------------------------------------------------ *)
 (** ** Closures constructed as [A * f] *)
 
-(* EXPERIMENTAL
+(* EXPERIMENTAL *)
 
-Inductive type_body {Var : Set} : Var -> Var -> Code Var -> Set :=
+Inductive type_body {Var : Set} : nat -> nat -> Code (nat + Var) -> Set :=
   | type_body_eq n n' x y : x == y -> type_body n n' x -> type_body n n' y
   | type_body_atom n n' v : v :: V -> type_body n n' v
-  | type_body_var n n' : type_body n n' (code_var n')
+  | type_body_var n n' : type_body n n' (code_var (inl n'))
   | type_body_exp n n' a b :
       type_body n' n a -> type_body n n' b -> type_body n n' (exp * a * b)
+  (*
   | type_body_fix n n' f :
       (forall x, type_body n n' x -> type_body n n' (f * x)) ->
-      type_body n n' (Y * f).
+      type_body n n' (Y * f)
+  *)
+.
 
-Lemma V_fixes_constructed_types (Var : Set) (a a' : Var) (f : Code Var) :
-  type_body a a' f -> \\ f :: V.
+Lemma V_fixes_constructed_types
+  (Var : Set) (n n' : nat) (f : Code (nat + Var)) :
+  type_body n n' f -> (\\code_var (inl n), code_var (inl n'); f) :: V.
 Proof.
-Admitted.
-
-*)
+  intro H; induction H.
+  - simpl; rewrite <- c; auto.
+  - admit.
+  - admit.
+  - admit.
+Qed.
 
 (* ------------------------------------------------------------------------ *)
 (** ** [div] is inhabited by [{BOT, TOP}] *)
@@ -620,15 +652,12 @@ Theorem semi_sound (Var : Set) (x : Code Var) : x :: semi -> semi_fixes x.
 Proof.
   intros H.
   case_le (x [= BOT) as Hbot.
-    assert (x == BOT) as eq.
-      split; auto.
+    assert (x == BOT) as eq; [split; auto|].
     rewrite eq; auto.
   case_le (x [= I) as Hi.
-    assert (x == I) as eq.
-      split; [|rewrite <- H; apply A_repairs]; auto.
+    assert (x == I) as eq; [split; [|rewrite <- H; apply A_repairs]; auto|].
     rewrite eq; auto.
-  assert (x == TOP) as eq.
-    split; [|rewrite <- H; apply A_raises]; auto.
+  assert (x == TOP) as eq; [split; [|rewrite <- H; apply A_raises]; auto|].
   rewrite eq; auto.
 Qed.
 

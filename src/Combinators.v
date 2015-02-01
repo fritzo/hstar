@@ -33,6 +33,51 @@ Fixpoint code_abs0 {Var Var' : Set} (b : Var -> option Var') (x : Code Var) :
   | S => K * S
   end.
 
+Section code_eq_abs0_sub.
+  Variable Var Var' : Set.
+  Variable b : Var -> option Var'.
+  Variable x : Code Var.
+  Variable y : Code Var'.
+  Let f v := match b v with None => y | Some v' => code_var v' end.
+
+  Lemma code_eq_abs0_sub : code_abs0 b x * y == code_sub f x.
+  Proof.
+    induction x; try (unfold f; simpl; auto; fail).
+      unfold f; simpl; destruct (b v); beta_simpl; auto.
+    rewrite code_sub_ap.
+    unfold code_abs0; fold (@code_abs0 Var).
+    rewrite beta_s; auto.
+  Qed.
+End code_eq_abs0_sub.
+
+Instance code_abs0_proper_le (Var Var' : Set) :
+  Proper (eq ==> code_le ==> code_le) (@code_abs0 Var Var').
+Proof.
+  intros b b' bb' x x' xx'.
+  code_le_weaken; intros ys f.
+  induction ys.
+  - assert (TOP @ f = TOP) as TOP_f; [simpl; auto|].
+    simpl; rewrite <- bb'; intro Hc.
+    rewrite ap_top_conv; rewrite ap_top_conv in Hc.
+    rewrite <- TOP_f; rewrite <- TOP_f in Hc.
+    rewrite <- code_sub_ap; rewrite <- code_sub_ap in Hc.
+    rewrite code_eq_abs0_sub; rewrite code_eq_abs0_sub in Hc.
+    rewrite xx' in Hc; assumption.
+  - set (Ha := code_sub_inverse _ f a); destruct Ha as [a' aa'].
+    simpl.
+    repeat rewrite <- aa'.
+    repeat rewrite <- code_sub_ap.
+    repeat rewrite code_eq_abs0_sub.
+    rewrite xx', bb'; firstorder.
+Qed.
+
+Instance code_abs0_proper_eq (Var Var' : Set) :
+  Proper (eq ==> code_eq ==> code_eq) (@code_abs0 Var Var').
+Proof.
+  intros b b' bb' x x' [xx' x'x]; rewrite <- bb'.
+  split; [rewrite xx' | rewrite x'x]; auto.
+Qed.
+
 (** Efficient I,K,B,C,S,eta-abstraction *)
 
 Fixpoint code_abs {Var Var' : Set} (b : Var -> option Var') (x : Code Var) :
@@ -69,16 +114,7 @@ Section code_eq_abs_sub.
   Variable y : Code Var'.
   Let f v := match b v with None => y | Some v' => code_var v' end.
 
-  Lemma code_eq_abs0_sub : code_abs0 b x * y == code_sub f x.
-  Proof.
-    induction x; try (unfold f; simpl; auto; fail).
-      unfold f; simpl; destruct (b v); beta_simpl; auto.
-    rewrite code_sub_ap.
-    unfold code_abs0; fold (@code_abs0 Var).
-    rewrite beta_s; auto.
-  Qed.
-
-  Lemma code_eq_abs_abs0 : code_abs b x * y == code_abs0 b x * y.
+  Lemma code_eq_abs_abs0_ext : code_abs b x * y == code_abs0 b x * y.
   Proof.
     induction x; unfold f; simpl; auto.
     rewrite beta_s.
@@ -96,10 +132,33 @@ Section code_eq_abs_sub.
   Lemma code_eq_abs_sub : code_abs b x * y == code_sub f x.
   Proof.
     transitivity (code_abs0 b x * y);
-    [apply code_eq_abs_abs0 | apply code_eq_abs0_sub].
+    [apply code_eq_abs_abs0_ext | apply code_eq_abs0_sub].
   Qed.
 End code_eq_abs_sub.
 Hint Resolve code_eq_abs_sub.
+
+Lemma code_eq_abs_abs0
+  (Var Var' : Set) (b : Var -> option Var') (x : Code Var) :
+  code_abs b x == code_abs0 b x.
+Proof.
+  eta_expand as y; apply code_eq_abs_abs0_ext.
+Qed.
+
+Instance code_abs_proper_le (Var Var' : Set) :
+  Proper (eq ==> code_le ==> code_le) (@code_abs Var Var').
+Proof.
+  intros b b' bb' x x' xx'.
+  repeat rewrite code_eq_abs_abs0.
+  rewrite bb', xx'; auto.
+Qed.
+
+Instance code_abs_proper_eq (Var Var' : Set) :
+  Proper (eq ==> code_eq ==> code_eq) (@code_abs Var Var').
+Proof.
+  intros b b' bb' x x' xx'.
+  repeat rewrite code_eq_abs_abs0.
+  rewrite bb', xx'; auto.
+Qed.
 
 (** ** Informal lambda notation *)
 
