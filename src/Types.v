@@ -378,12 +378,21 @@ Qed.
 Lemma P2_sound (Var : Set) (a b x : Code Var) :
   x :: P * a * b -> P2_fixes a b x.
 Proof.
-Admitted.
+  unfold P; fold (@V Var); code_simpl.
+  intro Hab; apply V1_inhab in Hab.
+  code_simpl in Hab; apply code_le_join in Hab; destruct Hab as [Ha Hb].
+  apply P2_fixes_intro; apply V1_inhab; auto.
+Qed.
 
 Lemma P2_complete (Var : Set) (a b x : Code Var) :
   P2_fixes a b x -> x :: P * a * b.
 Proof.
-Admitted.
+  intro H; destruct H as [x Ha Hb].
+  unfold P; fold (@V Var); code_simpl.
+  rewrite <- V1_inhab in Ha.
+  rewrite <- V1_inhab in Hb.
+  apply V1_inhab; code_simpl; auto.
+Qed.
 
 Theorem P2_inhab (Var : Set) (a b x : Code Var) :
   x :: P * a * b <-> P2_fixes a b x.
@@ -577,10 +586,19 @@ Qed.
 
 Lemma semi_idempotent (Var : Set) : semi o semi == (semi : Code Var).
 Proof.
-  eta_expand as a; rewrite beta_b.
-  unfold semi; fold (@V Var).
-  (* TODO this requires a least-fixed-point argument *)
-Admitted.
+  rewrite <- A_exp_semi.
+  split.
+  - rewrite A_simpl at 3; rewrite code_eq_y; rewrite <- A_simpl.
+    unfold A_step; code_simpl.
+    rewrite test_j_right; rewrite test_j_left.
+    (* TODO argue pairwise <<s o s', r' o r>> *)
+    admit.
+  - rewrite A_simpl at 2; rewrite code_eq_y; rewrite <- A_simpl.
+    unfold A_step; code_simpl.
+    rewrite test_j_left; rewrite test_j_left; rewrite test_j_left.
+    unfold exp at 2; unfold pair.
+    beta_eta.
+Qed.
 Hint Rewrite semi_idempotent : code_simpl.
 
 (* TODO prove by [apply V_fixes_constructed_types] *)
