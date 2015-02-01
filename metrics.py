@@ -4,6 +4,7 @@ import os
 import re
 import glob
 import subprocess
+import multiprocessing
 import parsable
 
 
@@ -78,75 +79,87 @@ def update_readme(filename='README.md'):
     os.rename(tempname, filename)
 
 
+re_lemma = re.compile(
+    r'\b(Lemma|Theorem|Corollary|Instance)\s+([A-Za-z0-9_\']+)\b')
+re_qed = re.compile(r'\b(Qed|Defined|Admitted)\.')
+
+
 def read_theorem_names(thms, fin, fout):
     proc = subprocess.Popen(
         ['coqtop'],
         stdin=subprocess.PIPE,
         stdout=fout,
-        stderr=DEVNULL)
+        stderr=fout)
     thm = None
     for line in fin:
-        proc.stdin.write(line)
         if thm is None:
-            match = re.search(
-                r'\b(Lemma|Theorem|Corollary|Instance)\s+([A-Za-z0-9_\']+)\b',
-                line)
+            match = re_lemma.search(line)
             if match:
                 thm = {
                     'type': match.group(1),
                     'name': match.group(2),
                     'holes': 0,
-                    'body': '',
+                    'words': set(),
                 }
         else:
             thm['holes'] += re_count(r'\badmit\.', line)
-            match = re.search(r'\b(Qed|Defined|Admitted)\.', line)
+            match = re_qed.search(line)
             if match:
                 if match.group(1) == 'Admitted':
                     thm['holes'] += 1
-                proc.stdin.write('Print {name}.\n'.format(**thm))
+                proc.stdin.write('Show Proof.\n'.format(**thm))
                 thms[thm['name']] = thm
                 thm = None
+        proc.stdin.write(line)
     proc.stdin.write('Quit.\n')
     proc.wait()
+
+
+def get_words(text):
+    matches = re.finditer('[A-Za-z_\']+', text, re.MULTILINE)
+    return set(match.group() for match in matches)
 
 
 def read_theorem_bodies(thms, fin):
     thm = None
     for line in fin:
         if thm is None:
-            match = re.search(r'^([A-Za-z0-9_\']+) = ', line)
+            match = re.search(r'^([A-Za-z0-9_\']+) < ', line)
             if match:
-                thm = {'name': match.group(1), 'body': line}
+                name = match.group(1)
+                if name in thms:
+                    thm = {'name': name, 'words': set()}
+        elif not line.isspace():
+            thms[name]['words'] |= get_words(line)
         else:
-            if re.match(r'^\s+$', line):
-                if thm['name'] in thms:
-                    thms[thm['name']].update(thm)
-                thm = None
-            else:
-                thm['body'] += line
+            thm = None
 
 
 def add_dependency_graph(thms):
     for name, thm in thms.iteritems():
         deps = set()
-        for match in re.finditer('[A-Za-z_\']+', thm['body'], re.MULTILINE):
-            word = match.group()
+        for word in thm['words']:
             if word in thms and word != name:
                 deps.add(word)
-        thm['deps'] = sorted(deps)
+        thm['deps'] = ' '.join(sorted(deps))
+
+
+def collect_thms_file(filename):
+    thms = {}
+    defsname = '{}.defs'.format(filename)
+    with open(filename) as fin:
+        with open(defsname, 'w') as fout:
+            read_theorem_names(thms, fin, fout)
+    with open(defsname) as fin:
+        read_theorem_bodies(thms, fin)
+    os.remove(defsname)
+    return thms
 
 
 def collect_thms(*filenames):
     thms = {}
-    for filename in filenames:
-        defsname = '{}.defs'.format(filename)
-        with open(filename) as fin:
-            with open(defsname, 'w') as fout:
-                read_theorem_names(thms, fin, fout)
-        with open(defsname) as fin:
-            read_theorem_bodies(thms, fin)
-        os.remove(defsname)
+    for part in multiprocessing.Pool().map(collect_thms_file, filenames):
+        thms.update(part)
     add_dependency_graph(thms)
     return thms
 
@@ -158,7 +171,7 @@ def print_thms(*filenames):
     '''
     thms = collect_thms(*filenames)
     for thm in thms.itervalues():
-        print '{type} {name} {holes} depends on:\n  {deps}'.format(**thm)
+        print '{type} {name} {holes}: {deps}'.format(**thm)
 
 
 if __name__ == '__main__':
