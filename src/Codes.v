@@ -55,6 +55,34 @@ Inductive star {Var : Set} (r : relation (Code Var)) : relation (Code Var) :=
   | star_trans {x} y {z} : star r x y -> star r y z -> star r x z.
 Hint Constructors star.
 
+Inductive weak_star
+  {Var : Set} (r : relation (Code Var)) : relation (Code Var) :=
+  | weak_star_refl {x} : weak_star r x x
+  | weak_star_trans {x} y {z} : r x y -> weak_star r y z -> weak_star r x z.
+Hint Constructors weak_star.
+
+Lemma weaken_star (Var : Set) (r : relation (Code Var)) (x y : Code Var) :
+  star r x y <-> weak_star r x y.
+Proof.
+  split; intro H; induction H; eauto.
+  clear H H0; induction IHstar1; auto.
+  apply weak_star_trans with y; auto.
+Qed.
+
+Lemma star_weak_star (Var : Set) (r : relation (Code Var)) :
+  relation_equivalence (star r) (weak_star r).
+Proof.
+  simpl_relation; apply weaken_star.
+Qed.
+
+Lemma weak_star_flip (Var : Set) (r : relation (Code Var)) (x y : Code Var) :
+  weak_star (flip r) x y <-> weak_star r y x.
+Proof.
+  split; intro H; induction H; eauto.
+  - admit.
+  - admit.
+Qed.
+
 
 Inductive probe {Var : Set} : relation (Code Var) :=
   | probe_refl {x} : probe x x
@@ -66,11 +94,12 @@ Inductive probe_step {Var : Set} : relation (Code Var) :=
   | probe_step_top {x} : probe_step x (x * TOP).
 Hint Constructors probe_step.
 
-Definition weak_probe {Var : Set} : relation (Code Var) := star probe_step.
+Definition weak_probe {Var : Set} : relation (Code Var) := weak_star probe_step.
 Hint Unfold weak_probe.
 
 Lemma weaken_probe (Var : Set) (x y : Code Var) : probe x y <-> weak_probe x y.
 Proof.
+  unfold weak_probe; rewrite <- weaken_star.
   split; intro H; induction H; eauto.
   inversion H; auto.
 Qed.
@@ -110,11 +139,12 @@ Inductive beta_step {Var : Set} : relation (Code Var) :=
       beta_step ((w(+)x) (+) (y(+)z)) ((x(+)y) (+) (z(+)w)).
 Hint Constructors beta_step.
 
-Definition weak_beta {Var : Set} : relation (Code Var) := star beta_step.
+Definition weak_beta {Var : Set} : relation (Code Var) := weak_star beta_step.
 Hint Unfold weak_beta.
 
 Lemma weaken_beta (Var : Set) (x y : Code Var) : beta x y <-> weak_beta x y.
 Proof.
+  unfold weak_beta; rewrite <- weaken_star.
   split; intro H; induction H; eauto.
   - clear H; induction IHbeta; eauto.
   - clear H; induction IHbeta; eauto.
@@ -143,11 +173,12 @@ Inductive test_step {Var : Set} : relation (Code Var) :=
   | test_step_j_right {x y} : test_step (x || y) y.
 Hint Constructors test_step.
 
-Definition weak_test {Var : Set} : relation (Code Var) := star test_step.
+Definition weak_test {Var : Set} : relation (Code Var) := weak_star test_step.
 Hint Unfold weak_test.
 
 Lemma weaken_test (Var : Set) (x y : Code Var) : test x y <-> weak_test x y.
 Proof.
+  unfold weak_test; rewrite <- weaken_star.
   split; intro H; induction H; eauto.
   - clear H; induction IHtest; eauto.
   - clear H; induction IHtest; eauto.
@@ -225,6 +256,22 @@ Tactic Notation
   destruct H as [w [xw wz]];
   try unfold flip in xw, wz.
 
+Lemma weaken_commuting (Var : Set) (r s r' s' : relation (Code Var)) :
+  (forall (x y : Code Var), r x y <-> weak_star r' x y) ->
+  (forall (x y : Code Var), s x y <-> weak_star s' x y) ->
+  (forall x y z, r' x y -> s' y z -> exists y', s x y' /\ r y' z) ->
+  Commuting Var r s.
+Proof.
+  intros Hr Hs Hweak x y z rxy syz.
+  rewrite Hr in rxy.
+  rewrite Hs in syz.
+  induction rxy; induction syz; eauto.
+  - exists x; rewrite Hr, Hs; auto.
+  - admit.
+  - admit.
+  - admit.
+Qed.
+
 
 Instance probe_reflexive (Var : Set) : Reflexive (@probe Var).
 Proof. auto. Qed.
@@ -250,31 +297,28 @@ Ltac simpl_probe_step :=
   match goal with
     | [H : probe_step _ _ |- _] => destruct H
   (*
+    | [|- probe ?x ?y] => rewrite weaken_probe; unfold weak_probe
     | [H : star probe_step _ _ |- _] => induction H
   *)
     | [H : probe_step ?x ?x -> _ |- _] => clear H
   end;
-  auto.
+  eauto.
 
 Instance commuting_flip_probe_probe (Var : Set) :
   Commuting Var (flip probe) probe.
 Proof.
-  unfold flip; intros x y z xy yz.
-  rewrite weaken_probe in xy, yz.
-  induction xy; induction yz; eauto.
-  - exists (x * TOP); simpl_probe_step.
-  - exists y; split; simpl_probe_step.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-Admitted.
+  apply (weaken_commuting _ _ _ (flip probe_step) probe_step); auto.
+  - intros x y; rewrite weak_star_flip; compute; apply weaken_probe.
+  - apply weaken_probe.
+  - unfold flip; intros x y z xy yz.
+    induction xy; induction yz; eauto.
+Qed.
 
 
 Instance beta_reflexive (Var : Set) : Reflexive (@beta Var).
-Proof. auto. Qed.
+Proof.
+  auto.
+Qed.
 
 Instance beta_transitive (Var : Set) : Transitive (@beta Var).
 Proof.
@@ -307,26 +351,30 @@ Qed.
 
 Instance commuting_flip_beta_beta (Var : Set) : Commuting Var (flip beta) beta.
 Proof.
-  unfold flip; intros x y z xy yz.
-  rewrite weaken_beta in xy, yz.
-  induction xy; induction yz; eauto.
-  - admit.
-  - exists y; auto using beta_step_beta.
-  - admit.
-  - exists y; auto using beta_step_beta.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-Admitted.
+  apply (weaken_commuting _ _ _ (flip beta_step) beta_step); auto.
+  - intros x y; rewrite weak_star_flip; compute; apply weaken_beta.
+  - apply weaken_beta.
+  - compute; intros x y z xy yz.
+    induction xy; induction yz; auto.
+Admitted. 
 
 Instance commuting_flip_probe_beta (Var : Set) :
   Commuting Var (flip probe) beta.
 Proof.
+  apply (weaken_commuting _ _ _ (flip probe_step) beta_step); auto.
+  - intros x y; rewrite weak_star_flip; compute; apply weaken_probe.
+  - apply weaken_beta.
+  - compute; intros x y z xy yz.
+    induction xy; induction yz; auto.
 Admitted.
 
 Instance commuting_beta_probe (Var : Set) : Commuting Var beta probe.
 Proof.
+  apply (weaken_commuting _ _ _ beta_step probe_step); auto.
+  - apply weaken_beta.
+  - apply weaken_probe.
+  - compute; intros x y z xy yz.
+    induction xy; induction yz; auto.
 Admitted.
 
 
@@ -368,14 +416,22 @@ Lemma probe_test_top (Var : Set) (x y : Code Var) :
   probe x y -> test x TOP -> test y TOP.
 Proof.
   intro Hp; rewrite weaken_probe in Hp; induction Hp; simpl_probe_step.
-  intros; transitivity (TOP * TOP : Code Var); auto.
 Qed.
 
 
 Instance conv_proper_test (Var : Set) : Proper (test --> impl) (@conv Var).
 Proof.
   intros x x' xx' [y [z [xy [yz zt]]]].
-Admitted.
+  compute in xx'; induction xx'.
+  - exists y, z; repeat split; auto.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+Qed.
 
 Instance conv_proper_beta (Var : Set) : Proper (beta ==> iff) (@conv Var).
 Proof.
