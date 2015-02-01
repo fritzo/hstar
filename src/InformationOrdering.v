@@ -50,7 +50,10 @@ Qed.
 Hint Resolve code_le_beta.
 
 Instance code_le_beta_subrelation (Var : Set) :
-  subrelation beta code_le := code_le_beta Var.
+  subrelation beta (@code_le Var).
+Proof.
+  intros x y H; apply code_le_beta; auto.
+Qed.
 
 Lemma code_eq_beta (Var : Set) (x y : Code Var) : beta x y -> x == y.
 Proof.
@@ -61,7 +64,10 @@ Qed.
 Hint Resolve code_eq_beta.
 
 Instance code_eq_beta_subrelation (Var : Set) :
-  subrelation beta code_eq := code_eq_beta Var.
+  subrelation beta (@code_eq Var).
+Proof.
+  simpl_relation; apply code_eq_beta; auto.
+Qed.
 
 Instance code_le_test_proper (Var : Set) :
   Proper (test ++> test --> impl) (@code_le Var).
@@ -480,36 +486,6 @@ Tactic Notation "case_le" constr(xy) "as" ident(H) :=
   match xy with
   | ?x [= ?y => apply (@case_le _ x y _)
   end; intro H.
-
-(** ** Reasoning about closed terms *)
-
-(** A term is closed if it has no variables.
-    In proving [x [= y], it will sometimes be easier to consider only
-    closing variable assignments [f : Var -> Code Empty_set].
-    Thus we introduce an equivalent definition of [x [= y]. *)
-
-Definition code_le_empty {Var : Set} (x y : Code Var) :=
-  let Var' := Empty_set in
-  forall (c : Code Var') (f : Var -> Code Var'),
-  conv (c * (x @ f)) -> conv (c * (y @ f)).
-
-Lemma code_le_empty_complete (Var : Set) (x x' : Code Var) :
-  x [= x' -> code_le_empty x x'.
-Proof.
-  unfold code_le, code_le_empty; intros; auto.
-Qed.
-
-Lemma code_le_empty_sound (Var : Set) (x x' : Code Var) :
-  code_le_empty x x' -> x [= x'.
-Proof.
-  unfold code_le; intros H Var' c f Hc.
-Admitted.
-
-Theorem code_le_empty_equiv (Var : Set) (x x' : Code Var) :
-  x [= x' <-> code_le_empty x x'.
-Proof.
-  split; [apply code_le_empty_complete | apply code_le_empty_sound].
-Qed.
 
 (** ** Simpler versions of convergence and ordering  *)
 
