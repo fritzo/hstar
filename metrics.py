@@ -3,10 +3,13 @@
 import os
 import re
 import glob
+import subprocess
+import parsable
 
 
 BADGE = '![Proof Status](https://img.shields.io/badge/{}.svg?style=flat)'
 
+DEVNULL = open(os.devnull, 'w')
 
 def re_count(patt, text, flags=0):
     return sum(1 for _ in re.finditer(patt, text, re.MULTILINE | re.DOTALL))
@@ -43,7 +46,11 @@ def get_metrics():
     return (line + '\n' for line in lines)
 
 
+@parsable.command
 def update_readme(filename='README.md'):
+    '''
+    Update readme by replacing the line matching 'img.shields.io/badge/proofs'.
+    '''
     tempname = '{}.tmp'.format(filename)
     with open(filename) as infile:
         with open(tempname, 'w') as outfile:
@@ -69,5 +76,88 @@ def update_readme(filename='README.md'):
     os.rename(tempname, filename)
 
 
+def read_theorem_names(thms, fin, fout):
+    proc = subprocess.Popen(
+        ['coqtop'],
+        stdin=subprocess.PIPE,
+        stdout=fout,
+        stderr=DEVNULL)
+    thm = None
+    for line in fin:
+        proc.stdin.write(line)
+        if thm is None:
+            match = re.search(
+                r'\b(Lemma|Theorem|Corollary|Instance)\s+([A-Za-z0-9_\']+)\b',
+                line)
+            if match:
+                thm = {
+                    'type': match.group(1),
+                    'name': match.group(2),
+                    'holes': 0,
+                    'body': '',
+                }
+        else:
+            thm['holes'] += re_count(r'\badmit\.', line)
+            match = re.search(r'\b(Qed|Defined|Admitted)\.', line)
+            if match:
+                if match.group(1) == 'Admitted':
+                    thm['holes'] += 1
+                proc.stdin.write('Print {name}.\n'.format(**thm))
+                thms[thm['name']] = thm
+                thm = None
+    proc.stdin.write('Quit.\n')
+    proc.wait()
+
+
+def read_theorem_bodies(thms, fin):
+    thm = None
+    for line in fin:
+        if thm is None:
+            match = re.search(r'^([A-Za-z0-9_\']+) = ', line)
+            if match:
+                thm = {'name': match.group(1), 'body': line}
+        else:
+            if re.match(r'^\s+$', line):
+                if thm['name'] in thms:
+                    thms[thm['name']].update(thm)
+                thm = None
+            else:
+                thm['body'] += line
+
+
+def add_dependency_graph(thms):
+    for name, thm in thms.iteritems():
+        deps = set()
+        for match in re.finditer('[A-Za-z_\']+', thm['body'], re.MULTILINE):
+            word = match.group()
+            if word in thms and word != name:
+                deps.add(word)
+        thm['deps'] = sorted(deps)
+
+
+def collect_thms(*filenames):
+    thms = {}
+    for filename in filenames:
+        defsname = '{}.defs'.format(filename)
+        with open(filename) as fin:
+            with open(defsname, 'w') as fout:
+                read_theorem_names(thms, fin, fout)
+        with open(defsname) as fin:
+            read_theorem_bodies(thms, fin)
+        os.remove(defsname)
+    add_dependency_graph(thms)
+    return thms
+
+
+@parsable.command
+def print_thms(*filenames):
+    '''
+    Print all theorems from coq files.
+    '''
+    thms = collect_thms(*filenames)
+    for thm in thms.itervalues():
+        print '{type} {name} {holes} depends on:\n  {deps}'.format(**thm)
+
+
 if __name__ == '__main__':
-    update_readme()
+    parsable.dispatch()

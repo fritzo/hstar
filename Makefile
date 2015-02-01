@@ -13,7 +13,7 @@ doc: FORCE
 
 metrics: FORCE
 	pyflakes metrics.py
-	./metrics.py
+	./metrics.py update-readme
 
 clean:
 	git clean -dfx

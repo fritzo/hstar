@@ -6,6 +6,8 @@
 *.tar.gz
 *~
 \#*\#
+*.pyc
+*.pyo
 *.aux
 *.bbl
 *.blg
