@@ -11,6 +11,7 @@ BADGE = '![Proof Status](https://img.shields.io/badge/{}.svg?style=flat)'
 
 DEVNULL = open(os.devnull, 'w')
 
+
 def re_count(patt, text, flags=0):
     return sum(1 for _ in re.finditer(patt, text, re.MULTILINE | re.DOTALL))
 
@@ -38,7 +39,8 @@ def get_metrics():
         lines.append('Holes | File')
         lines.append('-----:|:' + '-' * 60)
         for item in hole_counts:
-            lines.append('{count: >5d} | [{name}](src/{name}.v)'.format(**item))
+            lines.append(
+                '{count: >5d} | [{name}](src/{name}.v)'.format(**item))
         lines.append('')
     else:
         lines = [BADGE.format('proofs-complete-green')]
