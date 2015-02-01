@@ -7,6 +7,8 @@ Require Import Coq.Classes.Morphisms.
 Require Export Combinators.
 Open Scope code_scope.
 
+(** ** Suprema of sequences *)
+
 Fixpoint power {Var : Set} (f : Code Var) (n : nat) : Code Var :=
   match n with
   | 0 => I
@@ -24,11 +26,13 @@ Proof. simpl; beta_simpl; auto. Qed.
 Lemma power_2 (Var : Set) (f x : Code Var) : f ^ 2 * x == f * (f * x).
 Proof. simpl; beta_simpl; auto. Qed.
 
-Definition code_le_limit {Var : Set} (x : Code Var) (f : nat -> Code Var) :=
+Definition limit_le_code {Var : Set} (f : nat -> Code Var) (x : Code Var) :=
   forall n, f n [= x.
 
-Definition code_eq_limit {Var : Set} (x : Code Var) (f : nat -> Code Var) :=
-  code_le_limit x f /\ forall y, code_le_limit y f -> x [= y.
+Definition limit_eq_code {Var : Set} (f : nat -> Code Var) (x : Code Var) :=
+  limit_le_code f x /\ forall y, limit_le_code f y -> x [= y.
+
+(** ** Applications of limits *)
 
 Lemma Y_limit_ub (Var : Set) (f : Code Var) (n : nat) : f ^ n * BOT [= Y * f.
 Proof.
@@ -54,9 +58,9 @@ Proof.
 Qed.
 
 Lemma Y1_as_limit (Var : Set) (f : Code Var) :
-  code_eq_limit (Y * f) (fun n => f ^ n * BOT).
+  limit_eq_code (fun n => f ^ n * BOT) (Y * f).
 Proof.
-  split; unfold code_le_limit.
+  split; unfold limit_le_code.
     apply Y_limit_ub.
   apply Y_limit_lub.
 Qed.
@@ -78,10 +82,12 @@ Admitted.
 
 Lemma Y_S_right (Var : Set) (f g : Code Var) :
   Y * (S * f * g) = Y * (C * f * (Y * (S * f * g))).
+Proof.
 Admitted.
 
 Lemma Y_S_left (Var : Set) (f g : Code Var) :
   Y * (S * f * g) = Y * (B * (Y * (S * f * g)) * g).
+Proof.
 Admitted.
 
 Lemma Y_ub (Var : Set) (f b : Code Var) :
@@ -94,9 +100,9 @@ Proof.
 Admitted.
 
 Lemma V_as_limit (Var : Set) (f : Code Var):
-  code_eq_limit (V * f) (fun n => f ^ n).
+  limit_eq_code (fun n => f ^ n) (V * f).
 Proof.
-  split; unfold code_le_limit.
+  split; unfold limit_le_code.
     induction n; simpl.
       rewrite code_eq_v; rewrite test_j_left; auto.
     rewrite code_eq_v; rewrite test_j_right.
@@ -105,9 +111,9 @@ Proof.
 Admitted.
 
 Lemma V1_as_limit (Var : Set) (f x : Code Var):
-  code_eq_limit (V * f * x) (fun n => f ^ n * x).
+  limit_eq_code (fun n => f ^ n * x) (V * f * x).
 Proof.
-  split; unfold code_le_limit.
+  split; unfold limit_le_code.
     induction n; simpl.
       rewrite code_eq_v; rewrite test_j_left; auto.
     rewrite code_eq_v; rewrite test_j_right.

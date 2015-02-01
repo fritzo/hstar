@@ -149,7 +149,7 @@ Lemma V1_inhab (Var : Set) (a x : Code Var) : a * x [= x <-> x :: V * a.
 Proof.
   split.
     intro H; split.
-      apply V1_as_limit; unfold code_le_limit.
+      apply V1_as_limit; unfold limit_le_code.
       intro n; induction n; simpl; auto.
       beta_simpl; rewrite IHn; auto.
     rewrite <- V1_nondecreasing; beta_simpl; auto.

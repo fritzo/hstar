@@ -100,7 +100,7 @@ Proof.
 Qed.
 
 Ltac A_prop_pair :=
-  unfold A_prop; unfold sub_pair; split ;
+  unfold A_prop; unfold sub_pair; split;
   [ try apply pair_extensionality; auto
   | intros s r H;
     apply pair_extensionality in H;
@@ -131,12 +131,9 @@ Section raise.
 
   Lemma push_pull : push o pull == I.
   Proof.
-    unfold push, pull; eta_expand; beta_simpl.
+    unfold push, pull; fold (@div Var); eta_expand as z; beta_simpl.
     symmetry; apply code_le_eq_j.
-    assert (@div Var * BOT [= H) as H0.
-      admit. (* TODO *)
-    unfold div in H0; code_simpl in H0.
-    auto.
+    rewrite div_bot; auto.
   Qed.
 
   Lemma A_raise_lower : A_prop <<raise, lower>>.
@@ -308,7 +305,8 @@ Admitted.
 (* We will make much use of the following theorems *)
 
 Theorem A_fixes (Var : Set) (f x : Code Var) :
-  (forall s r : Code Var, r o s [= I -> f * s * r * x [= x) -> A * f * x [= x.
+  (forall s r : Code Var, r o s [= I -> f * s * r * x [= x) ->
+  A * f * x [= x.
 Proof.
   intro H.
 Admitted.
