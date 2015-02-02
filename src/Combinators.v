@@ -258,7 +258,7 @@ Lemma conv_div (Var : Set) (x : Code Var) : conv x <-> conv (div * x).
 Proof.
   split; intro Hc.
     rewrite code_eq_div.
-    rewrite test_j_left.
+    rewrite pi_j_left.
     auto.
   admit.
 Qed.

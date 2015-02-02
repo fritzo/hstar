@@ -141,39 +141,61 @@ Proof.
 Qed.
 
 
-Inductive test {Var : Set} : relation (Code Var) :=
-  | test_refl {x} : test x x
-  | test_trans {x} y {z} : test x y -> test y z -> test x z
-  | test_left {x x' y} : test x x' -> test (x * y) (x' * y)
-  | test_right {x y y'} : test y y' -> test (x * y) (x * y')
-  | test_top x : test (TOP * x) TOP
-  | test_bot x : test x BOT
-  | test_j_left {x y} : test (x || y) x
-  | test_j_right {x y} : test (x || y) y.
-Hint Constructors test.
+Inductive pi {Var : Set} : relation (Code Var) :=
+  | pi_refl {x} : pi x x
+  | pi_trans {x} y {z} : pi x y -> pi y z -> pi x z
+  | pi_left {x x' y} : pi x x' -> pi (x * y) (x' * y)
+  | pi_right {x y y'} : pi y y' -> pi (x * y) (x * y')
+  | pi_i {x} : pi (I * x) x
+  | pi_k {x y} : pi (K * x * y) x
+  | pi_b {x y z} : pi (B * x * y * z) (x * (y * z))
+  | pi_c {x y z} : pi (C * x * y * z) (x * z * y)
+  | pi_s {x y z} : pi (S * x * y * z) (x * z * (y * z))
+  | pi_j_ap {x y z} : pi ((x || y) * z) (x * z || y * z)
+  | pi_r_ap {x y z} : pi ((x (+) y) * z) (x * z (+) y * z)
+  | pi_r_idem {x} : pi (x (+) x) x
+  | pi_r_sym {x y} : pi (x (+) y) (y (+) x)
+  | pi_r_sym_sym {w x y z} :
+      pi ((w(+)x) (+) (y(+)z)) ((x(+)y) (+) (z(+)w))
+  | pi_top x : pi TOP x
+  | pi_bot x : pi x BOT
+  | pi_j_left {x y} : pi (x || y) x
+  | pi_j_right {x y} : pi (x || y) y.
+Hint Constructors pi.
 
-Inductive test_step {Var : Set} : relation (Code Var) :=
-  | test_step_left {x x' y} : test_step x x' -> test_step (x * y) (x' * y)
-  | test_step_right {x y y'} : test_step y y' -> test_step (x * y) (x * y')
-  | test_step_top x : test_step (TOP * x) TOP
-  | test_step_bot x : test_step x BOT
-  | test_step_j_left {x y} : test_step (x || y) x
-  | test_step_j_right {x y} : test_step (x || y) y.
-Hint Constructors test_step.
+Inductive pi_step {Var : Set} : relation (Code Var) :=
+  | pi_step_left {x x' y} : pi_step x x' -> pi_step (x * y) (x' * y)
+  | pi_step_right {x y y'} : pi_step y y' -> pi_step (x * y) (x * y')
+  | pi_step_i {x} : pi_step (I * x) x
+  | pi_step_k {x y} : pi_step (K * x * y) x
+  | pi_step_b {x y z} : pi_step (B * x * y * z) (x * (y * z))
+  | pi_step_c {x y z} : pi_step (C * x * y * z) (x * z * y)
+  | pi_step_s {x y z} : pi_step (S * x * y * z) (x * z * (y * z))
+  | pi_step_j_ap {x y z} : pi_step ((x || y) * z) (x * z || y * z)
+  | pi_step_r_ap {x y z} : pi_step ((x (+) y) * z) (x * z (+) y * z)
+  | pi_step_r_idem {x} : pi_step (x (+) x) x
+  | pi_step_r_sym {x y} : pi_step (x (+) y) (y (+) x)
+  | pi_step_r_sym_sym {w x y z} :
+      pi_step ((w(+)x) (+) (y(+)z)) ((x(+)y) (+) (z(+)w))
+  | pi_step_top x : pi_step TOP x
+  | pi_step_bot x : pi_step x BOT
+  | pi_step_j_left {x y} : pi_step (x || y) x
+  | pi_step_j_right {x y} : pi_step (x || y) y.
+Hint Constructors pi_step.
 
-Lemma weaken_test (Var : Set) (x y : Code Var) :
-  test x y <-> weak_star test_step x y.
+Lemma weaken_pi (Var : Set) (x y : Code Var) :
+  pi x y <-> weak_star pi_step x y.
 Proof.
   rewrite <- weaken_star.
   split; intro H; induction H; eauto.
-  - clear H; induction IHtest; eauto.
-  - clear H; induction IHtest; eauto.
-  - induction H; eauto.
+  - clear H; induction IHpi; eauto.
+  - clear H; induction IHpi; eauto.
+  - induction H; auto.
 Qed.
 
 
 Definition conv {Var : Set} (x : Code Var) : Prop :=
-  exists y z, probe x y /\ beta y z /\ test z TOP.
+  exists y, probe x y /\ pi y TOP.
 
 Inductive prob {Var : Set} : Code Var -> Prop :=
   | prob_top : prob TOP
@@ -182,7 +204,7 @@ Inductive prob {Var : Set} : Code Var -> Prop :=
 Hint Constructors prob.
 
 Definition pconv {Var : Set} (x p : Code Var) : Prop :=
-  prob p /\ exists y z, probe x y /\ beta y z /\ test z p.
+  prob p /\ exists y, probe x y /\ pi y p.
 
 Hint Rewrite @beta_i @beta_k @beta_b @beta_c @beta_j_ap @beta_r_ap @beta_r_idem
   : beta_safe.
@@ -314,6 +336,12 @@ Proof.
   split; [apply beta_reflexive | apply beta_transitive].
 Qed.
 
+Instance beta_step_subrelation (Var : Set) :
+  (@subrelation (Code Var)) beta_step beta.
+Proof.
+  intros x y H; induction H; eauto.
+Qed.
+
 Instance code_ap_beta (Var : Set) :
   Proper (beta ==> beta ==> beta) (@code_ap Var).
 Proof.
@@ -360,104 +388,165 @@ Proof.
   apply (weaken_commuting _ _ _ beta_step probe_step); auto.
   - apply weaken_beta.
   - apply weaken_probe.
-  - compute; intros x y z xy yz.
-    induction xy; destruct yz; eauto.
-Admitted.
-
-
-Instance test_transitive (Var : Set) : Transitive (@test Var).
-Proof.
-  intros x y z Hxy Hyz; apply test_trans with y; auto.
+  - compute; intros x y z xy yz; destruct yz; exists (x * TOP); split; auto.
+    rewrite xy; reflexivity.
 Qed.
 
-Instance test_reflexive (Var : Set) : Reflexive (@test Var).
+
+Instance pi_reflexive (Var : Set) : Reflexive (@pi Var).
 Proof.
   auto.
 Qed.
 
-Instance test_preorder (Var : Set) : PreOrder (@test Var).
+Instance pi_transitive (Var : Set) : Transitive (@pi Var).
 Proof.
-  split; [apply test_reflexive | apply test_transitive].
+  intros x y z; apply pi_trans.
 Qed.
 
-Instance code_ap_test (Var : Set) : Proper (test ++> test ++> test) (@code_ap Var).
+Instance pi_preorder (Var : Set) : PreOrder (@pi Var).
+Proof.
+  split; [apply pi_reflexive | apply pi_transitive].
+Qed.
+
+Instance pi_step_pi_subrelation (Var : Set) :
+  (@subrelation (Code Var)) pi_step pi.
+Proof.
+  intros x y H; induction H; eauto.
+Qed.
+
+Instance beta_step_pi_subrelation (Var : Set) :
+  (@subrelation (Code Var)) beta_step pi.
+Proof.
+  intros x y H; induction H; eauto.
+Qed.
+
+Instance beta_pi_subrelation (Var : Set) : (@subrelation (Code Var)) beta pi.
+Proof.
+  intros x y Hb; induction Hb; eauto.
+Qed.
+
+Instance pi_proper_beta (Var : Set) : Proper (beta --> beta ++> impl) (@pi Var).
+Proof.
+  intros x x' xx' y y' yy' Hp; compute in yy'.
+  apply beta_pi_subrelation in xx'; rewrite xx'.
+  apply beta_pi_subrelation in yy'; rewrite <- yy'.
+  auto.
+Qed.
+
+Instance code_ap_pi (Var : Set) :
+  Proper (pi ==> pi ==> pi) (@code_ap Var).
 Proof.
   intros x x' Hx y y' Hy; transitivity (x * y'); auto.
 Qed.
 
-Lemma beta_step_test_top (Var : Set) (x y : Code Var) :
-  beta_step x y -> (test x TOP <-> test y TOP).
-Proof.
-  intro Hb; split; induction Hb;
-  intro Ht; rewrite weaken_test in Ht; induction Ht; auto.
-Admitted.
+Ltac simpl_pi_step :=
+  (* repeat *)
+  match goal with
+    | [H : pi_step _ _ |- _] => induction H
+    | [H : pi_step ?x ?x -> _ |- _] => clear H
+  end.
 
-Lemma beta_test_top (Var : Set) (x y : Code Var) :
-  beta x y -> (test x TOP <-> test y TOP).
+Lemma pi_step_pi (Var : Set) (x y : Code Var) :
+  pi_step x y -> pi x y.
+Proof.
+  intro H; induction H; auto.
+Qed.
+
+Instance commuting_flip_pi_pi (Var : Set) : Commuting Var (flip pi) pi.
+Proof.
+  apply (weaken_commuting _ _ _ (flip pi_step) pi_step); auto.
+  - intros x y; rewrite weak_star_flip; compute; apply weaken_pi.
+  - apply weaken_pi.
+  - compute; intros x y z xy yz.
+    induction xy; induction yz; auto.
+Admitted. 
+
+Instance commuting_flip_pi_probe (Var : Set) :
+  Commuting Var (flip pi) probe.
+Proof.
+  apply (weaken_commuting _ _ _ (flip pi_step) probe_step); auto.
+  - intros x y; rewrite weak_star_flip; compute; apply weaken_pi.
+  - apply weaken_probe.
+  - compute; intros x y z xy yz.
+    destruct yz.
+    exists (x * TOP); repeat split; auto.
+    apply (@weak_star_trans _ _ x0 x x) in xy; auto.
+    rewrite <- weaken_pi in xy; auto.
+Qed.
+
+Instance commuting_pi_probe (Var : Set) : Commuting Var pi probe.
+Proof.
+  apply (weaken_commuting _ _ _ pi_step probe_step); auto.
+  - apply weaken_pi.
+  - apply weaken_probe.
+  - compute; intros x y z xy yz; destruct yz; exists (x * TOP); split; auto.
+    rewrite xy; reflexivity.
+Qed.
+
+Lemma beta_step_pi_top (Var : Set) (x y : Code Var) :
+  beta_step x y -> (pi x TOP <-> pi y TOP).
+Proof.
+  intro Hb; split; intro Hp.
+  - admit.
+  - rewrite Hb; auto.
+Qed.
+
+Lemma beta_pi_top (Var : Set) (x y : Code Var) :
+  beta x y -> (pi x TOP <-> pi y TOP).
 Proof.
   intro Hb; rewrite weaken_beta in Hb; induction Hb; try tauto.
-  transitivity (test y TOP); auto.
-  apply beta_step_test_top; auto.
+  transitivity (pi y TOP); auto.
+  apply beta_step_pi_top; auto.
 Qed.
 
-Lemma probe_test_top (Var : Set) (x y : Code Var) :
-  probe x y -> test x TOP -> test y TOP.
+Lemma probe_pi_top (Var : Set) (x y : Code Var) :
+  probe x y -> pi x TOP -> pi y TOP.
 Proof.
-  intro Hp; rewrite weaken_probe in Hp; induction Hp; simpl_probe_step.
+  intro Hp; rewrite weaken_probe in Hp; induction Hp; try tauto.
+  destruct H; intro H; apply IHHp.
+  transitivity (TOP * TOP : Code Var); auto.
+  transitivity (K * TOP * TOP : Code Var); auto.
 Qed.
 
-
-Instance conv_proper_test_step (Var : Set) :
-  Proper (test_step --> impl) (@conv Var).
-Proof.
-  intros x x' xx' [y [z [xy [yz zt]]]]; compute in xx';
-  induction xx'; unfold conv; eauto.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-Qed.
-
-Instance conv_proper_test (Var : Set) : Proper (test --> impl) (@conv Var).
-Proof.
-  intros x x' xx' Hc.
-  compute in xx'; apply weaken_test in xx'.
-  induction xx'; auto.
-  rewrite H; auto.
-Qed.
 
 Instance conv_proper_beta (Var : Set) :
   Proper (beta ==> iff) (@conv Var).
 Proof.
   intros x x' xx'; split.
-  - intros [y [z [xy [yz zt]]]].
+  - intros [y [xy yt]].
     commute x' x y xx' xy as y'; exists y'.
-    commute y' y z y'y yz as z'; exists z'.
-    repeat split; auto.
-    rewrite <- (beta_test_top _ _ _ z'z); auto.
-  - intros [y' [z' [x'y' [y'z' z't]]]].
+    split; auto.
+    rewrite <- (beta_pi_top _ _ _ y'y); auto.
+  - intros [y' [x'y' y't]].
     commute x x' y' xx' x'y' as y; exists y.
-    exists z'; repeat split; auto.
+    split; auto.
     transitivity y'; auto.
+    rewrite yy'; auto.
+Qed.
+
+Instance conv_proper_pi (Var : Set) : Proper (pi --> impl) (@conv Var).
+Proof.
+  intros x x' xx' [y [xy yt]]; compute in xx'.
+    commute x' x y xx' xy as y'; exists y'.
+    split; auto.
+    transitivity y; auto.
 Qed.
 
 Instance conv_proper_probe (Var : Set) : Proper (probe ==> iff) (@conv Var).
 Proof.
   intros x x' xx'; split.
-  - intros [y [z [xy [yz zt]]]].
+  - intros [y [xy yt]].
     commute x' x y xx' xy as y'; exists y'.
-    commute z y y' yz y'y as z'; exists z'.
     repeat split; auto.
-    apply probe_test_top with z; auto.
-  - intros [y' [z' [x'y' [y'z' z't]]]].
-    exists y', z'; repeat split; auto.
+    apply probe_pi_top with y; auto.
+  - intros [y' [x'y' y't]].
+    exists y'; split; auto.
     transitivity x'; auto.
 Qed.
 
 Lemma conv_top (Var : Set) : conv (TOP : Code Var).
 Proof.
-  exists TOP, TOP; repeat split; auto.
+  exists TOP; split; auto.
 Qed.
 Hint Resolve conv_top.
 
@@ -486,18 +575,17 @@ Proof.
   intros Ht; induction Ht; intros; heads.
 Qed.
 
-Lemma heads_test_bot (Var : Set) (x y : Code Var) :
-  test x y -> heads BOT x -> heads BOT y.
+Lemma heads_pi_bot (Var : Set) (x y : Code Var) :
+  pi x y -> heads BOT x -> heads BOT y.
 Proof.
   intros Ht; induction Ht; intros; heads.
 Qed.
 
 Lemma not_conv_heads_bot (Var : Set) (x : Code Var) : heads BOT x -> ~ conv x.
 Proof.
-  intros H [y [z [xy [yz zt]]]].
+  intros H [y [xy yt]].
   apply (heads_probe _ _ _ y) in H; auto.
-  apply (heads_beta_bot _ _ z) in H; auto.
-  apply (heads_test_bot _ _ TOP) in H; auto.
+  apply (heads_pi_bot _ _ TOP) in H; auto.
   inversion H; auto.
 Qed.
 

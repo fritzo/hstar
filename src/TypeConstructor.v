@@ -278,26 +278,26 @@ Proof.
   induction H; auto.
   - transitivity y; auto.
   - rewrite code_eq_y; beta_simpl.
-    rewrite test_j_left.
-    rewrite test_j_left.
-    rewrite test_j_left.
+    rewrite pi_j_left.
+    rewrite pi_j_left.
+    rewrite pi_j_left.
     auto.
   - rewrite code_eq_y; beta_simpl.
-    rewrite test_j_left.
-    rewrite test_j_left.
-    rewrite test_j_right.
+    rewrite pi_j_left.
+    rewrite pi_j_left.
+    rewrite pi_j_right.
     auto.
   - rewrite code_eq_y; beta_simpl.
-    rewrite test_j_left.
-    rewrite test_j_right.
+    rewrite pi_j_left.
+    rewrite pi_j_right.
     auto.
   - rewrite code_eq_y; beta_simpl.
-    rewrite test_j_right.
-    rewrite test_j_left.
+    rewrite pi_j_right.
+    rewrite pi_j_left.
     rewrite IHA_above; auto.
   - rewrite code_eq_y; beta_simpl.
-    rewrite test_j_right.
-    rewrite test_j_right.
+    rewrite pi_j_right.
+    rewrite pi_j_right.
     rewrite IHA_above; auto.
 Qed.
 

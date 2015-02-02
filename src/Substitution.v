@@ -116,29 +116,29 @@ Proof.
   [apply code_sub_beta_right | apply code_sub_beta_left]; auto.
 Qed.
 
-Lemma code_sub_test_left
+Lemma code_sub_pi_left
   (Var Var' : Set) (f g : Var -> Code Var') (x : Code Var) :
-  (forall v, test (f v) (g v)) -> test (x @ f) (x @ g).
+  (forall v, pi (f v) (g v)) -> pi (x @ f) (x @ g).
 Proof.
   intros fg; induction x; auto.
     compute; auto.
   unfold code_sub; fold (@code_sub Var Var').
   rewrite IHx1; rewrite IHx2; auto.
 Qed.
-Hint Resolve code_sub_test_left.
+Hint Resolve code_sub_pi_left.
 
-Lemma code_sub_test_right
+Lemma code_sub_pi_right
   (Var Var' : Set) (f : Var -> Code Var') (x y : Code Var) :
-  test x y -> test (x @ f) (y @ f).
+  pi x y -> pi (x @ f) (y @ f).
 Proof.
   intro xy; induction xy; repeat rewrite code_sub_ap; simpl; auto.
   transitivity (y @ f); auto.
 Qed.
-Hint Resolve code_sub_test_right.
+Hint Resolve code_sub_pi_right.
 
-Instance code_sub_proper_test (Var Var' : Set) :
-  Proper ((eq ==> test) ==> test ==> test) (@code_sub Var Var').
+Instance code_sub_proper_pi (Var Var' : Set) :
+  Proper ((eq ==> pi) ==> pi ==> pi) (@code_sub Var Var').
 Proof.
   intros f g Hfg x y Hxy; transitivity (y @ f);
-  [apply code_sub_test_right | apply code_sub_test_left]; auto.
+  [apply code_sub_pi_right | apply code_sub_pi_left]; auto.
 Qed.

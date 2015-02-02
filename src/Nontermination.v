@@ -43,8 +43,8 @@ Admitted.
 Lemma div_ap_top (Var : Set) (x : Code Var) : div * x * TOP == div * x.
 Proof.
   split.
-    rewrite code_eq_div at 2. rewrite test_j_right; auto.
-  intros Var' c f [y [z [xy [yz zt]]]].
+    rewrite code_eq_div at 2. rewrite pi_j_right; auto.
+  intros Var' c f [y [xy yt]].
 Admitted.
 
 Lemma div_repeat_top (Var : Set) (x : Code Var) (n : nat) :

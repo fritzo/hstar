@@ -69,17 +69,17 @@ Proof.
   simpl_relation; apply code_eq_beta; auto.
 Qed.
 
-Instance code_le_test_proper (Var : Set) :
-  Proper (test ++> test --> impl) (@code_le Var).
+Instance code_le_proper_pi (Var : Set) :
+  Proper (pi ++> pi --> impl) (@code_le Var).
 Proof.
   intros x x' Hx y y' Hy; unfold code_le; intros Hle Var' c f Hc.
   unfold flip in *.
-  rewrite (code_sub_test_right _ _ _ _ _ Hy).
+  rewrite Hy.
   apply Hle; rewrite -> Hx; auto.
 Qed.
 
-Instance code_le_test_subrelation (Var : Set) :
-  subrelation (inverse test) (@code_le Var).
+Instance code_le_pi_subrelation (Var : Set) :
+  subrelation (inverse pi) (@code_le Var).
 Proof.
   unfold subrelation, predicate_implication, pointwise_lifting, flip.
   intros x y H; unfold code_le; intros Var' c f Hc.
@@ -267,7 +267,7 @@ Lemma code_le_bot (Var : Set) (x : Code Var) : BOT [= x.
 Proof.
   unfold code_le; intros Var' c f Hred.
   simpl in Hred.
-  rewrite -> (test_right (test_bot _)).
+  rewrite -> (pi_right (pi_bot _)).
   auto.
 Qed.
 Hint Resolve code_le_bot.
@@ -311,14 +311,14 @@ Qed.
 Lemma code_le_j_left (Var : Set) (x y : Code Var) : x [= x || y.
 Proof.
   unfold code_le; intros Var' c f Hred.
-  rewrite test_j_left; auto.
+  rewrite pi_j_left; auto.
 Qed.
 Hint Resolve code_le_j_left.
 
 Lemma code_le_j_right (Var : Set) (x y : Code Var) : y [= x || y.
 Proof.
   unfold code_le; intros Var' c f Hred.
-  rewrite test_j_right; auto.
+  rewrite pi_j_right; auto.
 Qed.
 Hint Resolve code_le_j_right.
 
@@ -442,7 +442,8 @@ Ltac beta_eta :=
 
 Lemma code_eq_ap_top (Var : Set) (x : Code Var) : TOP * x == TOP.
 Proof.
-  split; [auto | rewrite <- test_top at 1; beta_simpl; auto].
+  split; auto.
+  rewrite (pi_top (K * TOP : Code Var)) at 2; beta_simpl; auto.
 Qed.
 Hint Rewrite code_eq_ap_top : code_simpl.
 
@@ -592,8 +593,8 @@ Ltac code_le_weaken := apply code_le_weaken; unfold weak_code_le.
 Lemma conv_ap (Var : Set) (x a : Code Var) : conv (x * a) -> conv x.
 Proof.
   rewrite (code_le_top _ a).
-  intros [y [z [xy [yz zt]]]].
-  exists y, z; repeat split; auto.
+  intros [y [xy yt]].
+  exists y; split; auto.
   transitivity (x * TOP); auto.
 Qed.
 
