@@ -197,13 +197,18 @@ Section Codes_lambda.
   Defined.
 End Codes_lambda.
 
-Instance code_close_le (Var : Set) : Proper (code_le ==> code_le) (@close Var).
+Instance code_close_le (Var : Set) : Proper (code_le ==> code_le) (@close_var Var).
 Proof.
   intros x x' xx'.
 Admitted.
 
 Definition codes_close {Var : Set} (x : Codes (nat + Var)) : Codes Var.
-  refine (codes_intro _ x.(index) (fun i => close (x.(enum) i)) _ x.(nonempty)).
+  refine (codes_intro
+      _
+      x.(index)
+      (fun i => close_var (x.(enum) i))
+      _
+      x.(nonempty)).
   intros i1 i2.
   assert (j := x.(join) i1 i2); destruct j as [i12 H]; exists i12.
   apply code_le_join in H; destruct H as [H1 H2].
@@ -258,7 +263,7 @@ Section direct_example.
   Let x := make_var Var 0.
   Let y := make_var Var 1.
   Let z := make_var Var 2.
-  Let pair := Eval compute in close (\x, \y, \z, z * x * y).
+  Let pair := Eval compute in close_var (\x, \y, \z, z * x * y).
   Notation "<< x , y >>" := (pair * x * y).
   Let A_implicit : Codes Var :=
     codes_sup (<<s, r>> for s : code for r : code if r o s [= I).
