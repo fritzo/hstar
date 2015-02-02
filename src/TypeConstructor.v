@@ -18,7 +18,7 @@ Section pair.
   Let x := make_var Var 0.
   Let y := make_var Var 1.
   Let f := make_var Var 2.
-  Definition pair := Eval compute in close (\x,\y,\f, f * x * y).
+  Definition pair := Eval compute in close_var (\x,\y,\f, f * x * y).
 End pair.
 Notation "<< x , y >>" := (pair * x * y)%code : code_scope.
 
@@ -120,11 +120,11 @@ Section raise.
   Let x := make_var Var 3.
   Let y := make_var Var 4.
 
-  Definition raise := Eval compute in close (\x, \y, x).
-  Definition lower := Eval compute in close (\x, x * TOP).
+  Definition raise := Eval compute in close_var (\x, \y, x).
+  Definition lower := Eval compute in close_var (\x, x * TOP).
 
-  Definition pull := Eval compute in close (\x, \y, x || div * y).
-  Definition push := Eval compute in close (\x, x * BOT).
+  Definition pull := Eval compute in close_var (\x, \y, x || div * y).
+  Definition push := Eval compute in close_var (\x, x * BOT).
 
   Lemma lower_raise : lower o raise == I.
   Proof.
@@ -156,7 +156,7 @@ Section exp.
   Let a := make_var Var 0.
   Let b := make_var Var 1.
   Let f := make_var Var 2.
-  Definition exp := Eval compute in close (\a, \b, \f, b o f o a).
+  Definition exp := Eval compute in close_var (\a, \b, \f, b o f o a).
 End exp.
 Notation "x --> y" := (exp * x * y)%code : code_scope.
 
@@ -173,10 +173,10 @@ Section compose.
   Let b := make_var Var 3.
   Let b' := make_var Var 4.
 
-  Definition compose := Eval compute in close
+  Definition compose := Eval compute in close_var
     (\s, s*\a,\a', s*\b,\b', <<a o b, b' o a'>>).
 
-  Definition conjugate := Eval compute in close
+  Definition conjugate := Eval compute in close_var
     (\s, s*\a,\a', s*\b,\b', <<a' --> b, a --> b'>>).
 End compose.
 
@@ -335,5 +335,5 @@ Section A_example.
   Variable Var : Set.
   Let a := make_var Var 0.
   Let a' := make_var Var 1.
-  Let A_example : Code Var := close (\\a,a'; a --> a').
+  Let A_example : Code Var := close_var (\\a,a'; a --> a').
 End A_example.

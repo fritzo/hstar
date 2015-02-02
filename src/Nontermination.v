@@ -3,8 +3,6 @@
 Require Export Combinators.
 Open Scope code_scope.
 
-Definition sub_top {Var : Set} (v : Var) : Code Empty_set := TOP.
-
 Lemma sub_top_le (Var : Set) (x : Code Var) (f : Var -> Code Empty_set) :
   x @ f [= x @ sub_top.
 Proof.
@@ -79,7 +77,7 @@ Hint Rewrite div_bot : code_simpl.
 Section Omega.
   Context {Var : Set}.
   Let x := make_var Var 0.
-  Definition Omega := Eval compute in close ((\x, x * x) * (\x, x * x)).
+  Definition Omega := Eval compute in close_var ((\x, x * x) * (\x, x * x)).
 End Omega.
 
 Lemma code_le_omega_bot (Var : Set) : (@Omega Var) [= BOT.

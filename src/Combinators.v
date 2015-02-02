@@ -165,15 +165,15 @@ Qed.
 Definition make_var (Var : Set) (n : nat) : Code (nat + Var) :=
   code_var (@inl nat Var n).
 
-Definition open {Var : Set} (x : Code Var) : Code (nat + Var) :=
+Definition open_var {Var : Set} (x : Code Var) : Code (nat + Var) :=
   code_sub (fun v => code_var (inr v)) x.
 
-Definition close {Var : Set} (x : Code (nat + Var)) : Code Var :=
+Definition close_var {Var : Set} (x : Code (nat + Var)) : Code Var :=
   code_sub (fun v => match v with inr v' => code_var v' | _ => code_top end) x.
 
-Lemma close_open (Var : Set) (x : Code Var) : close (open x) = x.
+Lemma close_open (Var : Set) (x : Code Var) : close_var (open_var x) = x.
 Proof.
-  unfold close, open.
+  unfold close_var, open_var.
   induction x; simpl; auto.
   rewrite IHx1; rewrite IHx2; auto.
 Qed.
@@ -199,7 +199,7 @@ Section Y.
   Context {Var : Set}.
   Let f := make_var Var 0.
   Let x := make_var Var 1.
-  Definition Y := Eval compute in close
+  Definition Y := Eval compute in close_var
     (\f, (\x, f * (x * x)) * (\x, f * (x * x))).
     (* ((\x, \f, f * (x * x * f)) * (\x, \f, f * (x * x * f))). *)
 End Y.
@@ -220,7 +220,7 @@ Section V.
   Context {Var : Set}.
   Let a := make_var Var 0.
   Let x := make_var Var 1.
-  Definition V := Eval compute in close (\a, Y * \x, I || a o x).
+  Definition V := Eval compute in close_var (\a, Y * \x, I || a o x).
 End V.
 
 Lemma code_eq_v (Var : Set) (a : Code Var) : V * a == I || a o (V * a).

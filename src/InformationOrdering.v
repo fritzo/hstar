@@ -566,7 +566,8 @@ Proof.
   rewrite (code_le_top _ a).
   intros [y [xy yt]].
   exists y; split; auto.
-  transitivity (x * TOP); auto.
+  unfold close in xy; simpl in xy; fold (@close Var) in xy.
+  transitivity ((close x) * TOP); auto.
 Qed.
 
 Lemma conv_apply (Var : Set) (x : Code Var) (ys : list (Code Var)) :

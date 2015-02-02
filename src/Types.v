@@ -209,7 +209,7 @@ Section P.
   Context {Var : Set}.
   Let a := make_var Var 0.
   Let a' := make_var Var 1.
-  Definition P := Eval compute in close (\a, \a', V * (a || a')).
+  Definition P := Eval compute in close_var (\a, \a', V * (a || a')).
 End P.
 
 Lemma P_idem (Var : Set) (a : Code Var) : P * a * a == V * a.
@@ -520,7 +520,7 @@ Section div'.
   Context {Var : Set}.
   Let a := make_var Var 0.
   Let a' := make_var Var 1.
-  Definition div' := Eval compute in close (\\a,a'; a').
+  Definition div' := Eval compute in close_var (\\a,a'; a').
 End div'.
 
 Lemma div'_div (Var : Set) : (div' : Code Var) = div' o div.
@@ -565,7 +565,7 @@ Section semi.
   Context {Var : Set}.
   Let a := make_var Var 0.
   Let a' := make_var Var 1.
-  Definition semi := Eval compute in close (\\a,a'; a --> a').
+  Definition semi := Eval compute in close_var (\\a,a'; a --> a').
 End semi.
 
 Lemma A_exp_semi (Var : Set) : A * exp == (semi : Code Var).
@@ -697,7 +697,7 @@ Section boool.
   Context {Var : Set}.
   Let a := make_var Var 0.
   Let a' := make_var Var 1.
-  Definition boool := Eval compute in close (\\a,a'; a --> a --> a').
+  Definition boool := Eval compute in close_var (\\a,a'; a --> a --> a').
 End boool.
 
 Lemma boool_nondecreasing (Var : Set) : I [= (boool : Code Var).
@@ -828,7 +828,7 @@ Qed.
 Section bool.
   Context {Var : Set}.
   Let f := make_var Var 0.
-  Let disambiguate := Eval compute in close
+  Let disambiguate := Eval compute in close_var
     (\f, f * (f * K * TOP) * (f * TOP * (K * I))).
   Definition bool := Eval compute in (P * boool * disambiguate).
 End bool.
@@ -947,9 +947,9 @@ Section succ.
   Let n := make_var Var 0.
   Let f := make_var Var 1.
   Let x := make_var Var 2.
-  Definition succ := Eval compute in close
+  Definition succ := Eval compute in close_var
     (\n, \f, \x, f * (n * f * x) || n * f * (f * x)).
-  Definition zero := Eval compute in close (\f, \x, x).
+  Definition zero := Eval compute in close_var (\f, \x, x).
 End succ.
 
 (* TODO: how to disambiguate [nat]? *)

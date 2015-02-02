@@ -22,6 +22,7 @@ Fixpoint code_sub {Var Var' : Set}
 Notation "x @ f" := (code_sub f x) : code_scope.
 
 Definition sub_top {Var : Set} (v : Var) : Code Empty_set := TOP.
+Definition close {Var : Set} : Code Var -> Code Empty_set := code_sub sub_top.
 
 Lemma var_monad_unit_right (Var : Set) (x : Code Var) : x @ code_var = x.
 Proof.
@@ -57,6 +58,14 @@ Proof.
   rewrite IHx1; rewrite IHx2; auto.
 Qed.
 Hint Rewrite var_monad_assoc : code_simpl.
+
+Lemma close_idempotent (Var : Set) (x : Code Var) :
+  close (close x) = close x.
+Proof.
+  compute; code_simpl; induction x; auto.
+Qed.
+Hint Rewrite close_idempotent : beta_simpl.
+Hint Rewrite close_idempotent : code_simpl.
 
 Lemma code_sub_inverse
   (Var : Set) (f : Var -> Code Empty_set) (x : Code Empty_set) :
@@ -143,4 +152,57 @@ Instance code_sub_proper_pi (Var Var' : Set) :
 Proof.
   intros f g Hfg x y Hxy; transitivity (y @ f);
   [apply code_sub_pi_right | apply code_sub_pi_left]; auto.
+Qed.
+
+Instance code_close_proper_beta (Var : Set) :
+  Proper (beta ==> beta) (@close Var).
+Proof.
+  intros x x' xx'; apply weaken_beta in xx'; induction xx'; auto.
+  revert z xx' IHxx'; induction H; compute; code_simpl; eauto.
+Qed.
+
+Instance code_close_proper_pi (Var : Set) :
+  Proper (pi ==> pi) (@close Var).
+Proof.
+  intros x x' xx'; apply weaken_pi in xx'; induction xx'; auto.
+  revert z xx' IHxx'; induction H; compute; code_simpl; eauto.
+Qed.
+
+Lemma probe_step_close (Var : Set) (x y : Code Var) :
+  probe_step x y -> probe (close x) (close y).
+Proof.
+  intro Hb; induction Hb; compute; auto.
+Qed.
+
+Lemma probe_close (Var : Set) (x y : Code Var) :
+  probe x y -> probe (close x) (close y).
+Proof.
+  intro Hb; rewrite weaken_probe in Hb; induction Hb; auto.
+  rewrite <- IHHb; clear Hb IHHb; auto using probe_step_close.
+Qed.
+
+Lemma beta_step_close (Var : Set) (x y : Code Var) :
+  beta_step x y -> beta (close x) (close y).
+Proof.
+  intro Hb; induction Hb; compute; beta_reduce; auto.
+Qed.
+
+Lemma beta_close (Var : Set) (x y : Code Var) :
+  beta x y -> beta (close x) (close y).
+Proof.
+  intro Hb; rewrite weaken_beta in Hb; induction Hb; auto.
+  rewrite <- IHHb; clear Hb IHHb; auto using beta_step_close.
+Qed.
+
+Lemma pi_step_close (Var : Set) (x y : Code Var) :
+  pi_step x y -> pi (close x) (close y).
+Proof.
+  intro Hb; induction Hb; compute; beta_reduce; auto.
+Qed.
+
+Lemma pi_close (Var : Set) (x y : Code Var) :
+  pi x y -> pi (close x) (close y).
+Proof.
+  intro Hb; rewrite weaken_pi in Hb; induction Hb; auto.
+  rewrite <- IHHb; clear Hb IHHb; auto using pi_step_close.
 Qed.
