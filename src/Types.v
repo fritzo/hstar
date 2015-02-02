@@ -502,7 +502,7 @@ Proof.
   case_le (x [= BOT) as H'.
   - assert (x == BOT) as eq. split; auto. rewrite eq; auto.
   - rewrite <- H; clear H.
-    rewrite <- conv_nle_bot in H'.
+    rewrite <- conv_nle_bot in H'. (* FIXME *)
     apply conv_div_top in H'; rewrite H'; auto.
 Qed.
 

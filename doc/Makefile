@@ -7,6 +7,7 @@ body.tex: FORCE
 	$(SRC)/Notations.v \
 	$(SRC)/Codes.v \
 	$(SRC)/Substitution.v \
+	$(SRC)/Convergence.v \
 	$(SRC)/InformationOrdering.v \
 	$(SRC)/Combinators.v \
 	$(SRC)/Nontermination.v \

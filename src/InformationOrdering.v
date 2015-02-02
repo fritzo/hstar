@@ -1,13 +1,15 @@
 (** * Information ordering and observable equivalence *)
 
 Require Import Coq.Logic.Classical_Prop.
+Require Import Coq.Logic.Classical_Pred_Set.
+Require Import Coq.Logic.ClassicalFacts.
 Require Import Coq.Program.Basics.
 Require Import Coq.Program.Equality.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
 Require Import Coq.Lists.List.
-Require Export Substitution.
+Require Export Convergence.
 Open Scope code_scope.
 
 Definition code_le {Var : Set} (x y : Code Var) :=
@@ -251,16 +253,10 @@ Proof.
   - rewrite <- Hfg; auto.
 Qed.
 
-Lemma code_le_top_closed (x : Code Empty_set) : x [= TOP.
-Proof.
-  unfold code_le.
-  induction x; intros Var' c f Hc.
-Admitted.
-
 Lemma code_le_top (Var : Set) (x : Code Var) : x [= TOP.
 Proof.
-  intros Var' c f Hc.
-Admitted.
+  intros; rewrite (pi_top x); auto.
+Qed.
 Hint Resolve code_le_top.
 
 Lemma code_le_bot (Var : Set) (x : Code Var) : BOT [= x.
@@ -280,31 +276,6 @@ Proof.
   apply H; code_simpl; auto.
 Qed.
 Hint Resolve absolute_consistency.
-
-Lemma conv_nle_bot (Var : Set) (x : Code Var) :
-  conv x <-> ~ x [= BOT.
-Proof.
-  split; intro H; auto.
-  - unfold code_le; intro Hneg.
-    apply (@not_conv_bot Var).
-    rewrite <- beta_i; rewrite <- (@var_monad_unit_right Var _).
-    apply Hneg; code_simpl; auto.
-  - unfold code_le in H.
-    (* TODO use classical reasoning *)
-    admit.
-Qed.
-
-Lemma not_conv_le_bot (Var : Set) (x : Code Var) :
-  ~ conv x <-> x [= BOT.
-Proof.
-  split; intro H; auto.
-  - unfold code_le; intros Var' c f Hc.
-    admit. (* TODO induction or something *)
-  - intro Hneg; apply (@not_conv_bot Var).
-    unfold code_le in H.
-    rewrite <- beta_i; rewrite <- (@var_monad_unit_right Var _).
-    apply H; code_simpl; auto.
-Qed.
 
 (** ** Basic properties of information ordering *)
 
@@ -603,3 +574,20 @@ Lemma conv_apply (Var : Set) (x : Code Var) (ys : list (Code Var)) :
 Proof.
   revert x; induction ys; simpl; intros; eauto using conv_ap.
 Qed.
+
+Lemma conv_nle_bot (Var : Set) (x : Code Var) :
+  conv x <-> ~ x [= BOT.
+Proof.
+  split.
+  - unfold code_le; intros H Hneg.
+    apply (@not_conv_bot Var).
+    rewrite <- beta_i; rewrite <- (@var_monad_unit_right Var _).
+    apply Hneg; code_simpl; auto.
+  - rewrite code_le_weaken.
+    intro H.
+    apply not_all_ex_not in H; destruct H as [ys H].
+    apply not_all_ex_not in H; destruct H as [f H].
+    (* TODO use classical reasoning *)
+    admit.
+Qed.
+

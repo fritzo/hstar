@@ -21,6 +21,8 @@ Fixpoint code_sub {Var Var' : Set}
 
 Notation "x @ f" := (code_sub f x) : code_scope.
 
+Definition sub_top {Var : Set} (v : Var) : Code Empty_set := TOP.
+
 Lemma var_monad_unit_right (Var : Set) (x : Code Var) : x @ code_var = x.
 Proof.
   induction x; auto.
