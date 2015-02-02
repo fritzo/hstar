@@ -153,7 +153,6 @@ Inductive test {Var : Set} : relation (Code Var) :=
 Hint Constructors test.
 
 Inductive test_step {Var : Set} : relation (Code Var) :=
-  | test_step_trans {x} y {z} : test_step x y -> test_step y z -> test_step x z
   | test_step_left {x x' y} : test_step x x' -> test_step (x * y) (x' * y)
   | test_step_right {x y y'} : test_step y y' -> test_step (x * y) (x * y')
   | test_step_top x : test_step (TOP * x) TOP
@@ -413,7 +412,6 @@ Instance conv_proper_test_step (Var : Set) :
 Proof.
   intros x x' xx' [y [z [xy [yz zt]]]]; compute in xx';
   induction xx'; unfold conv; eauto.
-  - admit.
   - admit.
   - admit.
   - admit.
