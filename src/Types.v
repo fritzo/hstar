@@ -62,6 +62,13 @@ Proof.
 Qed.
 Hint Rewrite V1_idempotent : code_simpl.
 
+Lemma V1_idempotent' (Var : Set) (a x : Code Var) :
+  V * a * (V * a * x) == V * a * x.
+Proof.
+  rewrite <- beta_b; rewrite V1_idempotent; reflexivity.
+Qed.
+Hint Rewrite V1_idempotent' : code_simpl.
+
 Lemma V_nondecreasing (Var : Set) : I [= (V : Code Var).
 Proof.
   eta_expand.
@@ -70,6 +77,31 @@ Proof.
   beta_eta.
 Qed.
 Hint Resolve V_nondecreasing.
+
+Lemma forall_inhab (Var : Set) (a p q : Code Var) :
+  (a :: V) ->
+  (forall x, x :: a -> p * x [= q * x) ->
+  (p o a [= q o a).
+Proof.
+  intros Ha H.
+  eta_expand as x; beta_simpl.
+  assert (exists x', a * x = x') as Ex.
+    exists (a * x); auto.
+  destruct Ex as [x' Ex]; rewrite Ex.
+  assert (x' :: a) as Hx.
+    rewrite <- Ex; rewrite <- Ha; code_simpl; auto.
+  apply H; auto.
+Qed.
+
+Ltac forall_inhab :=
+  apply forall_inhab;
+  [code_simpl; reflexivity | ].
+
+Ltac sub_case_le f H :=
+  apply (code_sub_le f) in H;
+  simpl in H;
+  rewrite <- H;
+  tauto.
 
 Lemma V_idempotent (Var : Set) : V o V == (V : Code Var).
 Proof.
@@ -704,19 +736,13 @@ Proof.
   rewrite <- H; auto.
 Qed.
 
-Ltac sub_case_le f H :=
-  apply (code_sub_le f) in H;
-  simpl in H;
-  rewrite <- H;
-  tauto.
-
 Theorem semi_ind (Var : Set) (p q : Code Var) :
   p * TOP [= q * TOP ->
   p * BOT [= q * BOT ->
   p * I [= q * I ->
-  forall x, x :: semi -> p * x [= q * x.
+  p o semi [= q o semi.
 Proof.
-  intros Htop Hbot Hi x Hx.
+  intros Htop Hbot Hi; forall_inhab; intros x Hx.
   code_le_weaken; intros ys f; simpl.
   apply (code_sub_eq f) in Hx; code_simpl in Hx.
   apply semi_inhab in Hx; induction Hx; auto.
