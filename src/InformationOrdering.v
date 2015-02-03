@@ -249,6 +249,12 @@ Proof.
   [apply code_sub_le_right | apply code_sub_le_left]; auto.
 Qed.
 
+Lemma code_sub_le {Var Var' : Set} (f : Var -> Code Var') (x y : Code Var) :
+  x [= y -> x @ f [= y @ f.
+Proof.
+  intro xy; rewrite xy; reflexivity.
+Qed.
+
 Instance code_sub_proper_eq (Var Var' : Set) :
   Proper ((eq ==> code_eq) ==> code_eq ==> code_eq) (@code_sub Var Var').
 Proof.
@@ -257,6 +263,12 @@ Proof.
   - rewrite <- Hxy; auto.
   - rewrite Hfg; auto.
   - rewrite <- Hfg; auto.
+Qed.
+
+Lemma code_sub_eq {Var Var' : Set} (f : Var -> Code Var') (x y : Code Var) :
+  x == y -> x @ f == y @ f.
+Proof.
+  intro xy; rewrite xy; reflexivity.
 Qed.
 
 Lemma code_le_top (Var : Set) (x : Code Var) : x [= TOP.

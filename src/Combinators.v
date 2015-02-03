@@ -162,8 +162,6 @@ Qed.
 
 (** ** Informal lambda notation *)
 
-Definition var (n : nat) : Code nat := code_var n.
-
 Definition make_var (Var : Set) (n : nat) : Code (nat + Var) :=
   code_var (@inl nat Var n).
 

@@ -574,6 +574,12 @@ Section semi.
   Definition semi := Eval compute in close_var (\\a,a'; a --> a').
 End semi.
 
+Lemma semi_closed (Var Var' : Set) (f : Var -> Code Var') : semi @ f = semi.
+Proof.
+  simpl; fold (@semi Var'); reflexivity.
+Qed.
+Hint Rewrite semi_closed : code_simpl.
+
 Lemma A_exp_semi (Var : Set) : A * exp == (semi : Code Var).
 Proof.
   unfold A, exp, semi; beta_simpl; auto.
@@ -606,6 +612,12 @@ Proof.
     beta_eta.
 Qed.
 Hint Rewrite semi_idempotent : code_simpl.
+
+Lemma semi_idempotent' (Var : Set) (x : Code Var) : semi * x :: semi.
+Proof.
+  rewrite <- beta_b; rewrite semi_idempotent; reflexivity.
+Qed.
+Hint Rewrite semi_idempotent' : code_simpl.
 
 (* TODO prove by [apply V_fixes_constructed_types] *)
 Lemma V_semi (Var : Set) : semi :: (V : Code Var).
@@ -690,6 +702,28 @@ Proof.
     apply semi_sound.
   intro H; induction H; code_simpl; auto.
   rewrite <- H; auto.
+Qed.
+
+Ltac sub_case_le f H :=
+  apply (code_sub_le f) in H;
+  simpl in H;
+  rewrite <- H;
+  tauto.
+
+Theorem semi_ind (Var : Set) (p q : Code Var) :
+  p * TOP [= q * TOP ->
+  p * BOT [= q * BOT ->
+  p * I [= q * I ->
+  forall x, x :: semi -> p * x [= q * x.
+Proof.
+  intros Htop Hbot Hi x Hx.
+  code_le_weaken; intros ys f; simpl.
+  apply (code_sub_eq f) in Hx; code_simpl in Hx.
+  apply semi_inhab in Hx; induction Hx; auto.
+  - rewrite <- H; apply IHHx.
+  - sub_case_le f Hbot.
+  - sub_case_le f Hi.
+  - sub_case_le f Htop.
 Qed.
 
 (* ------------------------------------------------------------------------ *)
