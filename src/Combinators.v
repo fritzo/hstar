@@ -162,6 +162,8 @@ Qed.
 
 (** ** Informal lambda notation *)
 
+Definition var (n : nat) : Code nat := code_var n.
+
 Definition make_var (Var : Set) (n : nat) : Code (nat + Var) :=
   code_var (@inl nat Var n).
 
@@ -260,11 +262,10 @@ Proof.
     rewrite code_eq_div.
     rewrite pi_j_left.
     auto.
-  admit.
+  admit. (* TODO use limit characterization of div and induction on probe *)
 Qed.
 
-Lemma conv_div_top (Var : Set) (x : Code Var) :
-  conv x <-> div * x == TOP.
+Lemma conv_div_top (x : Code Empty_set) : conv x <-> div * x == TOP.
 Proof.
   split.
     (* OLD
@@ -275,8 +276,8 @@ Proof.
     admit.
   intros [H' H]; clear H'; unfold code_le in H.
   (* rewrite <- var_monad_unit_right; rewrite <- beta_i. *)
-  assert (conv (I * (TOP @ code_var) : Code Var)) as Ht; code_simpl; auto.
-  set (Hd := H Var I code_var Ht).
+  assert (conv (I * (TOP @ code_var) : Code Empty_set)) as Ht; code_simpl; auto.
+  set (Hd := H Empty_set I code_var Ht).
   code_simpl in Hd.
   apply conv_div; auto.
 Qed.

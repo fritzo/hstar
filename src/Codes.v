@@ -25,6 +25,7 @@ Inductive code {Var : Set} : Set :=
   | code_s : code.
 Hint Constructors code.
 Definition Code (Var : Set) := @code Var.
+Definition Closed := @code Empty_set.
 
 Notation "'TOP'" := code_top : code_scope.
 Notation "'BOT'" := code_bot : code_scope.
@@ -261,7 +262,8 @@ Proof.
     apply weak_star_trans with y; auto.
   - exists x; rewrite Hr, Hs; split; auto.
     apply weak_star_trans with y; auto.
-  - admit.
+  - admit. (* TODO also assume r == star r and s == star s,
+              then use strong induction *)
 Qed.
 
 
@@ -356,6 +358,11 @@ Proof.
   - apply weaken_beta.
   - compute; intros x y z xy yz.
     induction xy; induction yz; auto.
+    (* TODO try induction over just one variable,
+       mapping beta to beta.
+       The only problem is with steps that are the same (use refl)
+       and in beta_r_ when redexes intersect.
+       Try to write a tactic matching against beta constructors. *)
 Admitted. 
 
 Instance commuting_flip_beta_probe (Var : Set) :
@@ -447,6 +454,7 @@ Proof.
   - apply weaken_pi.
   - compute; intros x y z xy yz.
     induction xy; induction yz; auto.
+    (* TODO similar to commuting_flip_beta_beta *)
 Admitted. 
 
 Instance commuting_flip_pi_probe (Var : Set) :
@@ -471,11 +479,13 @@ Proof.
     rewrite xy; reflexivity.
 Qed.
 
+(* TODO try to replace this with commuting_beta_step_pi
+   since [beta TOP x -> x == TOP]? *)
 Lemma beta_step_pi_top (Var : Set) (x y : Code Var) :
   beta_step x y -> (pi x TOP <-> pi y TOP).
 Proof.
   intro Hb; split; intro Hp.
-  - admit.
+  - admit. (* TODO similar strategy to commuting_flip_beta_beta *)
   - rewrite Hb; auto.
 Qed.
 

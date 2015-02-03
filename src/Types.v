@@ -482,31 +482,30 @@ Proof.
 Qed.
 Hint Rewrite div_inhab_top : code_simpl.
 
-Inductive div_fixes {Var : Set} : Code Var -> Prop :=
+(* FIXME this only works for closed codes *)
+Inductive div_fixes : Closed -> Prop :=
   | div_fixes_eq x y : x == y -> div_fixes x -> div_fixes y
   | div_fixes_bot : div_fixes BOT
   | div_fixes_top : div_fixes TOP.
 Hint Constructors div_fixes.
 
-Instance div_fixes_proper (Var : Set) :
-  Proper (code_eq ==> iff) (@div_fixes Var).
+Instance div_fixes_proper : Proper (code_eq ==> iff) div_fixes.
 Proof.
   intros x y xy; split; [idtac | apply symmetry in xy];
   intro H; induction H; eauto.
 Qed.
 
-Theorem div_sound (Var : Set) (x : Code Var) :
-  x :: div -> div_fixes x.
+Theorem div_sound (x : Closed) : x :: div -> div_fixes x.
 Proof.
   intros H.
   case_le (x [= BOT) as H'.
   - assert (x == BOT) as eq. split; auto. rewrite eq; auto.
   - rewrite <- H; clear H.
-    rewrite <- conv_nle_bot in H'. (* FIXME *)
+    rewrite <- conv_nle_bot in H'.
     apply conv_div_top in H'; rewrite H'; auto.
 Qed.
 
-Theorem div_inhab (Var : Set) (x : Code Var) : x :: div <-> div_fixes x.
+Theorem div_inhab (x : Closed) : x :: div <-> div_fixes x.
 Proof.
   split.
     apply div_sound.
@@ -528,19 +527,23 @@ Proof.
 Admitted.
 
 Lemma div_algebraic (Var : Set) : div' == (div : Code Var).
+  (* TODO use tactic wlog_closed or assume_closed *)
   rewrite div'_div; eta_expand as x; beta_simpl.
   set (y := div * x); subst; assert (y = div * x) as eq; auto.
   assert (y :: div) as Hf.
     rewrite eq; rewrite <- beta_b; rewrite div_idempotent; auto.
+  (* OLD
   apply div_inhab in Hf; induction Hf.
   - admit. (* TODO *)
   - unfold div'; code_simpl. admit. (* TODO: case BOT *)
   - unfold div'; code_simpl. admit. (* TODO: case TOP *)
+  *)
 Admitted.
 
 (* this is an ugly proof. why not show [div' : div --> I] then [case_le]? *)
 Lemma div_algebraic' (Var : Set) : div' == (div : Code Var).
 Proof.
+  (* TODO use tactic wlog_closed or assume_closed *)
   split.
   - eta_expand as x.
     case_le (x [= BOT).
@@ -549,7 +552,10 @@ Proof.
       unfold div'; fold (@Y Var); code_simpl.
       admit. (* TODO lfp argument *)
     + rewrite <- conv_nle_bot in H.
+      (* OLD
       apply conv_div_top in H; rewrite H; auto.
+      *)
+      admit.
   - unfold div, div'; fold (@Y Var).
     rewrite pi_j_left at 1.
     rewrite pi_j_left at 1.
@@ -650,15 +656,14 @@ Proof.
 Qed.
 Hint Rewrite semi_inhab_top : code_simpl.
 
-Inductive semi_fixes {Var : Set} : Code Var -> Prop :=
+Inductive semi_fixes : Closed -> Prop :=
   | semi_fixes_eq x y : x == y -> semi_fixes x -> semi_fixes y
   | semi_fixes_bot : semi_fixes BOT
   | semi_fixes_i : semi_fixes I
   | semi_fixes_top : semi_fixes TOP.
 Hint Constructors semi_fixes.
 
-Instance semi_fixes_proper (Var : Set) :
-  Proper (code_eq ==> iff) (@semi_fixes Var).
+Instance semi_fixes_proper : Proper (code_eq ==> iff) semi_fixes.
 Proof.
   intros x y xy; split; [idtac | apply symmetry in xy];
   intro H; induction H; eauto.
@@ -666,7 +671,7 @@ Qed.
 
 (* main theorem *)
 
-Theorem semi_sound (Var : Set) (x : Code Var) : x :: semi -> semi_fixes x.
+Theorem semi_sound (x : Closed) : x :: semi -> semi_fixes x.
 Proof.
   intros H.
   case_le (x [= BOT) as Hbot.
@@ -679,7 +684,7 @@ Proof.
   rewrite eq; auto.
 Qed.
 
-Theorem semi_inhab (Var : Set) (x : Code Var) : x :: semi <-> semi_fixes x.
+Theorem semi_inhab (x : Closed) : x :: semi <-> semi_fixes x.
 Proof.
   split.
     apply semi_sound.
@@ -778,7 +783,7 @@ Proof.
 Qed.
 Hint Rewrite boool_inhab_top : code_simpl.
 
-Inductive boool_fixes {Var : Set} : Code Var -> Prop :=
+Inductive boool_fixes : Closed -> Prop :=
   | boool_fixes_eq x y : x == y -> boool_fixes x -> boool_fixes y
   | boool_fixes_bot : boool_fixes BOT
   | boool_fixes_k : boool_fixes K
@@ -787,14 +792,13 @@ Inductive boool_fixes {Var : Set} : Code Var -> Prop :=
   | boool_fixes_top : boool_fixes TOP.
 Hint Constructors boool_fixes.
 
-Instance boool_fixes_proper (Var : Set) :
-  Proper (code_eq ==> iff) (@boool_fixes Var).
+Instance boool_fixes_proper : Proper (code_eq ==> iff) boool_fixes.
 Proof.
   intros x y xy; split; [idtac | apply symmetry in xy];
   intro H; induction H; eauto.
 Qed.
 
-Theorem boool_sound (Var : Set) (x : Code Var) : x :: boool -> boool_fixes x.
+Theorem boool_sound (x : Closed) : x :: boool -> boool_fixes x.
 Proof.
   intros H.
   case_le (x [= BOT) as Hbot.
@@ -812,7 +816,7 @@ Proof.
   *)
 Admitted.
 
-Theorem boool_inhab (Var : Set) (x : Code Var) : x :: boool <-> boool_fixes x.
+Theorem boool_inhab (x : Closed) : x :: boool <-> boool_fixes x.
 Proof.
   split.
     apply boool_sound.
@@ -889,7 +893,7 @@ Proof.
 Qed.
 Hint Rewrite bool_j_top : code_simpl.
 
-Inductive bool_fixes {Var : Set} : Code Var -> Prop :=
+Inductive bool_fixes : Closed -> Prop :=
   | bool_fixes_eq x y : x == y -> bool_fixes x -> bool_fixes y
   | bool_fixes_bot : bool_fixes BOT
   | bool_fixes_k : bool_fixes K
@@ -897,8 +901,7 @@ Inductive bool_fixes {Var : Set} : Code Var -> Prop :=
   | bool_fixes_top : bool_fixes TOP.
 Hint Constructors bool_fixes.
 
-Instance bool_fixes_proper (Var : Set) :
-  Proper (code_eq ==> iff) (@bool_fixes Var).
+Instance bool_fixes_proper : Proper (code_eq ==> iff) bool_fixes.
 Proof.
   intros x y xy; split; [idtac | apply symmetry in xy];
   intro H; induction H; eauto.
@@ -913,10 +916,10 @@ Proof.
   apply absolute_consistency in H; contradiction H.
 Qed.
 
-Theorem bool_sound (Var : Set) (x : Code Var) : x :: bool -> bool_fixes x.
+Theorem bool_sound (x : Closed) : x :: bool -> bool_fixes x.
 Proof.
   intro H; set (H' := H);
-  unfold bool in H'; fold (@boool Var) in H'; fold (@P Var) in H'.
+  unfold bool in H'; fold (@boool Empty_set) in H'; fold (@P Empty_set) in H'.
   apply P2_fixes_simpl in H'; destruct H' as [Hb Hd].
   rewrite V_boool in Hb; rewrite boool_inhab in Hb; induction Hb; auto.
     rewrite <- H0 in *; apply IHHb; auto.
@@ -924,7 +927,7 @@ Proof.
   apply code_nle_top_j in H; contradiction H.
 Qed.
 
-Theorem bool_inhab (Var : Set) (x : Code Var) : x :: bool <-> bool_fixes x.
+Theorem bool_inhab (x : Closed) : x :: bool <-> bool_fixes x.
 Proof.
   split.
     apply bool_sound.
