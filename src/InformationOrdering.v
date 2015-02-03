@@ -1,8 +1,6 @@
 (** * Information ordering and observable equivalence *)
 
 Require Import Coq.Logic.Classical_Prop.
-Require Import Coq.Logic.Classical_Pred_Set.
-Require Import Coq.Logic.ClassicalFacts.
 Require Import Coq.Program.Basics.
 Require Import Coq.Program.Equality.
 Require Import Coq.Setoids.Setoid.
@@ -89,13 +87,19 @@ Proof.
 Qed.
 
 Instance code_le_refl (Var : Set) : Reflexive (@code_le Var).
-Proof. unfold code_le; auto. Qed.
+Proof.
+  unfold code_le; auto.
+Qed.
 
 Instance code_eq_refl (Var : Set) : Reflexive (@code_eq Var).
-Proof. simpl_relation. Qed.
+Proof.
+  simpl_relation.
+Qed.
 
 Instance code_le_trans (Var : Set) : Transitive (@code_le Var).
-Proof. unfold code_le; auto. Qed.
+Proof.
+  unfold code_le; auto.
+Qed.
 
 Instance code_eq_trans (Var : Set) : Transitive (@code_eq Var).
 Proof.
@@ -119,7 +123,9 @@ Qed.
 
 Instance code_le_partialorder (Var : Set) :
   PartialOrder (@code_eq Var) (@code_le Var).
-Proof. simpl_relation. Qed.
+Proof.
+  simpl_relation.
+Qed.
 
 Lemma code_le_ap_right (Var : Set) (x y y' : Code Var) :
   y [= y' -> x * y [= x * y'.
@@ -321,11 +327,15 @@ Qed.
 Hint Resolve code_le_j_idem.
 
 Lemma code_eq_j_idem (Var : Set) (x : Code Var) : x||x == x.
-Proof. split; auto. Qed.
+Proof.
+  split; auto.
+Qed.
 Hint Resolve code_eq_j_idem.
 
 Lemma code_le_j_sym (Var : Set) (x y : Code Var) : x||y == y||x.
-Proof. split; auto. Qed.
+Proof.
+  split; auto.
+Qed.
 
 Lemma code_eq_j_assoc (Var : Set) (x y z : Code Var) : x||(y||z) == (x||y)||z.
 Proof.
@@ -343,19 +353,27 @@ Proof.
 Qed.
 
 Lemma code_le_j_bot_left (Var : Set) (x : Code Var) : BOT || x == x.
-Proof. split; auto. Qed.
+Proof.
+  split; auto.
+Qed.
 Hint Rewrite code_le_j_bot_left : code_simpl.
 
 Lemma code_le_j_bot_right (Var : Set) (x : Code Var) : x || BOT == x.
-Proof. split; auto. Qed.
+Proof.
+  split; auto.
+Qed.
 Hint Rewrite code_le_j_bot_right : code_simpl.
 
 Lemma code_le_j_top_left (Var : Set) (x : Code Var) : TOP || x == TOP.
-Proof. split; auto. Qed.
+Proof.
+  split; auto.
+Qed.
 Hint Rewrite code_le_j_top_left : code_simpl.
 
 Lemma code_le_j_top_right (Var : Set) (x : Code Var) : x || TOP == TOP.
-Proof. split; auto. Qed.
+Proof.
+  split; auto.
+Qed.
 Hint Rewrite code_le_j_top_right : code_simpl.
 
 (** ** Reasoning with extensionality *)
@@ -418,27 +436,29 @@ Proof.
 Qed.
 Hint Rewrite code_eq_ap_top : code_simpl.
 
-Lemma code_eq_ap_bot (Var : Set) (x : Code Var) : BOT * x == BOT.
-Proof.
-  split; auto; intros Var' c f H.
-Admitted.
-Hint Rewrite code_eq_ap_bot : code_simpl.
-
 Lemma code_eq_b_i (Var : Set) (x : Code Var) : I o x == x.
-Proof. beta_eta. Qed.
+Proof.
+  beta_eta.
+Qed.
 Hint Rewrite code_eq_b_i : code_simpl.
 
 Lemma code_eq_c_b_i (Var : Set) (x : Code Var) : x o I == x.
-Proof. beta_eta. Qed.
+Proof.
+  beta_eta.
+Qed.
 Hint Rewrite code_eq_b_i : code_simpl.
 
 Lemma code_eq_s_k_b (Var : Set) (x : Code Var) : S * (K * x) == B * x.
-Proof. beta_eta. Qed.
+Proof.
+  beta_eta.
+Qed.
 Hint Rewrite code_eq_s_k_b : code_simpl.
 
 Lemma code_eq_s_k_c (Var : Set) (x y : Code Var) :
   S * x * (K * y) == C * x * y.
-Proof. beta_eta. Qed.
+Proof.
+  beta_eta.
+Qed.
 Hint Rewrite code_eq_s_k_c : code_simpl.
 
 (** We will use classical reasoning for case analysis. *)
@@ -551,6 +571,7 @@ Proof.
     conv ((x @ f) ** ys) -> conv ((x' @ f) ** ys)) as H'; auto; clear H.
   set (y := x @ f) in *; set (y' := x' @ f) in *.
   inversion Hconv; simpl; auto.
+  (* TODO maybe prove by induction on BT of c? *)
 Admitted.
 
 Theorem code_le_weaken (Var : Set) (x x' : Code Var) :
@@ -575,20 +596,3 @@ Lemma conv_apply (Var : Set) (x : Code Var) (ys : list (Code Var)) :
 Proof.
   revert x; induction ys; simpl; intros; eauto using conv_ap.
 Qed.
-
-Lemma conv_nle_bot (Var : Set) (x : Code Var) :
-  conv x <-> ~ x [= BOT.
-Proof.
-  split.
-  - unfold code_le; intros H Hneg.
-    apply (@not_conv_bot Var).
-    rewrite <- beta_i; rewrite <- (@var_monad_unit_right Var _).
-    apply Hneg; code_simpl; auto.
-  - rewrite code_le_weaken.
-    intro H.
-    apply not_all_ex_not in H; destruct H as [ys H].
-    apply not_all_ex_not in H; destruct H as [f H].
-    (* TODO use classical reasoning *)
-    admit.
-Qed.
-

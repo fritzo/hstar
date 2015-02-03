@@ -18,13 +18,19 @@ Fixpoint power {Var : Set} (f : Code Var) (n : nat) : Code Var :=
 Notation "f ^ n" := (power f n) : code_scope.
 
 Lemma power_0 (Var : Set) (f x : Code Var) : f ^ 0 * x == x.
-Proof. simpl; beta_simpl; auto. Qed.
+Proof.
+  simpl; beta_simpl; auto.
+Qed.
 
 Lemma power_1 (Var : Set) (f x : Code Var) : f ^ 1 * x == f * x.
-Proof. simpl; beta_simpl; auto. Qed.
+Proof.
+  simpl; beta_simpl; auto.
+Qed.
 
 Lemma power_2 (Var : Set) (f x : Code Var) : f ^ 2 * x == f * (f * x).
-Proof. simpl; beta_simpl; auto. Qed.
+Proof.
+  simpl; beta_simpl; auto.
+Qed.
 
 Definition limit_le_code {Var : Set} (f : nat -> Code Var) (x : Code Var) :=
   forall n, f n [= x.

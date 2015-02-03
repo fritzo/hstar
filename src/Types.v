@@ -939,7 +939,8 @@ Section fuzzy_nat.
   Context {Var : Set}.
   Let a := make_var Var 0.
   Let a' := make_var Var 1.
-  Definition fuzzy_nat := Eval compute in (\\a,a'; (a' --> a) --> a --> a').
+  Definition fuzzy_nat := Eval compute in close_var
+    (\\a,a'; (a' --> a) --> a --> a').
 End fuzzy_nat.
 
 Section succ.
@@ -952,7 +953,11 @@ Section succ.
   Definition zero := Eval compute in close_var (\f, \x, x).
 End succ.
 
-(* TODO: how to disambiguate [nat]? *)
+Section church_nat.
+  Context {Var : Set}.
+  Let disambiguate : Code Var := <<succ, zero>>.  (* does this work? *)
+  Definition church_nat : Code Var := P * fuzzy_nat * disambiguate.
+End church_nat.
 
 (* ------------------------------------------------------------------------ *)
 (** TODO: additional types
