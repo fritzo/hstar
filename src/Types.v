@@ -1103,38 +1103,102 @@ Proof.
 Qed.
 
 (* ------------------------------------------------------------------------ *)
-(** Church numerals *)
+(** Products *)
 
-Section fuzzy_nat.
+Section FuzzyProd.
   Context {Var : Set}.
-  Let a := make_var Var 0.
-  Let a' := make_var Var 1.
-  Definition fuzzy_nat := Eval compute in close_var
-    (\\a,a'; (a' --> a) --> a --> a').
-End fuzzy_nat.
+  Let u := make_var Var 0.
+  Let v := make_var Var 1.
+  Let a := make_var Var 2.
+  Let a' := make_var Var 3.
+
+  Definition FuzzyProd : Code Var := Eval compute in close_var
+    (\u, \v, \\a,a'; (V * u --> V * v --> a) --> a').
+End FuzzyProd.
+
+Section Prod.
+  Context {Var : Set}.
+  Let u := make_var Var 0.
+  Let v := make_var Var 1.
+
+  Let disambiguate := (\u, u * pair).
+  Let repair := (\u, <<BOT, BOT>>).
+
+  Definition Prod : Code Var := Eval compute in close_var
+    (\u, \v, V * (FuzzyProd * u * v || disambiguate || repair)).
+End Prod.
+
+(* ------------------------------------------------------------------------ *)
+(** Sums *)
+
+Section inj_left.
+  Context {Var : Set}.
+  Let x := make_var Var 0.
+  Let f := make_var Var 1.
+  Let g := make_var Var 2.
+
+  Definition inj_left : Code Var := Eval compute in close_var
+    (\x, \f, \g, f * x).
+  Definition inj_right : Code Var := Eval compute in close_var
+    (\x, \f, \g, g * x).
+End inj_left.
+
+Section FuzzySum.
+  Context {Var : Set}.
+  Let u := make_var Var 0.
+  Let v := make_var Var 1.
+  Let a := make_var Var 2.
+  Let a' := make_var Var 3.
+  
+  Definition FuzzySum : Code Var := Eval compute in close_var
+    (\u, \v, \\a,a'; (V * u --> a) --> (V * v --> a) --> a').
+End FuzzySum.
+
+Section Sum.
+  Context {Var : Set}.
+  Let u := make_var Var 0.
+  Let v := make_var Var 1.
+  
+  Let disambiguate := (\u, u * inj_left * inj_right).  (* does this work? *)
+
+  Definition Sum : Code Var := Eval compute in close_var
+    (\u, \v, P * (FuzzySum * u * v) * disambiguate).
+End Sum.
+
+(* ------------------------------------------------------------------------ *)
+(** Church numerals *)
 
 Section succ.
   Context {Var : Set}.
   Let n := make_var Var 0.
   Let f := make_var Var 1.
   Let x := make_var Var 2.
-  Definition succ := Eval compute in close_var
+
+  Definition succ : Code Var := Eval compute in close_var
     (\n, \f, \x, f * (n * f * x) || n * f * (f * x)).
-  Definition zero := Eval compute in close_var (\f, \x, x).
+  Definition zero : Code Var := Eval compute in close_var (\f, \x, x).
 End succ.
 
-Section church_nat.
+Section FuzzyChurchNat.
   Context {Var : Set}.
+  Let a := make_var Var 0.
+  Let a' := make_var Var 1.
+
+  Definition FuzzyChurchNat : Code Var := Eval compute in close_var
+    (\\a,a'; (a' --> a) --> a --> a').
+End FuzzyChurchNat.
+
+Section ChurchNat.
+  Context {Var : Set}.
+
   Let disambiguate : Code Var := <<succ, zero>>.  (* does this work? *)
-  Definition church_nat : Code Var := P * fuzzy_nat * disambiguate.
-End church_nat.
+  Definition ChurchNat : Code Var := P * FuzzyChurchNat * disambiguate.
+End ChurchNat.
 
 (* ------------------------------------------------------------------------ *)
 (** TODO: additional types
 
     - [Maybe]
-    - [Prod]
-    - [Sum]
     - [num]
     - [Stream]
 *)
