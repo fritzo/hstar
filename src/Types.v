@@ -231,6 +231,61 @@ Proof.
 Qed.
 
 (* ------------------------------------------------------------------------ *)
+(** ** [TOP] is the smallest type, inhabited only by [TOP] *)
+
+Lemma TOP_nondecreasing (Var : Set) : I [= (TOP : Code Var).
+Proof.
+  auto.
+Qed.
+
+Lemma TOP_idempotent (Var : Set) : TOP o TOP == (TOP : Code Var).
+Proof.
+  beta_eta.
+Qed.
+Hint Rewrite TOP_idempotent : code_simpl.
+
+Lemma V_TOP (Var : Set) : TOP :: (V : Code Var).
+Proof.
+  apply V_fixes_closure;
+  split; [apply TOP_nondecreasing | apply TOP_idempotent].
+Qed.
+Hint Rewrite V_TOP : code_simpl.
+
+Inductive TOP_fixes : Closed -> Prop :=
+  | TOP_fixes_eq x y : x == y -> TOP_fixes x -> TOP_fixes y
+  | TOP_fixes_top : TOP_fixes TOP.
+Hint Constructors TOP_fixes.
+
+Instance TOP_fixes_proper : Proper (code_eq ==> iff) TOP_fixes.
+Proof.
+  intros x y xy; split; [idtac | apply symmetry in xy];
+  intro H; induction H; eauto.
+Qed.
+
+(* main theorem *)
+
+Theorem TOP_sound (x : Closed) : x :: TOP -> TOP_fixes x.
+Proof.
+  intros H; code_simpl in H; rewrite <- H; auto.
+Qed.
+
+Theorem TOP_inhab (x : Closed) : x :: TOP <-> TOP_fixes x.
+Proof.
+  split.
+    apply TOP_sound.
+  code_simpl.
+  intro H; induction H; code_simpl; auto.
+  rewrite <- H; auto.
+Qed.
+
+Theorem TOP_ind (Var : Set) (p q : Code Var) :
+  p * TOP [= q * TOP ->
+  p o TOP [= q o TOP.
+Proof.
+  intro Htop; eta_expand as x; code_simpl; auto.
+Qed.
+
+(* ------------------------------------------------------------------------ *)
 (** ** [P] is a powertype operator *)
 
 (** [P] acts as both a unary subtype operation
@@ -596,6 +651,20 @@ Proof.
     (* FIXME it looks like A may need to use Y instead of V *)
 Admitted.
 
+Theorem div_ind (Var : Set) (p q : Code Var) :
+  p * TOP [= q * TOP ->
+  p * BOT [= q * BOT ->
+  p o div [= q o div.
+Proof.
+  intros Htop Hbot Hi; forall_inhab; intros x Hx.
+  code_le_weaken; intros ys f; simpl.
+  apply (code_sub_eq f) in Hx; code_simpl in Hx.
+  apply div_inhab in Hx; induction Hx; auto.
+  - rewrite <- H; apply IHHx.
+  - sub_case_le f Hbot.
+  - sub_case_le f Htop.
+Qed.
+
 (* ------------------------------------------------------------------------ *)
 (** ** [semi] represents Sierpinsky space, inhabited by [{BOT, I, TOP}] *)
 
@@ -884,6 +953,26 @@ Proof.
   rewrite <- H; auto.
 Qed.
 
+Theorem boool_ind (Var : Set) (p q : Code Var) :
+  p * TOP [= q * TOP ->
+  p * BOT [= q * BOT ->
+  p * K [= q * K ->
+  p * (K*I) [= q * (K*I) ->
+  p * J [= q * J ->
+  p o boool [= q o boool.
+Proof.
+  intros Htop Hbot Hk Hf Hj; forall_inhab; intros x Hx.
+  code_le_weaken; intros ys f; simpl.
+  apply (code_sub_eq f) in Hx; code_simpl in Hx.
+  apply boool_inhab in Hx; induction Hx; auto.
+  - rewrite <- H; apply IHHx.
+  - sub_case_le f Hbot.
+  - sub_case_le f Hk.
+  - sub_case_le f Hf.
+  - sub_case_le f Hj.
+  - sub_case_le f Htop.
+Qed.
+
 (* ------------------------------------------------------------------------ *)
 (** ** [bool] is a disambiguated subtype of [boool] *)
 (** We narrow the [boool] type to [bool] by disambiguating the unwanted
@@ -993,6 +1082,24 @@ Proof.
     apply bool_sound.
   intro H; induction H; code_simpl; auto.
   rewrite <- H; auto.
+Qed.
+
+Theorem bool_ind (Var : Set) (p q : Code Var) :
+  p * TOP [= q * TOP ->
+  p * BOT [= q * BOT ->
+  p * K [= q * K ->
+  p * (K*I) [= q * (K*I) ->
+  p o bool [= q o bool.
+Proof.
+  intros Htop Hbot Hk Hf Hj; forall_inhab; intros x Hx.
+  code_le_weaken; intros ys f; simpl.
+  apply (code_sub_eq f) in Hx; code_simpl in Hx.
+  apply bool_inhab in Hx; induction Hx; auto.
+  - rewrite <- H; apply IHHx.
+  - sub_case_le f Hbot.
+  - sub_case_le f Hk.
+  - sub_case_le f Hf.
+  - sub_case_le f Htop.
 Qed.
 
 (* ------------------------------------------------------------------------ *)

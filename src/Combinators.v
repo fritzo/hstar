@@ -1,4 +1,4 @@
-(** * Combinatory algebra with parametric variables *)
+(** * Some standard combinators *)
 
 Definition Succ := S%nat.  (* an alias for later *)
 
