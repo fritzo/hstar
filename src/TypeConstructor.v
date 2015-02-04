@@ -305,7 +305,7 @@ Lemma A_sound (Var : Set) (s r : Code Var) : <<s, r>> [= A -> A_prop <<s, r>>.
 Proof.
   A_simpl.
   intros H; apply A_above_sound.
-  (* this requires reasoning about pairs and least fixed points *)
+  (* TODO reason about pairs and least fixed points *)
 Admitted.
 
 (* We will make much use of the following theorems *)
@@ -315,6 +315,7 @@ Theorem A_fixes (Var : Set) (f x : Code Var) :
   A * f * x [= x.
 Proof.
   intro H.
+  (* TODO use a join argument: A = Join ys and forall y in ys, y f x [= x *)
 Admitted.
 
 Theorem A_repairs (Var : Set) (i : Code Var) :
