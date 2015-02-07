@@ -16,7 +16,8 @@
 (** printing =] $\sqsupseteq$ *)
 (** printing == $\equiv$ *)
 
-Reserved Notation "x 'o' y" (at level 30, right associativity).
+Reserved Notation "x ^ y" (at level 30, right associativity).
+Reserved Notation "x 'o' y" (at level 32, right associativity).
 Reserved Notation "x ^^ n" (at level 38, left associativity).
 Reserved Notation "x ** y" (at level 39, left associativity).
 Reserved Notation "x * y" (at level 40, left associativity).

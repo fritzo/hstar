@@ -59,13 +59,21 @@ Proof.
 Qed.
 Hint Rewrite var_monad_assoc : code_simpl.
 
-Lemma close_idempotent (Var : Set) (x : Code Var) :
-  close (close x) = close x.
+Lemma close_idempotent (Var : Set) (x : Code Var) : close (close x) = close x.
 Proof.
   compute; code_simpl; induction x; auto.
 Qed.
 Hint Rewrite close_idempotent : beta_simpl.
 Hint Rewrite close_idempotent : code_simpl.
+
+Lemma close_closed (x : Closed) : close x = x.
+Proof.
+  compute; code_simpl; induction x;
+  match goal with [v : Empty_set |- _] => destruct v | _ => idtac end; auto.
+  rewrite IHx1; rewrite IHx2; reflexivity.
+Qed.
+Hint Rewrite close_closed : beta_simpl.
+Hint Rewrite close_closed : code_simpl.
 
 Lemma code_sub_inverse
   (Var : Set) (f : Var -> Code Empty_set) (x : Code Empty_set) :

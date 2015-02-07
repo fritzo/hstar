@@ -1,12 +1,14 @@
 (** * A constructor for polymorphic types *)
 
 Require Import Coq.Program.Basics.
+Require Import Coq.Program.Equality.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
 Require Export InformationOrdering.
 Require Import Nontermination.
 Require Import LeastFixedPoint.
+Require Import BohmTrees.
 Open Scope code_scope.
 
 (* ------------------------------------------------------------------------ *)
@@ -317,14 +319,22 @@ Proof.
   (* TODO use a join argument: A = Join ys and forall y in ys, y f x [= x *)
 Admitted.
 
-Theorem A_repairs (Var : Set) (i : Code Var) :
-  ~ i [= BOT -> I [= A * exp * i.
+Theorem A_repairs (i : Closed) : ~ i [= BOT -> I [= A * exp * i.
 Proof.
-  (* TODO this requires a Bohm-out argument *)
-Admitted.
+  intro H; apply conv_nle_bot in H.
+  apply conv_bt_witness in H; destruct H as [k1 [k2 [b H]]]; revert i H.
+  induction k1; simpl; intros i; code_simpl; revert i.
+    induction k2; simpl; intros i; code_simpl; revert i.
+      induction b; simpl; intros i; code_simpl.
+        intro H; rewrite <- H; rewrite <- (A_complete _ I I); auto.
+        unfold pair, exp; code_simpl; auto.
+      intro H.
+      admit.
+    admit.
+  admit.
+Qed.
 
-Theorem A_raises (Var : Set) (i : Code Var) :
-  ~ i [= I -> TOP [= A * exp * i.
+Theorem A_raises (i : Closed) : ~ i [= I -> TOP [= A * exp * i.
 Proof.
   (* TODO this requires a Bohm-out argument *)
 Admitted.

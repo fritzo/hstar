@@ -14,6 +14,11 @@ Proof.
   unfold conv; code_simpl; tauto.
 Qed.
 
+Lemma conv_closed (x : Closed) : conv x <-> exists y, probe x y /\ pi y TOP.
+Proof.
+  unfold conv; rewrite close_closed; reflexivity.
+Qed.
+
 Inductive prob {Var : Set} : Code Var -> Prop :=
   | prob_top : prob TOP
   | prob_bot : prob BOT
