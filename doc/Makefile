@@ -12,7 +12,6 @@ body.tex: FORCE
 	$(SRC)/Combinators.v \
 	$(SRC)/Nontermination.v \
 	$(SRC)/LeastFixedPoint.v \
-	$(SRC)/BohmTrees.v \
 	$(SRC)/TypeConstructor.v \
 	$(SRC)/Types.v \
 	$(SRC)/Applications.v \
