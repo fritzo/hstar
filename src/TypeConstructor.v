@@ -7,7 +7,6 @@ Require Import Coq.Classes.Morphisms.
 Require Export InformationOrdering.
 Require Import Nontermination.
 Require Import LeastFixedPoint.
-Require Import BohmTrees.
 Open Scope code_scope.
 
 (* ------------------------------------------------------------------------ *)
