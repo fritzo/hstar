@@ -83,12 +83,6 @@ Proof.
   eta_expand; eta_expand; beta_simpl; monotonicity.
 Qed.
 
-Parameter Var : Set.
-Let x := make_var Var 0.
-Let y := make_var Var 1.
-Let z := make_var Var 2.
-Eval compute in close_var (\x, \x, \y, \x, \x, y * BOT).
-
 (** The [conv_bt_witness] theorem is a simple example of the Bohm-out technique:
     we start with convergenc of an arbitrary "algebraic" term
     and construct a minimal hnf witness of convergence. *)
