@@ -78,13 +78,8 @@ Inductive hnf' : Closed -> Prop :=
   hnf'_app :
 *)
 
-Lemma commute_drop_fake : K o (C * I * BOT) [= (C * I * BOT) o (K : Closed).
-Proof.
-  eta_expand; eta_expand; beta_simpl; monotonicity.
-Qed.
-
 (** The [conv_bt_witness] theorem is a simple example of the Bohm-out technique:
-    we start with convergenc of an arbitrary "algebraic" term
+    we start with convergence of an arbitrary "algebraic" term
     and construct a minimal hnf witness of convergence. *)
 
 Lemma pi_top_bt_witness (x : Closed) :
@@ -105,6 +100,37 @@ Proof.
   - admit.
 Qed.
 
+(** Next we provide a witness of [~x [= I]
+    which requires deep but narrow Bohm trees. *)
+(*
+                               \x,x0,...x(m0). x
+                                              /|\
+                                            ///|\\\
+                                               |
+                        \x(k1)0,...,x(k1)(m1). x(k1)
+                                              /|\
+                                            ///|\\\
+                                               |
+                \x(k1)(k2)0,...,x(k0)(k1)(m2). x(k1)(k2)
+                                              /|\
+                                               :
+                                               :
+  \x(k1)(k2)...(kn)0,...,x(k1)(k2)...(kn)(mn). xe
+*)
+
+(* Yuck. This would be much easier with DeBruijn terms: *)
+
+Inductive narrow_bt : Closed -> Prop :=
+  | narrow_bt_i : narrow_bt I
+  | narrow_bt_bot x : narrow_bt x -> narrow_bt (x o (C * I * BOT))
+  | narrow_bt_k1 x : narrow_bt x -> narrow_bt (K * x)
+  | narrow_bt_k2 x : narrow_bt x -> narrow_bt (K o x)
+  | narrow_bt_TODO x : False -> narrow_bt x.
+
+Theorem nle_i_bt_witness (x : Closed) :
+  ~ x [= I -> exists x', narrow_bt x' /\ ~x' [= I /\ x' [= x.
+Proof.
+Admitted.
 
 Fixpoint approximate (x : Closed) : Closed :=
   if negb (is_hnf x) then BOT else

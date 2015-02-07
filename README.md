@@ -1,12 +1,12 @@
 [![Build Status](https://travis-ci.org/fritzo/hstar.svg?branch=master)](https://travis-ci.org/fritzo/hstar)
-![Proof Status](https://img.shields.io/badge/proofs-43_holes-red.svg?style=flat)
+![Proof Status](https://img.shields.io/badge/proofs-44_holes-red.svg?style=flat)
 
 Holes | File
 -----:|:------------------------------------------------------------
    10 | [Types](src/Types.v)
     9 | [TypeConstructor](src/TypeConstructor.v)
     8 | [LeastFixedPoint](src/LeastFixedPoint.v)
-    4 | [BohmTrees](src/BohmTrees.v)
+    5 | [BohmTrees](src/BohmTrees.v)
     4 | [Codes](src/Codes.v)
     3 | [Combinators](src/Combinators.v)
     3 | [InformationOrdering](src/InformationOrdering.v)
