@@ -1,7 +1,12 @@
 (** * Bohm Trees *)
 
+Require Import Coq.Logic.Classical_Pred_Set.
+Require Import Coq.Logic.Classical_Prop.
 Require Import Coq.Program.Basics.
 Require Import Coq.Program.Equality.
+Require Import Coq.Setoids.Setoid.
+Require Import Coq.Classes.RelationClasses.
+Require Import Coq.Classes.Morphisms.
 Require Import Coq.Logic.Decidable.
 Require Import Coq.Bool.Bool.
 Require Import DeBruijn.
@@ -222,3 +227,32 @@ Admitted.
 Definition normal_is_eq
   {Var : Set} (x y : Term Var) (nx : normal x) (ny : normal y) : bool :=
   andb (normal_is_le x y nx ny) (normal_is_le y x ny nx).
+
+(** ** Theorems about bohm trees and order *)
+
+Definition term_le {Var : Set} : relation (Term Var). Admitted.
+Definition term_eq {Var : Set} : relation (Term Var). Admitted.
+Notation "x == y" := (term_eq x y) : term_scope.
+Notation "x [= y" := (term_le x y) : term_scope.
+
+Theorem normal_dense {Var : Set} (x y : Term Var) :
+  (forall x', normal x' -> x' [= x -> x' [= y) -> x [= y.
+Admitted.
+
+Lemma prop_curry (a b c : Prop) : (a -> b -> c) <-> (a /\ b -> c).
+Proof.
+  firstorder.
+Qed.
+
+Theorem normal_witness {Var : Set} (x y : Term Var) :
+  ~ x [= y -> exists z, normal z /\ z [= x /\ ~ z [= y.
+Proof.
+  intro H.
+  eapply ex_intro.
+  rewrite <- and_assoc.
+  apply imply_to_and.
+  rewrite <- prop_curry.
+  (* TODO undo eapply, then apply normal_dense
+  apply ex_not_not_all.
+  *)
+Admitted.
