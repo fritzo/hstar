@@ -29,7 +29,7 @@ Require Import DeBruijn.
     and an approximation rule [TOP -pi-> x].
     *)
 
-Inductive normal {Var : Set} : Term Var -> Prop :=
+Inductive normal {Var : Set} : Term Var -> Set :=
   | normal_top : normal TOP
   | normal_bot : normal BOT
   | normal_join x y : normal x -> normal y -> normal (x || y)
@@ -37,7 +37,7 @@ Inductive normal {Var : Set} : Term Var -> Prop :=
   | normal_app x y : inert x -> normal y -> normal (x * y)
   | normal_lambda x : @normal (option Var) x -> normal (LAMBDA x)
   | normal_var v : normal (VAR v)
-with inert {Var : Set} : Term Var -> Prop :=
+with inert {Var : Set} : Term Var -> Set :=
   | inert_var v : inert (VAR v)
   | inert_app x y : inert x -> normal y -> inert (x * y)
 .
@@ -71,11 +71,19 @@ Proof.
   induction x; simpl; auto; intro H; inversion H.
 Qed.
 
+Definition if_true (b : bool) : Set := if b then unit else Empty_set. 
+Definition if_false (b : bool) : Set := if b then Empty_set else unit. 
+
+Notation "x <--> y" := ((x -> y) * (y -> x))%type
+  (at level 95, no associativity).
+
 Lemma normal_is_normal {Var : Set} (x : Term Var) :
-  normal x <-> is_normal x = true.
-(* normal x <-> eq_true (is_normal x) *)
-(* normal x <-> is_true (is_normal x) *)
-(* normal x <-> Is_true (is_normal x) *)
+ normal x <--> is_normal x = true.
+(*  normal x <--> if_true (is_normal x). *)
+(* normal x <-> is_normal x = true. *)
+(* normal x <-> eq_true (is_normal x). *)
+(* normal x <-> is_true (is_normal x). *)
+(* normal x <-> Is_true (is_normal x). *)
 Proof.
   split.
   - intro H; induction H; simpl; auto.
@@ -96,10 +104,12 @@ Proof.
     + admit.
 Qed.
 
+(* OLD for normal : Prop
 Lemma normal_decidable {Var : Set} (x : Term Var) : decidable (normal x).
 Proof.
   unfold decidable; rewrite normal_is_normal; decide equality.
 Qed.
+*)
 
 Fixpoint try_reduce_step {Var : Set} (x : Term Var) : option (Term Var) :=
   match x with
@@ -220,6 +230,7 @@ Inductive dyadic : Set :=
 Fixpoint normal_pconv {Var : Set} (x : Term Var) : normal x -> dyadic.
 Admitted.
 
+(* This uses beta-eta discrimination; do BTs have eta normal forms? *)
 Fixpoint normal_is_le {Var : Set} (x y : Term Var) :
   normal x -> normal y -> bool.
 Admitted.
@@ -245,14 +256,22 @@ Proof.
 Qed.
 
 Theorem normal_witness {Var : Set} (x y : Term Var) :
-  ~ x [= y -> exists z, normal z /\ z [= x /\ ~ z [= y.
+  ~ x [= y -> {z : Term Var & normal z & z [= x /\ ~ z [= y}.
 Proof.
   intro H.
+  (* OLD
   eapply ex_intro.
   rewrite <- and_assoc.
   apply imply_to_and.
   rewrite <- prop_curry.
+  *)
   (* TODO undo eapply, then apply normal_dense
   apply ex_not_not_all.
   *)
+Admitted.
+
+Fixpoint Bohms_theorem {Var : Set}
+  (x y : Term Var) (nx : normal x) (ny : normal y) :
+  if_false (normal_is_le x y nx ny) ->
+  {c : Term Var & TOP [= c * x & c * y [= BOT}.
 Admitted.
