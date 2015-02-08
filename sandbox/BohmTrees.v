@@ -27,9 +27,10 @@ Require Import DeBruijn.
     We also add an identifiable top term [TOP] with
     a reduction rule [TOP x -beta-> TOP],
     and an approximation rule [TOP -pi-> x].
+    (This last rule [TOP -pi-> x] is hard to motivate; should it be dropped?)
     *)
 
-Inductive normal {Var : Set} : Term Var -> Set :=
+Inductive normal {Var : Set} : Term Var -> Prop :=
   | normal_top : normal TOP
   | normal_bot : normal BOT
   | normal_join x y : normal x -> normal y -> normal (x || y)
@@ -42,6 +43,8 @@ with inert {Var : Set} : Term Var -> Set :=
   | inert_app x y : inert x -> normal y -> inert (x * y)
 .
 Hint Constructors normal inert.
+
+Definition Normal (Var : Set) : Set := {x : Term Var | normal x}.
 
 Lemma inert_normal {Var : Set} (x : Term Var) : inert x -> normal x.
 Proof.
@@ -78,8 +81,9 @@ Notation "x <--> y" := ((x -> y) * (y -> x))%type
   (at level 95, no associativity).
 
 Lemma normal_is_normal {Var : Set} (x : Term Var) :
- normal x <--> is_normal x = true.
-(*  normal x <--> if_true (is_normal x). *)
+ normal x <-> is_normal x = true.
+(* normal x <--> is_normal x = true. *)
+(* normal x <--> if_true (is_normal x). *)
 (* normal x <-> is_normal x = true. *)
 (* normal x <-> eq_true (is_normal x). *)
 (* normal x <-> is_true (is_normal x). *)
@@ -104,12 +108,10 @@ Proof.
     + admit.
 Qed.
 
-(* OLD for normal : Prop
 Lemma normal_decidable {Var : Set} (x : Term Var) : decidable (normal x).
 Proof.
   unfold decidable; rewrite normal_is_normal; decide equality.
 Qed.
-*)
 
 Fixpoint try_reduce_step {Var : Set} (x : Term Var) : option (Term Var) :=
   match x with
@@ -239,6 +241,16 @@ Definition normal_is_eq
   {Var : Set} (x y : Term Var) (nx : normal x) (ny : normal y) : bool :=
   andb (normal_is_le x y nx ny) (normal_is_le y x ny nx).
 
+Definition normal_le {Var : Set} : relation (Normal Var) :=
+  fun xn => let (x, nx) := xn in
+  fun yn => let (y, ny) := yn in
+  normal_is_le x y nx ny = true.
+
+Definition normal_eq {Var : Set} : relation (Normal Var) :=
+  fun xn => let (x, nx) := xn in
+  fun yn => let (y, ny) := yn in
+  normal_is_eq x y nx ny = true.
+
 (** ** Theorems about bohm trees and order *)
 
 Definition term_le {Var : Set} : relation (Term Var). Admitted.
@@ -246,32 +258,60 @@ Definition term_eq {Var : Set} : relation (Term Var). Admitted.
 Notation "x == y" := (term_eq x y) : term_scope.
 Notation "x [= y" := (term_le x y) : term_scope.
 
+(** The [normal_dense] theorem motivates where to allow [JOIN] and [RAND]
+    in Bohm trees.
+    Whereas \cite{obermeyer2009automated} restricts [JOIN] and [RAND] to
+    the arguments of an [inert] variable,
+    we here allow them at the top level
+    to allow finite joins and dyadic mixtures.
+    *)
+
 Theorem normal_dense {Var : Set} (x y : Term Var) :
   (forall x', normal x' -> x' [= x -> x' [= y) -> x [= y.
 Admitted.
 
-Lemma prop_curry (a b c : Prop) : (a -> b -> c) <-> (a /\ b -> c).
+Lemma prop_curry (a b c : Prop) : (a /\ b -> c) <-> (a -> b -> c).
 Proof.
   firstorder.
 Qed.
 
-Theorem normal_witness {Var : Set} (x y : Term Var) :
-  ~ x [= y -> {z : Term Var & normal z & z [= x /\ ~ z [= y}.
+(** Classically we can provide normal witnesses of non-ordering. *)
+
+Corollary nle_normal_witnesses {Var : Set} (x y : Term Var) :
+  ~ x [= y ->
+  exists x', normal x' /\ x [= x' /\
+  exists y', normal y' /\ y' [= y' /\
+  ~ x' [= y'.
 Proof.
   intro H.
   (* OLD
   eapply ex_intro.
   rewrite <- and_assoc.
   apply imply_to_and.
-  rewrite <- prop_curry.
+  rewrite prop_curry.
   *)
   (* TODO undo eapply, then apply normal_dense
   apply ex_not_not_all.
   *)
 Admitted.
 
-Fixpoint Bohms_theorem {Var : Set}
-  (x y : Term Var) (nx : normal x) (ny : normal y) :
-  if_false (normal_is_le x y nx ny) ->
-  {c : Term Var & TOP [= c * x & c * y [= BOT}.
+(** Bohm's theorem construct from this witness a separating context. *)
+
+Theorem Bohms_theorem (x y : Closed) :
+  normal x -> normal y -> ~ x [= y ->
+  exists c, TOP [= c * x /\ c * y [= BOT.
+Proof.
+  (* TODO use the Bohm-out method *)
+Admitted.
+
+(** Constructively, we can decide order among normal forms
+    and discover a witness of non-ordering. *)
+
+Fixpoint Bohms_program (x y : Closed) :
+  normal x -> normal y -> 
+  {witness : option Closed |
+      match witness with
+      | None => x [= y
+      | Some c => TOP [= c * x /\ c * y [= BOT
+      end}.
 Admitted.

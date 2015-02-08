@@ -70,9 +70,10 @@ Fixpoint term_sub {Var Var' : Set} (h : Var -> Term Var') (t : Term Var) :
     end) t1)
   end.
 
+Notation "x @ f" := (term_sub f x) : term_scope.
+
 Definition beta_sub {Var : Set} (x : Term (option Var)) (y : Term Var) :
-  Term Var :=
-  term_sub (fun v => match v with None => y | Some v' => VAR v' end) x.
+  Term Var := x @ (fun v => match v with None => y | Some v' => VAR v' end).
 
 Fixpoint iter {a : Type} (z : a) (s : a -> a) (n : nat) {struct n} :=
   match n with

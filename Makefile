@@ -15,7 +15,7 @@ metrics: FORCE
 	pyflakes metrics.py
 	./metrics.py update-readme src/*.v
 
-clean:
+clean: FORCE
 	git clean -dfx
 
 FORCE:
