@@ -1,9 +1,10 @@
 (** * Lambda calculus parametric de Bruijn terms *)
 
-(*
+(**
   We use the parametric de Bruijn convention of
-  Capretta and Felty \cite{capretta2007combining} and earlier
-  Bird and Patterson \cite{bird1999bruijn}.
+  https://coq.inria.fr/cocorico/UntypedLambdaTerms
+  and earlier Bird and Patterson \cite{bird1999bruijn}.
+  See also Capretta and Felty \cite{capretta2007combining}.
 *)
 
 Definition Succ := S%nat.  (* an alias for later *)
@@ -38,47 +39,99 @@ Open Scope term_scope.
 Delimit Scope term_scope with term.
 Bind Scope term_scope with term.
 
-(*
-Definition fresh {Var : Set} : Term (option Var) := term_var None.
-Fixpoint const {Var : Set} (x : Term Var) : Term (option Var) :=
-  match x with
-    | term_var v => term_var (Some v)
-    | term_ap x y => term_ap (const x) (const y)
-    | term_lam x => term_lam (const x)
-    | term_top => term_top
-    | term_bot => term_bot
-    | term_j => term_j
-    | term_r => term_r
-  end.
-*)
-
-Fixpoint option_ (n : nat) : Set -> Set :=
-  match n with
-    | 0 => fun Var => Var
-    | Succ n' => fun Var => option (option_ n' Var)
-  end.
-
-(*
-Fixpoint Some_ (n : nat) : forall v, option_ n v  :=
-  match n with
-    | 0 => fun Var v => v
-    | Succ n' => Some (make_var n')
-  end.
-*)
-
-Definition make_var (n : nat) : forall v, option_ n v.
-Admitted.
-
 Notation "x * y" := (term_ap x y) : term_scope.
 Notation "x || y" := (term_j * x * y) : term_scope.
 Notation "x (+) y" := (term_r * x * y) : term_scope.
 
-(* TODO
+(* adapted from https://coq.inria.fr/cocorico/UntypedLambdaTerms *)
 
-Definition B {Var : Set} : Term Var :=
-  term_lam (term_lam (term_lam (
-    (Some Some) * (() * ())
-  ))).
+Fixpoint term_map {Var Var' : Set} (h : Var -> Var') (t : Term Var) :
+  Term Var' :=
+  match t with
+  | term_var x => term_var (h x)
+  | term_ap t1 t2 => (term_map h t1) * (term_map h t2)
+  | term_lam t1 => term_lam (term_map (option_map h) t1)
+  | TOP => TOP
+  | BOT => BOT
+  | J => J
+  | R => R
+  end.
+
+Fixpoint term_sub {Var Var' : Set} (h : Var -> Term Var') (t : Term Var) :
+  Term Var' :=
+  match t with
+  | term_var v => h v
+  | term_ap t1 t2 => (term_sub h t1) * (term_sub h t2)
+  | term_lam t1 => term_lam (term_sub (fun x => 
+    match x with
+    | None => term_var None
+    | Some y => term_map (@Some Var') (h y)
+    end) t1)
+  | TOP => TOP
+  | BOT => BOT
+  | J => J
+  | R => R
+  end.
+
+Definition beta_sub {Var : Set} (x : Term (option Var)) (y : Term Var) :
+  Term Var :=
+  term_sub (fun v => match v with None => y | Some v' => term_var v' end) x.
+
+Fixpoint iter {a : Type} (z : a) (s : a -> a) (n : nat) {struct n} :=
+  match n with
+  | 0 => z
+  | Succ n' => s (iter z s n')
+  end.
+
+Fixpoint iter_dep
+  {tz : Set} {ts : Set -> Set}
+  (x : tz) (f : forall t : Set, t -> ts t) (n : nat) {struct n} :=
+  match n return iter tz ts n with
+  | 0 => x
+  | Succ n' => f _ (iter_dep x f n')
+  end.
+
+Fixpoint iter_depT
+  {tz : Type} {ts : Type -> Type}
+  (x : tz) (f : forall t : Type, t -> ts t) (n : nat) {struct n} :=
+  match n return iter tz ts n with
+  | 0 => x
+  | Succ n' => f _ (iter_depT x f n')
+  end.
+
+(* restrict [option] to [Set] level *)
+Definition option' (a : Set) : Set := option a.
+Definition Some' (a : Set) (x : a) : option' a := Some x.
+Definition None' {a : Set} : option' a := None.
+
+Definition option_ (n : nat) (v : Set) := iter v option' n.
+Definition Some_ (n : nat) (v : Set) := iter_depT v Some n.
+Definition lam_ {Var : Set} (n : nat) (x : Term (option_ n Var)) :=
+  iter_dep x (@term_var) n.
+(*
+Definition var_ {Var : Set} (n : nat) : Term (option_ n Var) :=
+  @term_var (option_ n Var) (iter_dep (@None' Var) Some' n).
+*)
+
+
+Section I.
+  Definition v0 {Var : Set} : Term (option_ 1 Var) := term_var None.
+  Definition v1 {Var : Set} : Term (option_ 2 Var) := term_var (Some None).
+  Definition v2 {Var : Set} : Term (option_ 3 Var) := term_var (Some (Some None)).
+  Context {Var : Set}.
+
+  Definition I : Term Var := Eval compute in
+    term_lam v0.
+  Definition K : Term Var := Eval compute in
+    term_lam (term_lam (term_var (Some None))).
+  Definition B : Term Var := Eval compute in
+    term_lam (term_lam (term_lam (v2 * (v1 * v0)))).
+  Definition C : Term Var := Eval compute in
+    term_lam (term_lam (term_lam (v2 * v0 * v1))).
+  Definition S : Term Var := Eval compute in
+    term_lam (term_lam (term_lam (v2 * v0 * (v1 * v0)))).
+End I.
+Print S.  (* Ugly! *)
 
 
 Notation "x 'o' y" := (B * x * y) : term_scope.
@@ -137,17 +190,12 @@ Proof.
   inversion H; auto.
 Qed.
 
-
 Inductive beta {Var : Set} : relation (Term Var) :=
   | beta_refl {x} : beta x x
   | beta_trans {x} y {z} : beta x y -> beta y z -> beta x z
   | beta_left {x x' y} : beta x x' -> beta (x * y) (x' * y)
   | beta_right {x y y'} : beta y y' -> beta (x * y) (x * y')
-  | beta_i {x} : beta (I * x) x
-  | beta_k {x y} : beta (K * x * y) x
-  | beta_b {x y z} : beta (B * x * y * z) (x * (y * z))
-  | beta_c {x y z} : beta (C * x * y * z) (x * z * y)
-  | beta_s {x y z} : beta (S * x * y * z) (x * z * (y * z))
+  | beta_lam {x y} : beta (term_lam x * y) (beta_sub x y)
   | beta_j_ap {x y z} : beta ((x || y) * z) (x * z || y * z)
   | beta_r_ap {x y z} : beta ((x (+) y) * z) (x * z (+) y * z)
   | beta_r_idem {x} : beta (x (+) x) x
@@ -159,11 +207,7 @@ Hint Constructors beta.
 Inductive beta_step {Var : Set} : relation (Term Var) :=
   | beta_step_left {x x' y} : beta_step x x' -> beta_step (x * y) (x' * y)
   | beta_step_right {x y y'} : beta_step y y' -> beta_step (x * y) (x * y')
-  | beta_step_i {x} : beta_step (I * x) x
-  | beta_step_k {x y} : beta_step (K * x * y) x
-  | beta_step_b {x y z} : beta_step (B * x * y * z) (x * (y * z))
-  | beta_step_c {x y z} : beta_step (C * x * y * z) (x * z * y)
-  | beta_step_s {x y z} : beta_step (S * x * y * z) (x * z * (y * z))
+  | beta_step_lam {x y} : beta_step (term_lam x * y) (beta_sub x y)
   | beta_step_j_ap {x y z} : beta_step ((x || y) * z) (x * z || y * z)
   | beta_step_r_ap {x y z} : beta_step ((x (+) y) * z) (x * z (+) y * z)
   | beta_step_r_idem {x} : beta_step (x (+) x) x
@@ -188,11 +232,7 @@ Inductive pi {Var : Set} : relation (Term Var) :=
   | pi_trans {x} y {z} : pi x y -> pi y z -> pi x z
   | pi_left {x x' y} : pi x x' -> pi (x * y) (x' * y)
   | pi_right {x y y'} : pi y y' -> pi (x * y) (x * y')
-  | pi_i {x} : pi (I * x) x
-  | pi_k {x y} : pi (K * x * y) x
-  | pi_b {x y z} : pi (B * x * y * z) (x * (y * z))
-  | pi_c {x y z} : pi (C * x * y * z) (x * z * y)
-  | pi_s {x y z} : pi (S * x * y * z) (x * z * (y * z))
+  | pi_lam {x y} : pi (term_lam x * y) (beta_sub x y)
   | pi_j_ap {x y z} : pi ((x || y) * z) (x * z || y * z)
   | pi_r_ap {x y z} : pi ((x (+) y) * z) (x * z (+) y * z)
   | pi_r_idem {x} : pi (x (+) x) x
@@ -208,11 +248,7 @@ Hint Constructors pi.
 Inductive pi_step {Var : Set} : relation (Term Var) :=
   | pi_step_left {x x' y} : pi_step x x' -> pi_step (x * y) (x' * y)
   | pi_step_right {x y y'} : pi_step y y' -> pi_step (x * y) (x * y')
-  | pi_step_i {x} : pi_step (I * x) x
-  | pi_step_k {x y} : pi_step (K * x * y) x
-  | pi_step_b {x y z} : pi_step (B * x * y * z) (x * (y * z))
-  | pi_step_c {x y z} : pi_step (C * x * y * z) (x * z * y)
-  | pi_step_s {x y z} : pi_step (S * x * y * z) (x * z * (y * z))
+  | pi_step_lam {x y} : pi_step (term_lam x * y) (beta_sub x y)
   | pi_step_j_ap {x y z} : pi_step ((x || y) * z) (x * z || y * z)
   | pi_step_r_ap {x y z} : pi_step ((x (+) y) * z) (x * z (+) y * z)
   | pi_step_r_idem {x} : pi_step (x (+) x) x
@@ -236,9 +272,8 @@ Proof.
 Qed.
 
 
-Hint Rewrite @beta_i @beta_k @beta_b @beta_c @beta_j_ap @beta_r_ap @beta_r_idem
-  : beta_safe.
-Hint Rewrite @beta_s : beta_unsafe.
+Hint Rewrite @beta_j_ap @beta_r_ap @beta_r_idem : beta_safe.
+Hint Rewrite @beta_lam : beta_unsafe.
 
 Tactic Notation "beta_simpl" :=
   autorewrite with beta_safe.
@@ -545,7 +580,8 @@ Proof.
   destruct H; intro H; apply IHHp.
   transitivity (TOP * TOP : Term Var); auto.
   transitivity (K * TOP * TOP : Term Var); auto.
+  unfold K.
+  rewrite beta_lam; compute.
+  rewrite beta_lam; compute.
+  auto.
 Qed.
-
-TODO
-*)
