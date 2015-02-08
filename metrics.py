@@ -2,7 +2,6 @@
 
 import os
 import re
-import glob
 import subprocess
 import multiprocessing
 import parsable
@@ -14,31 +13,30 @@ def re_count(patt, text, flags=0):
     return sum(1 for _ in re.finditer(patt, text, re.MULTILINE | re.DOTALL))
 
 
-def count_holes():
+def count_holes(coq_files):
     hole_counts = []
-    for filename in glob.glob('src/*.v'):
+    for filename in coq_files:
         with open(filename) as f:
             text = f.read()
             hole_count = re_count(r'\bAdmitted\.', text)
             hole_count += re_count(r'\badmit\..*?(Qed|Defined)\.', text)
         if hole_count:
-            stem = filename[4:-2]
-            hole_counts.append({'count': hole_count, 'name': stem})
+            hole_counts.append({'count': hole_count, 'name': filename})
     hole_counts.sort(key=(lambda item: (-item['count'], item['name'])))
     return hole_counts
 
 
-def get_metrics():
-    hole_counts = count_holes()
+def get_metrics(coq_files):
+    hole_counts = count_holes(coq_files)
     if hole_counts:
         total = sum(item['count'] for item in hole_counts)
         lines = [BADGE.format('proofs-{}_holes-red'.format(total))]
         lines.append('')
-        lines.append('Holes | File')
-        lines.append('-----:|:' + '-' * 60)
+        lines.append(' Holes | File')
+        lines.append(' -----:|:' + '-' * 70)
         for item in hole_counts:
             lines.append(
-                '{count: >5d} | [{name}](src/{name}.v)'.format(**item))
+                ' {count: >5d} | [{name}]({name})'.format(**item))
         lines.append('')
     else:
         lines = [BADGE.format('proofs-complete-green')]
@@ -47,10 +45,12 @@ def get_metrics():
 
 
 @parsable.command
-def update_readme(filename='README.md'):
+def update_readme(*coq_files):
     '''
-    Update readme by replacing the line matching 'img.shields.io/badge/proofs'.
+    Update README.md by replacing the line matching
+    'img.shields.io/badge/proofs'.
     '''
+    filename = 'README.md'
     tempname = '{}.tmp'.format(filename)
     with open(filename) as infile:
         with open(tempname, 'w') as outfile:
@@ -62,11 +62,11 @@ def update_readme(filename='README.md'):
                         outfile.write(line)
                     else:
                         state = 'REPLACE'
-                        for line in get_metrics():
+                        for line in get_metrics(coq_files):
                             outfile.write(line)
 
                 elif state == 'REPLACE':
-                    if re.search(r'^# \b', line):
+                    if re.search(r'^\S', line):
                         state = 'POST'
                         outfile.write(line)
 
@@ -153,20 +153,20 @@ def collect_thms_file(filename):
     return thms
 
 
-def collect_thms(*filenames):
+def collect_thms(coq_files):
     thms = {}
-    for part in multiprocessing.Pool().map(collect_thms_file, filenames):
+    for part in multiprocessing.Pool().map(collect_thms_file, coq_files):
         thms.update(part)
     add_dependency_graph(thms)
     return thms
 
 
 @parsable.command
-def print_thms(*filenames):
+def print_thms(*coq_files):
     '''
     Print all theorems from coq files.
     '''
-    thms = collect_thms(*filenames)
+    thms = collect_thms(coq_files)
     for thm in thms.itervalues():
         print '{type} {name} {holes}: {deps}'.format(**thm)
 
