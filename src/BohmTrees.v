@@ -118,7 +118,7 @@ Qed.
   \x(k1)(k2)...(kn)0,...,x(k1)(k2)...(kn)(mn). xe
 *)
 
-(* Yuck. This would be much easier with DeBruijn terms: *)
+(* Yuck. This would be much easier with de Bruijn terms: *)
 
 Inductive narrow_bt : Closed -> Prop :=
   | narrow_bt_i : narrow_bt I

@@ -19,63 +19,60 @@ Require Export Notations.
 (** ** Terms *)
 
 Inductive term {Var : Set} : Set :=
-  | term_var : Var -> term
-  | term_ap : term -> term -> term
-  | term_lam : @term (option Var) -> term
-  | term_top : term
-  | term_bot : term
-  | term_j : term
-  | term_r : term.
+  | TOP : term
+  | BOT : term
+  | JOIN : term -> term -> term
+  | RAND : term -> term -> term
+  | APP : term -> term -> term
+  | VAR : Var -> term
+  | LAMBDA : @term (option Var) -> term
+.
 Hint Constructors term.
 Definition Term (Var : Set) := @term Var.
 Definition Closed := @term Empty_set.
 
-Notation "'TOP'" := term_top : term_scope.
-Notation "'BOT'" := term_bot : term_scope.
-Notation "'J'" := term_j : term_scope.
-Notation "'R'" := term_r : term_scope.
-
+Notation "x * y" := (APP x y) : term_scope.
 Open Scope term_scope.
 Delimit Scope term_scope with term.
 Bind Scope term_scope with term.
 
-Notation "x * y" := (term_ap x y) : term_scope.
-Notation "x || y" := (term_j * x * y) : term_scope.
-Notation "x (+) y" := (term_r * x * y) : term_scope.
+Notation "x * y" := (APP x y) : term_scope.
+Notation "x || y" := (JOIN x y) : term_scope.
+Notation "x (+) y" := (RAND x y) : term_scope.
 
 (* adapted from https://coq.inria.fr/cocorico/UntypedLambdaTerms *)
 
 Fixpoint term_map {Var Var' : Set} (h : Var -> Var') (t : Term Var) :
   Term Var' :=
   match t with
-  | term_var x => term_var (h x)
-  | term_ap t1 t2 => (term_map h t1) * (term_map h t2)
-  | term_lam t1 => term_lam (term_map (option_map h) t1)
   | TOP => TOP
   | BOT => BOT
-  | J => J
-  | R => R
+  | t1 || t2 => term_map h t1 || term_map h t2
+  | t1 (+) t2 => term_map h t1 (+) term_map h t2
+  | t1 * t2 => term_map h t1 * term_map h t2
+  | VAR x => VAR (h x)
+  | LAMBDA t1 => LAMBDA (term_map (option_map h) t1)
   end.
 
 Fixpoint term_sub {Var Var' : Set} (h : Var -> Term Var') (t : Term Var) :
   Term Var' :=
   match t with
-  | term_var v => h v
-  | term_ap t1 t2 => (term_sub h t1) * (term_sub h t2)
-  | term_lam t1 => term_lam (term_sub (fun x => 
-    match x with
-    | None => term_var None
-    | Some y => term_map (@Some Var') (h y)
-    end) t1)
   | TOP => TOP
   | BOT => BOT
-  | J => J
-  | R => R
+  | t1 || t2 => term_sub h t1 || term_sub h t2
+  | t1 (+) t2 => term_sub h t1 (+) term_sub h t2
+  | t1 * t2 => term_sub h t1 * term_sub h t2
+  | VAR v => h v
+  | LAMBDA t1 => LAMBDA (term_sub (fun x => 
+    match x with
+    | None => VAR None
+    | Some y => term_map (@Some Var') (h y)
+    end) t1)
   end.
 
 Definition beta_sub {Var : Set} (x : Term (option Var)) (y : Term Var) :
   Term Var :=
-  term_sub (fun v => match v with None => y | Some v' => term_var v' end) x.
+  term_sub (fun v => match v with None => y | Some v' => VAR v' end) x.
 
 Fixpoint iter {a : Type} (z : a) (s : a -> a) (n : nat) {struct n} :=
   match n with
@@ -107,29 +104,29 @@ Definition None' {a : Set} : option' a := None.
 Definition option_ (n : nat) (v : Set) := iter v option' n.
 Definition Some_ (n : nat) (v : Set) := iter_depT v Some n.
 Definition lam_ {Var : Set} (n : nat) (x : Term (option_ n Var)) :=
-  iter_dep x (@term_var) n.
+  iter_dep x (@VAR) n.
 (*
 Definition var_ {Var : Set} (n : nat) : Term (option_ n Var) :=
-  @term_var (option_ n Var) (iter_dep (@None' Var) Some' n).
+  @VAR (option_ n Var) (iter_dep (@None' Var) Some' n).
 *)
 
 
 Section I.
-  Definition v0 {Var : Set} : Term (option_ 1 Var) := term_var None.
-  Definition v1 {Var : Set} : Term (option_ 2 Var) := term_var (Some None).
-  Definition v2 {Var : Set} : Term (option_ 3 Var) := term_var (Some (Some None)).
+  Definition v0 {Var : Set} : Term (option_ 1 Var) := VAR None.
+  Definition v1 {Var : Set} : Term (option_ 2 Var) := VAR (Some None).
+  Definition v2 {Var : Set} : Term (option_ 3 Var) := VAR (Some (Some None)).
   Context {Var : Set}.
 
   Definition I : Term Var := Eval compute in
-    term_lam v0.
+    LAMBDA v0.
   Definition K : Term Var := Eval compute in
-    term_lam (term_lam (term_var (Some None))).
+    LAMBDA (LAMBDA (VAR (Some None))).
   Definition B : Term Var := Eval compute in
-    term_lam (term_lam (term_lam (v2 * (v1 * v0)))).
+    LAMBDA (LAMBDA (LAMBDA (v2 * (v1 * v0)))).
   Definition C : Term Var := Eval compute in
-    term_lam (term_lam (term_lam (v2 * v0 * v1))).
+    LAMBDA (LAMBDA (LAMBDA (v2 * v0 * v1))).
   Definition S : Term Var := Eval compute in
-    term_lam (term_lam (term_lam (v2 * v0 * (v1 * v0)))).
+    LAMBDA (LAMBDA (LAMBDA (v2 * v0 * (v1 * v0)))).
 End I.
 Print S.  (* Ugly! *)
 
@@ -139,7 +136,7 @@ Notation "x 'o' y" := (B * x * y) : term_scope.
 Definition term_join {Var : Set} x y : Term Var := x || y.
 
 (* TODO figure out how to use lambda notation
-Notation "\ x , y" := (term_lam) : code_scope.
+Notation "\ x , y" := (LAMBDA) : code_scope.
 *)
 
 (** ** Reduction relations *)
@@ -195,7 +192,7 @@ Inductive beta {Var : Set} : relation (Term Var) :=
   | beta_trans {x} y {z} : beta x y -> beta y z -> beta x z
   | beta_left {x x' y} : beta x x' -> beta (x * y) (x' * y)
   | beta_right {x y y'} : beta y y' -> beta (x * y) (x * y')
-  | beta_lam {x y} : beta (term_lam x * y) (beta_sub x y)
+  | beta_lam {x y} : beta (LAMBDA x * y) (beta_sub x y)
   | beta_j_ap {x y z} : beta ((x || y) * z) (x * z || y * z)
   | beta_r_ap {x y z} : beta ((x (+) y) * z) (x * z (+) y * z)
   | beta_r_idem {x} : beta (x (+) x) x
@@ -207,7 +204,7 @@ Hint Constructors beta.
 Inductive beta_step {Var : Set} : relation (Term Var) :=
   | beta_step_left {x x' y} : beta_step x x' -> beta_step (x * y) (x' * y)
   | beta_step_right {x y y'} : beta_step y y' -> beta_step (x * y) (x * y')
-  | beta_step_lam {x y} : beta_step (term_lam x * y) (beta_sub x y)
+  | beta_step_lam {x y} : beta_step (LAMBDA x * y) (beta_sub x y)
   | beta_step_j_ap {x y z} : beta_step ((x || y) * z) (x * z || y * z)
   | beta_step_r_ap {x y z} : beta_step ((x (+) y) * z) (x * z (+) y * z)
   | beta_step_r_idem {x} : beta_step (x (+) x) x
@@ -232,7 +229,7 @@ Inductive pi {Var : Set} : relation (Term Var) :=
   | pi_trans {x} y {z} : pi x y -> pi y z -> pi x z
   | pi_left {x x' y} : pi x x' -> pi (x * y) (x' * y)
   | pi_right {x y y'} : pi y y' -> pi (x * y) (x * y')
-  | pi_lam {x y} : pi (term_lam x * y) (beta_sub x y)
+  | pi_lam {x y} : pi (LAMBDA x * y) (beta_sub x y)
   | pi_j_ap {x y z} : pi ((x || y) * z) (x * z || y * z)
   | pi_r_ap {x y z} : pi ((x (+) y) * z) (x * z (+) y * z)
   | pi_r_idem {x} : pi (x (+) x) x
@@ -248,7 +245,7 @@ Hint Constructors pi.
 Inductive pi_step {Var : Set} : relation (Term Var) :=
   | pi_step_left {x x' y} : pi_step x x' -> pi_step (x * y) (x' * y)
   | pi_step_right {x y y'} : pi_step y y' -> pi_step (x * y) (x * y')
-  | pi_step_lam {x y} : pi_step (term_lam x * y) (beta_sub x y)
+  | pi_step_lam {x y} : pi_step (LAMBDA x * y) (beta_sub x y)
   | pi_step_j_ap {x y z} : pi_step ((x || y) * z) (x * z || y * z)
   | pi_step_r_ap {x y z} : pi_step ((x (+) y) * z) (x * z (+) y * z)
   | pi_step_r_idem {x} : pi_step (x (+) x) x
@@ -408,8 +405,8 @@ Proof.
   intros x y H; induction H; eauto.
 Qed.
 
-Instance term_ap_beta (Var : Set) :
-  Proper (beta ==> beta ==> beta) (@term_ap Var).
+Instance APP_beta (Var : Set) :
+  Proper (beta ==> beta ==> beta) (@APP Var).
 Proof.
   intros x x' Hx y y' Hy; transitivity (x * y'); auto.
 Qed.
@@ -504,8 +501,8 @@ Proof.
   auto.
 Qed.
 
-Instance term_ap_pi (Var : Set) :
-  Proper (pi ==> pi ==> pi) (@term_ap Var).
+Instance APP_pi (Var : Set) :
+  Proper (pi ==> pi ==> pi) (@APP Var).
 Proof.
   intros x x' Hx y y' Hy; transitivity (x * y'); auto.
 Qed.
