@@ -3,14 +3,14 @@
 
  Holes | File
  -----:|:----------------------------------------------------------------------
-    10 | [src/Types.v](src/Types.v)
-     9 | [src/TypeConstructor.v](src/TypeConstructor.v)
-     8 | [src/LeastFixedPoint.v](src/LeastFixedPoint.v)
-     5 | [src/BohmTrees.v](src/BohmTrees.v)
-     4 | [src/Codes.v](src/Codes.v)
-     3 | [src/Combinators.v](src/Combinators.v)
-     3 | [src/InformationOrdering.v](src/InformationOrdering.v)
-     2 | [src/Nontermination.v](src/Nontermination.v)
+    10 | [Types.v](src/Types.v)
+     9 | [TypeConstructor.v](src/TypeConstructor.v)
+     8 | [LeastFixedPoint.v](src/LeastFixedPoint.v)
+     5 | [BohmTrees.v](src/BohmTrees.v)
+     4 | [Codes.v](src/Codes.v)
+     3 | [Combinators.v](src/Combinators.v)
+     3 | [InformationOrdering.v](src/InformationOrdering.v)
+     2 | [Nontermination.v](src/Nontermination.v)
 
 # Inadvertently typed &lambda;-join-calculus
 

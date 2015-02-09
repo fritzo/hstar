@@ -35,8 +35,9 @@ def get_metrics(coq_files):
         lines.append(' Holes | File')
         lines.append(' -----:|:' + '-' * 70)
         for item in hole_counts:
+            item['stem'] = os.path.split(item['name'])[-1]
             lines.append(
-                ' {count: >5d} | [{name}]({name})'.format(**item))
+                ' {count: >5d} | [{stem}]({name})'.format(**item))
         lines.append('')
     else:
         lines = [BADGE.format('proofs-complete-green')]
