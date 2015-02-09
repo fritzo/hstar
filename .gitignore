@@ -21,6 +21,9 @@
 *.vo
 *.v.d
 *.glob
+*.hs
+*.ml
+*.mli
 /bin/
 /lib/
 /man/

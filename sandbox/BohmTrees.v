@@ -11,6 +11,12 @@ Require Import Coq.Logic.Decidable.
 Require Import Coq.Bool.Bool.
 Require Import DeBruijn.
 
+Definition conv {Var : Set} : Term Var -> Prop. Admitted.
+Definition term_le {Var : Set} : relation (Term Var). Admitted.
+Definition term_eq {Var : Set} : relation (Term Var). Admitted.
+Notation "x == y" := (term_eq x y) : term_scope.
+Notation "x [= y" := (term_le x y) : term_scope.
+
 (** Bohm trees generalize the normal forms of pure lambda-calculus,
     where the language is extended by
     a term [BOT],
@@ -40,11 +46,59 @@ Inductive normal {Var : Set} : Term Var -> Prop :=
   | normal_var v : normal (VAR v)
 with inert {Var : Set} : Term Var -> Set :=
   | inert_var v : inert (VAR v)
-  | inert_app x y : inert x -> normal y -> inert (x * y)
-.
+  | inert_app x y : inert x -> normal y -> inert (x * y).
 Hint Constructors normal inert.
 
-Definition Normal (Var : Set) : Set := {x : Term Var | normal x}.
+Inductive Normal_ {Var : Set} : Set :=
+  | Normal_top : Normal_
+  | Normal_bot : Normal_
+  | Normal_join : Normal_ -> Normal_ -> Normal_
+  | Normal_rand : Normal_ -> Normal_ -> Normal_
+  | Normal_app : Inert_ -> Normal_ -> Normal_
+  | Normal_lambda : @Normal_ (option Var) -> Normal_
+  | Normal_var : Var -> Normal_
+with Inert_ {Var : Set} : Set :=
+  | Inert_var : Var -> Inert_
+  | Inert_app : Inert_ -> Normal_ -> Inert_.
+Hint Constructors Normal_ Inert_.
+Definition Normal (Var : Set) := @Normal_ Var.
+Definition Inert (Var : Set) := @Inert_ Var.
+
+(* This does not work
+Fixpoint force_normal {Var : Set} (t : Term Var) : Normal Var :=
+  match t with
+  | TOP => Normal_top
+  | BOT => Normal_bot
+  | x || y => Normal_join (force_normal x) (force_normal y)
+  | x (+) y => Normal_rand (force_normal x) (force_normal y)
+  | x * y =>
+      match force_inert x with
+      | Inert_bot => Normal_bot
+      | x' => Normal_app x' (force_normal y)
+      end
+  | LAMBDA x => Normal_lambda (force_normal x)
+  | VAR v => Normal_var v
+  end
+with force_inert {Var : Set} (t : Term Var) {struct t} : Inert Var :=
+  match t with
+  | x * y => Inert_app (force_inert x) (force_normal y)
+  | VAR v => Inert_var v
+  | _ => false
+  end.
+*)
+
+Fixpoint force_normal {Var : Set} (t : Term Var) : Normal Var.
+Admitted.
+Fixpoint forget_normal {Var : Set} (n : Normal Var) : Term Var.
+Admitted.
+
+Lemma force_forget_normal (Var : Set) (n : Normal Var) :
+  force_normal (forget_normal n) = n.
+Admitted.
+
+Lemma forget_force_normal (Var : Set) (t : Term Var) :
+  forget_normal (force_normal t) [= t.
+Admitted.
 
 Lemma inert_normal {Var : Set} (x : Term Var) : inert x -> normal x.
 Proof.
@@ -221,7 +275,25 @@ Qed.
 
 (** Many properties of Bohm trees are decidable *)
 
-Fixpoint normal_conv {Var : Set} (x : Term Var) : normal x -> bool.
+Fixpoint normal_conv' {Var : Set} (x : Term Var) :
+  normal x -> {conv x} + {~ conv x}.
+Admitted.
+
+Fixpoint normal_conv {Var : Set} (x : Term Var) : bool :=
+  match x with
+  | TOP => true
+  | BOT => false
+  | (x1 || x2) => orb (normal_conv x1) (normal_conv x2)
+  | x1 (+) x2 => andb (normal_conv x1) (normal_conv x2)
+  | x1 * x2 => normal_conv x1
+  | LAMBDA x => normal_conv x
+  | VAR v => true
+  end.
+
+Lemma normal_conv_correct (Var : Set) (x : Term Var) :
+  if normal_conv x then conv x else ~ conv x.
+Proof.
+  induction x; simpl; auto.
 Admitted.
 
 Inductive dyadic : Set :=
@@ -229,34 +301,26 @@ Inductive dyadic : Set :=
   | dyadic_zero : dyadic
   | dyadic_rand : dyadic -> dyadic -> dyadic.
 
-Fixpoint normal_pconv {Var : Set} (x : Term Var) : normal x -> dyadic.
+Fixpoint normal_pconv {Var : Set} (x : Term Var) : dyadic.
 Admitted.
 
 (* This uses beta-eta discrimination; do BTs have eta normal forms? *)
-Fixpoint normal_is_le {Var : Set} (x y : Term Var) :
-  normal x -> normal y -> bool.
+Fixpoint normal_is_le {Var : Set} (x y : Term Var) : bool.
 Admitted.
 
-Definition normal_is_eq
-  {Var : Set} (x y : Term Var) (nx : normal x) (ny : normal y) : bool :=
-  andb (normal_is_le x y nx ny) (normal_is_le y x ny nx).
+Fixpoint normal_is_le' {Var : Set} (x y : Term Var) :
+  normal x -> normal y -> {x [= y} + {~ x [= y}.
+Admitted.
 
-Definition normal_le {Var : Set} : relation (Normal Var) :=
-  fun xn => let (x, nx) := xn in
-  fun yn => let (y, ny) := yn in
-  normal_is_le x y nx ny = true.
+Lemma normal_is_le_correct (Var : Set) (x y : Term Var) :
+  normal x -> normal y ->
+  if normal_is_le x y then x [= y else ~ x [= y.
+Admitted.
 
-Definition normal_eq {Var : Set} : relation (Normal Var) :=
-  fun xn => let (x, nx) := xn in
-  fun yn => let (y, ny) := yn in
-  normal_is_eq x y nx ny = true.
+Definition normal_le {Var : Set} : relation (Term Var) :=
+  fun x y => normal_is_le x y = true.
 
 (** ** Theorems about bohm trees and order *)
-
-Definition term_le {Var : Set} : relation (Term Var). Admitted.
-Definition term_eq {Var : Set} : relation (Term Var). Admitted.
-Notation "x == y" := (term_eq x y) : term_scope.
-Notation "x [= y" := (term_le x y) : term_scope.
 
 (** The [normal_dense] theorem motivates where to allow [JOIN] and [RAND]
     in Bohm trees.
@@ -307,7 +371,7 @@ Admitted.
 (** Constructively, we can decide order among normal forms
     and discover a witness of non-ordering. *)
 
-Fixpoint Bohms_program (x y : Closed) :
+Fixpoint normal_is_le_witness (x y : Closed) :
   normal x -> normal y -> 
   {witness : option Closed |
       match witness with
@@ -315,3 +379,14 @@ Fixpoint Bohms_program (x y : Closed) :
       | Some c => TOP [= c * x /\ c * y [= BOT
       end}.
 Admitted.
+
+(* Extraction *)
+(* begin hide *)
+
+Extraction Language Ocaml.
+Extraction "BohmTrees.ml" is_normal.
+
+Extraction Language Haskell.
+Extraction "BohmTrees.hs" is_normal.
+
+(* end hide *)
