@@ -14,7 +14,7 @@
 
 # Inadvertently typed &lambda;-join-calculus
 
-This project provides a Coq library to formally reason about
+This project aims to provide a Coq library to formally reason about
 two untyped &lambda;-calculi that act like typed &lambda;-calculi.
 
 ## Introduction
