@@ -275,10 +275,6 @@ Qed.
 
 (** Many properties of Bohm trees are decidable *)
 
-Fixpoint normal_conv' {Var : Set} (x : Term Var) :
-  normal x -> {conv x} + {~ conv x}.
-Admitted.
-
 Fixpoint normal_conv {Var : Set} (x : Term Var) : bool :=
   match x with
   | TOP => true
@@ -295,6 +291,13 @@ Lemma normal_conv_correct (Var : Set) (x : Term Var) :
 Proof.
   induction x; simpl; auto.
 Admitted.
+
+(* This version has better style, but how to implement it? *)
+
+Fixpoint normal_conv' {Var : Set} (x : Term Var) :
+  normal x -> {conv x} + {~ conv x}.
+Admitted.
+
 
 Inductive dyadic : Set :=
   | dyadic_one : dyadic
@@ -369,15 +372,11 @@ Proof.
 Admitted.
 
 (** Constructively, we can decide order among normal forms
-    and discover a witness of non-ordering. *)
+    and discover a witness (even a normal witness) of non-ordering. *)
 
-Fixpoint normal_is_le_witness (x y : Closed) :
-  normal x -> normal y -> 
-  {witness : option Closed |
-      match witness with
-      | None => x [= y
-      | Some c => TOP [= c * x /\ c * y [= BOT
-      end}.
+Fixpoint normal_le_witness (x y : Closed) :
+  normal x -> normal y ->
+  {c | normal c /\ TOP [= c * x /\ c * y [= BOT} + {x [= y}.
 Admitted.
 
 (* Extraction *)
