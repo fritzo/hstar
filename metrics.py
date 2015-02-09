@@ -35,7 +35,7 @@ def get_metrics(coq_files):
         lines.append(' Holes | File')
         lines.append(' -----:|:' + '-' * 70)
         for item in hole_counts:
-            item['stem'] = os.path.split(item['name'])[-1]
+            item['stem'] = os.path.split(item['name'])[-1].split('.')[0]
             lines.append(
                 ' {count: >5d} | [{stem}]({name})'.format(**item))
         lines.append('')
