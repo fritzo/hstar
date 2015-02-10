@@ -16,6 +16,7 @@ Definition term_le {Var : Set} : relation (Term Var). Admitted.
 Definition term_eq {Var : Set} : relation (Term Var). Admitted.
 Notation "x == y" := (term_eq x y) : term_scope.
 Notation "x [= y" := (term_le x y) : term_scope.
+Notation "x :: a" := (a * x == x) : term_scope.
 
 (** Bohm trees generalize the normal forms of pure lambda-calculus,
     where the language is extended by
@@ -229,37 +230,39 @@ Definition is_none {a : Set} (x : option a) : bool :=
   | Some _ => false
   end.
 
-Local Ltac case_some x H :=
-  let x' := fresh x "'" in
-  let Hx' := fresh x "'" in
-  intros x' Hx';
-  rewrite Hx' in H; simpl in H; rewrite H;
-  simpl.
+Section try_reduce_step_is_irreducible.
+  Local Ltac case_some x H :=
+    let x' := fresh x "'" in
+    let Hx' := fresh x "'" in
+    intros x' Hx';
+    rewrite Hx' in H; simpl in H; rewrite H;
+    simpl.
 
-Local Ltac case_none x H :=
-  let Hx' := fresh x "'" in
-  intro Hx';
-  rewrite Hx' in H; simpl in H; rewrite H;
-  simpl.
+  Local Ltac case_none x H :=
+    let Hx' := fresh x "'" in
+    intro Hx';
+    rewrite Hx' in H; simpl in H; rewrite H;
+    simpl.
 
-Local Ltac cases_option x IHx :=
-  case_eq (try_reduce_step x); [case_some x IHx | case_none x IHx].
+  Local Ltac cases_option x IHx :=
+    case_eq (try_reduce_step x); [case_some x IHx | case_none x IHx].
 
-Local Ltac cases_option2 x1 x2 IHx1 IHx2 :=
-  cases_option x1 IHx1;
-  [ case x1; auto
-  | cases_option x2 IHx2; case x1; auto
-  ].
+  Local Ltac cases_option2 x1 x2 IHx1 IHx2 :=
+    cases_option x1 IHx1;
+    [ case x1; auto
+    | cases_option x2 IHx2; case x1; auto
+    ].
 
-Lemma try_reduce_step_is_irreducible {Var : Set} (x : Term Var) :
-  is_irreducible x = is_none (try_reduce_step x).
-Proof.
-  induction x; simpl; auto.
-  - cases_option2 x1 x2 IHx1 IHx2.
-  - cases_option2 x1 x2 IHx1 IHx2.
-  - cases_option2 x1 x2 IHx1 IHx2.
-  - cases_option x IHx; auto.
-Qed.
+  Lemma try_reduce_step_is_irreducible {Var : Set} (x : Term Var) :
+    is_irreducible x = is_none (try_reduce_step x).
+  Proof.
+    induction x; simpl; auto.
+    - cases_option2 x1 x2 IHx1 IHx2.
+    - cases_option2 x1 x2 IHx1 IHx2.
+    - cases_option2 x1 x2 IHx1 IHx2.
+    - cases_option x IHx; auto.
+  Qed.
+End try_reduce_step_is_irreducible.
 
 Theorem is_irreducible_is_normal {Var : Set} (x : Term Var) :
   is_irreducible x = is_normal x.
@@ -292,10 +295,14 @@ Proof.
   induction x; simpl; auto.
 Admitted.
 
-(* This version has better style, but how to implement it? *)
+(* These version has better style, but how to implement it? *)
 
 Fixpoint normal_conv' {Var : Set} (x : Term Var) :
   normal x -> {conv x} + {~ conv x}.
+Admitted.
+
+Fixpoint try_decide_conv {Var : Set} (x : Term Var) :
+  {conv x} + {~ conv x} + {~normal x}.
 Admitted.
 
 
@@ -322,6 +329,10 @@ Admitted.
 
 Definition normal_le {Var : Set} : relation (Term Var) :=
   fun x y => normal_is_le x y = true.
+
+Fixpoint try_decide (x y : Closed) :
+  {x [= y} + {~ x [= y} + {~normal x \/ ~normal y}.
+Admitted.
 
 (** ** Theorems about bohm trees and order *)
 
@@ -377,6 +388,12 @@ Admitted.
 Fixpoint normal_le_witness (x y : Closed) :
   normal x -> normal y ->
   {c | normal c /\ TOP [= c * x /\ c * y [= BOT} + {x [= y}.
+Admitted.
+
+Fixpoint try_decide_le_witness (x y : Closed) :
+  {c | TOP [= c * x /\ c * y [= BOT /\ normal c} +
+  {x [= y} +
+  {~normal x \/ ~normal y}.
 Admitted.
 
 (* Extraction *)
