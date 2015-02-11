@@ -3,8 +3,8 @@
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
-Require Import DeBruijn.
-Require Import BohmTrees.
+Require Import Terms.
+Require Import NormalForms.
 
 Definition V {Var : Set} : Term Var. Admitted.
 Definition P {Var : Set} : Term Var. Admitted.
