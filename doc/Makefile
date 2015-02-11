@@ -6,6 +6,10 @@ body.tex: FORCE
 	coqdoc --short --light --body-only --latex -o body.tex \
 	$(SRC)/Notations.v \
 	$(SRC)/Terms.v \
+	$(SRC)/Substitution.v \
+	$(SRC)/Reduction.v \
+	$(SRC)/Convergence.v \
+	$(SRC)/InformationOrdering.v \
 	$(SRC)/NormalForms.v \
 	#
 

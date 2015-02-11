@@ -1,8 +1,9 @@
 #!/bin/sh
 
-# Coq 8.4+ 
-coq_makefile -install none *.v > Makefile
-# Coq <8.4
-#coq_makefile -no-install *.v > Makefile
+dirs=$(find -type d | grep '/')
+for i in $dirs
+do
+	(cd $i ; coq_makefile *.v -install none -o Makefile ; make)
+done
 
-make
+coq_makefile *.v -install none -o Makefile ; make

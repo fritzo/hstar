@@ -9,7 +9,7 @@ Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
 Require Import Coq.Logic.Decidable.
 Require Import Coq.Bool.Bool.
-Require Import Terms.
+Require Export Reduction.
 
 Definition conv {Var : Set} : Term Var -> Prop. Admitted.
 Definition term_le {Var : Set} : relation (Term Var). Admitted.
@@ -174,7 +174,7 @@ Fixpoint try_reduce_step {Var : Set} (x : Term Var) : option (Term Var) :=
   | BOT * y => Some BOT
   | (x1 || x2) * y => Some (x1 * y || x2 * y)
   | (x1 (+) x2) * y => Some (x1 * y (+) x2 * y)
-  | LAMBDA x1 * x2 => Some (beta_sub x1 x2)
+  | LAMBDA x1 * x2 => Some (lambda_app_sub x1 x2)
   | l * r =>
       match try_reduce_step l with
       | Some l' => Some (l' * r)
