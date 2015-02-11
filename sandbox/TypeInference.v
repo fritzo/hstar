@@ -8,9 +8,9 @@ Require Import BohmTrees.
 
 Definition V {Var : Set} : Term Var. Admitted.
 Definition P {Var : Set} : Term Var. Admitted.
-(*
 Definition div {Var : Set} : Term Var. Admitted.
 Definition semi {Var : Set} : Term Var. Admitted.
+(*
 Definition bool {Var : Set} : Term Var. Admitted.
 Definition prod {Var : Set} : Term Var. Admitted.
 Definition sum {Var : Set} : Term Var. Admitted.
@@ -134,3 +134,25 @@ with tinert {Var : Set} : Term Var -> Set :=
   | tinert_var v : tinert (VAR v)
   | tinert_app x y : tinert x -> tnormal y -> tinert (x * y).
 Hint Constructors tnormal tinert.
+
+(* an example of how to use an induction principle *)
+
+Theorem semi_ind (Var : Set) (p q : Term Var) :
+  p * TOP [= q * TOP ->
+  p * BOT [= q * BOT ->
+  p * I [= q * I ->
+  p o semi [= q o semi.
+Admitted.
+
+Definition try_decide_inhab_semi {Var : Set} (x : Term Var) :
+  {x :: semi} + {~ x :: semi} + {~ normal x}.
+Proof.
+  set (is_normal_x := is_normal x).
+  case_eq is_normal_x; intro Hn.
+  - apply inleft.
+    apply normal_is_normal in Hn.
+    (* TODO apply semi_ind *)
+    admit.
+  - apply inright; intro Hn'.
+    subst; apply normal_is_normal in Hn'; rewrite Hn' in Hn; inversion Hn.
+Qed.

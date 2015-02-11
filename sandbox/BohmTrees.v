@@ -330,7 +330,7 @@ Admitted.
 Definition normal_le {Var : Set} : relation (Term Var) :=
   fun x y => normal_is_le x y = true.
 
-Fixpoint try_decide (x y : Closed) :
+Fixpoint try_decide_le (x y : Closed) :
   {x [= y} + {~ x [= y} + {~normal x \/ ~normal y}.
 Admitted.
 
