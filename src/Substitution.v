@@ -7,6 +7,20 @@ Require Export Terms.
 
 (* adapted from https://coq.inria.fr/cocorico/UntypedLambdaTerms *)
 
+Lemma ext_respectful (a b : Type) (f g : a -> b) (fg : forall x, f x = g x) :
+  respectful eq eq f g.
+Proof.
+  intros x x' xx'; rewrite xx'; auto.
+Qed.
+
+Instance option_map_proper (Var Var' : Set) :
+  Proper ((eq ==> eq) ==> eq ==> eq) (@option_map Var Var').
+Proof.
+  intros f f' ff' v v' vv'; compute in ff'; rewrite <- vv'; clear v' vv'.
+  case_eq v; intros; simpl; auto.
+  rewrite (ff' v0 v0); auto.
+Qed.
+
 Fixpoint term_map {Var Var' : Set} (f : Var -> Var') (x : Term Var) :
   Term Var' :=
   match x with
@@ -19,6 +33,35 @@ Fixpoint term_map {Var Var' : Set} (f : Var -> Var') (x : Term Var) :
   | LAMBDA x1 => LAMBDA (term_map (option_map f) x1)
   end.
 
+Instance term_map_proper (Var Var' : Set) :
+  Proper ((eq ==> eq) ==> eq ==> eq) (@term_map Var Var').
+Proof.
+  intros f f' ff' x x' xx'; compute in ff'; rewrite <- xx'; clear x' xx'.
+  revert Var' f f' ff'; induction x; intros Var' f f' ff'; simpl; auto.
+  - rewrite (IHx1 Var' f f'), (IHx2 Var' f f'); auto.
+  - rewrite (IHx1 Var' f f'), (IHx2 Var' f f'); auto.
+  - rewrite (IHx1 Var' f f'), (IHx2 Var' f f'); auto.
+  - rewrite (ff' v v); auto.
+  - rewrite (IHx (option Var') (option_map f) (option_map f')); auto.
+    apply option_map_proper; auto.
+Qed.
+
+Definition some_sub
+  {Var Var' : Set} (f : Var -> Term Var') (v : option Var) :
+  Term (option Var') :=
+  match v with
+  | None => VAR None
+  | Some v' => term_map (@Some Var') (f v')
+  end.
+
+Instance some_sub_proper (Var Var' : Set) :
+  Proper ((eq ==> eq) ==> eq ==> eq) (@some_sub Var Var').
+Proof.
+  intros f f' ff' v v' vv'; compute in ff'; rewrite <- vv'; clear v' vv'.
+  case_eq v; intros; simpl; auto.
+  rewrite (ff' v0 v0); auto.
+Qed.
+
 Fixpoint term_sub {Var Var' : Set} (f : Var -> Term Var') (x : Term Var) :
   Term Var' :=
   match x with
@@ -28,11 +71,7 @@ Fixpoint term_sub {Var Var' : Set} (f : Var -> Term Var') (x : Term Var) :
   | x1 (+) x2 => term_sub f x1 (+) term_sub f x2
   | x1 * x2 => term_sub f x1 * term_sub f x2
   | VAR v => f v
-  | LAMBDA x1 => LAMBDA (term_sub (fun x => 
-    match x with
-    | None => VAR None
-    | Some y => term_map (@Some Var') (f y)
-    end) x1)
+  | LAMBDA x1 => LAMBDA (term_sub (some_sub f) x1)
   end.
 
 Instance term_sub_proper (Var Var' : Set) :
@@ -40,19 +79,23 @@ Instance term_sub_proper (Var Var' : Set) :
 Proof.
   intros f f' ff'; compute in ff'.
   intros x x' xx'; rewrite <- xx'; clear x' xx'.
-  induction x; auto.
-  - simpl; rewrite (IHx1 f f'), (IHx2 f f'); auto.
-  - simpl; rewrite (IHx1 f f'), (IHx2 f f'); auto.
-  - simpl; rewrite (IHx1 f f'), (IHx2 f f'); auto.
+  revert Var' f f' ff'; induction x; intros Var' f f' ff'; auto.
+  - simpl; rewrite (IHx1 Var' f f'), (IHx2 Var' f f'); auto.
+  - simpl; rewrite (IHx1 Var' f f'), (IHx2 Var' f f'); auto.
+  - simpl; rewrite (IHx1 Var' f f'), (IHx2 Var' f f'); auto.
   - compute; auto.
-  - admit.
-    (* TODO how to do heterogeneous induction? *)
+  - simpl; rewrite (IHx _ (some_sub f) (some_sub f')); clear IHx; auto.
+    intros v v' vv'; rewrite <- vv'; clear v' vv' x.
+    apply some_sub_proper; auto.
 Qed.
 
 Notation "x @ f" := (term_sub f x) : term_scope.
 
 Definition sub_top {Var : Set} (v : Var) : Closed := TOP.
 Definition close {Var : Set} : Term Var -> Closed := term_sub sub_top.
+
+Definition sub_empty {Var : Set} (v : Empty_set) : Var := match v with end.
+Definition open (Var : Set) : Closed -> Term Var := term_map sub_empty.
 
 Tactic Notation "term_simpl" := autorewrite with term_simpl.
 Tactic Notation "term_simpl" "in" hyp(H) := autorewrite with term_simpl in H.
@@ -97,17 +140,9 @@ Proof.
 Qed.
 Hint Rewrite term_sub_rand : term_simpl.
 
-Definition lambda_map
-  {Var Var' : Set} (f : Var -> Term Var') (v : option Var) :
-  Term (option Var') :=
-  match v with
-  | None => VAR None
-  | Some v' => term_map (@Some Var') (f v')
-  end.
-
 Lemma term_sub_lambda
   (Var Var' : Set) (x : Term (option Var)) (f : Var -> Term Var') :
-  (LAMBDA x @ f) = LAMBDA (x @ lambda_map f).
+  (LAMBDA x @ f) = LAMBDA (x @ some_sub f).
 Proof.
   simpl; auto.
 Qed.
@@ -120,13 +155,12 @@ Lemma var_monad_assoc
   (x : Term Var) :
   (x @ f) @ g = x @ (fun v => (f v) @ g).
 Proof.
-  induction x; auto.
+  revert Var' Var'' f g; induction x; intros Var' Var'' f g; auto.
   - term_simpl; rewrite IHx1; rewrite IHx2; auto.
   - term_simpl; rewrite IHx1; rewrite IHx2; auto.
   - term_simpl; rewrite IHx1; rewrite IHx2; auto.
-  - term_simpl. (* rewrite IHx; auto. *)
+  - term_simpl; rewrite IHx; simpl; auto.
     admit.
-    (* TODO how to do heterogeneous induction? *)
 Qed.
 Hint Rewrite var_monad_assoc : term_simpl.
 
@@ -146,10 +180,40 @@ Proof.
   - rewrite IHx1; rewrite IHx2; reflexivity.
   - rewrite IHx1; rewrite IHx2; reflexivity.
   - clear IHx.
-    set (f := lambda_map (fun _ : Empty_set => TOP)).
-    assert (x @ f = x) as Eq1; [| rewrite Eq1; reflexivity].
-    admit.
-    (* TODO prove a stronger lemma that implies this lemma *)
+    set (f := fun _ : Empty_set => TOP).
+    rewrite <- var_monad_unit_right; simpl.
+    assert (forall v, f v = VAR v) as eq; [intro v; case v|].
+    apply ext_respectful in eq.
+    apply some_sub_proper in eq.
+    apply term_sub_proper in eq.
+    unfold respectful in eq.
+    rewrite (eq x x); auto.
 Qed.
 Hint Rewrite close_closed : beta_simpl.
 Hint Rewrite close_closed : term_simpl.
+
+Lemma open_close
+  (Var : Set) (f : Var -> Term Empty_set) (x : Term Empty_set) :
+  (open Var x) @ f = x.
+Proof.
+  unfold open.
+  revert Var f; dependent induction x; intros Var f; simpl; auto.
+  - rewrite (IHx1 Var f), (IHx2 Var f); auto.
+  - rewrite (IHx1 Var f), (IHx2 Var f); auto.
+  - rewrite (IHx1 Var f), (IHx2 Var f); auto.
+  - case v.
+  - admit.
+Qed.
+
+Lemma term_sub_ext (Var Var' : Set)
+  (f g : Var -> Term Var') (fg : forall v, f v = g v) x :
+  x @ f = x @ g.
+Proof.
+  revert Var' f g fg; induction x; intros Var' f g fg; simpl; auto.
+  - rewrite (IHx1 Var' f g), (IHx2 Var' f g); auto.
+  - rewrite (IHx1 Var' f g), (IHx2 Var' f g); auto.
+  - rewrite (IHx1 Var' f g), (IHx2 Var' f g); auto.
+  - rewrite (IHx (option Var') (some_sub f) (some_sub g)); auto.
+    apply ext_respectful in fg.
+    intros; apply (some_sub_proper Var _ f g fg); auto.
+Qed.
