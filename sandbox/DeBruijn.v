@@ -128,6 +128,8 @@ Section I.
     LAMBDA v0.
   Definition K : Term Var := Eval compute in
     LAMBDA (LAMBDA (VAR (Some None))).
+  Definition F : Term Var := Eval compute in
+    LAMBDA (LAMBDA (VAR None)).
   Definition B : Term Var := Eval compute in
     LAMBDA (LAMBDA (LAMBDA (v2 * (v1 * v0)))).
   Definition C : Term Var := Eval compute in
