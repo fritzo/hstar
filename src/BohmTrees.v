@@ -28,7 +28,8 @@ Notation "x :: a" := (a * x == x) : term_scope.
     terms [JOIN x y],
     a reduction rule [JOIN x y * z -beta-> JOIN (x * z) (y * z)],
     and three approximation rules:
-    [x -pi-> z -> y -pi-z> -> JOIN x y -pi-> z],
+    [z -pi-> x -> z -pi-> y -> z -pi-> JOIN x y]
+    (or equivalently [x -pi-> JOIN x x]),
     [JOIN x y -pi-> x], and
     [JOIN x y -pi-> y].
     We also add an identifiable top term [TOP] with
