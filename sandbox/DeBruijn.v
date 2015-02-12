@@ -19,19 +19,25 @@ Require Export Notations.
 (** ** Terms *)
 
 Inductive term {Var : Set} : Set :=
-  | TOP : term
-  | BOT : term
-  | JOIN : term -> term -> term
-  | RAND : term -> term -> term
-  | APP : term -> term -> term
-  | VAR : Var -> term
-  | LAMBDA : @term (option Var) -> term
-.
+  | term_top : term
+  | term_bot : term
+  | term_join : term -> term -> term
+  | term_rand : term -> term -> term
+  | term_app : term -> term -> term
+  | term_var : Var -> term
+  | term_lambda : @term (option Var) -> term.
 Hint Constructors term.
 Definition Term (Var : Set) := @term Var.
 Definition Closed := @term Empty_set.
 
-Notation "x * y" := (APP x y) : term_scope.
+Notation "'TOP'" := term_top : term_scope.
+Notation "'BOT'" := term_bot : term_scope.
+Notation "'JOIN'" := term_join : term_scope.
+Notation "'RAND'" := term_rand : term_scope.
+Notation "'APP'" := term_app : term_scope.
+Notation "'VAR'" := term_var : term_scope.
+Notation "'LAMBDA'" := term_lambda : term_scope.
+
 Open Scope term_scope.
 Delimit Scope term_scope with term.
 Bind Scope term_scope with term.
@@ -50,8 +56,8 @@ Fixpoint term_map {Var Var' : Set} (h : Var -> Var') (t : Term Var) :
   | t1 || t2 => term_map h t1 || term_map h t2
   | t1 (+) t2 => term_map h t1 (+) term_map h t2
   | t1 * t2 => term_map h t1 * term_map h t2
-  | VAR x => VAR (h x)
-  | LAMBDA t1 => LAMBDA (term_map (option_map h) t1)
+  | term_var x => VAR (h x)
+  | term_lambda t1 => LAMBDA (term_map (option_map h) t1)
   end.
 
 Fixpoint term_sub {Var Var' : Set} (h : Var -> Term Var') (t : Term Var) :
@@ -62,8 +68,8 @@ Fixpoint term_sub {Var Var' : Set} (h : Var -> Term Var') (t : Term Var) :
   | t1 || t2 => term_sub h t1 || term_sub h t2
   | t1 (+) t2 => term_sub h t1 (+) term_sub h t2
   | t1 * t2 => term_sub h t1 * term_sub h t2
-  | VAR v => h v
-  | LAMBDA t1 => LAMBDA (term_sub (fun x => 
+  | term_var v => h v
+  | term_lambda t1 => LAMBDA (term_sub (fun x => 
     match x with
     | None => VAR None
     | Some y => term_map (@Some Var') (h y)
@@ -105,7 +111,7 @@ Definition None' {a : Set} : option' a := None.
 Definition option_ (n : nat) (v : Set) := iter v option' n.
 Definition Some_ (n : nat) (v : Set) := iter_depT v Some n.
 Definition lam_ {Var : Set} (n : nat) (x : Term (option_ n Var)) :=
-  iter_dep x (@VAR) n.
+  iter_dep x (@term_var) n.
 (*
 Definition var_ {Var : Set} (n : nat) : Term (option_ n Var) :=
   @VAR (option_ n Var) (iter_dep (@None' Var) Some' n).
@@ -133,8 +139,6 @@ Print S.  (* Ugly! *)
 
 
 Notation "x 'o' y" := (B * x * y) : term_scope.
-
-Definition term_join {Var : Set} x y : Term Var := x || y.
 
 (* TODO figure out how to use lambda notation
 Notation "\ x , y" := (LAMBDA) : code_scope.
@@ -407,7 +411,7 @@ Proof.
 Qed.
 
 Instance APP_beta (Var : Set) :
-  Proper (beta ==> beta ==> beta) (@APP Var).
+  Proper (beta ==> beta ==> beta) (@term_app Var).
 Proof.
   intros x x' Hx y y' Hy; transitivity (x * y'); auto.
 Qed.
@@ -503,7 +507,7 @@ Proof.
 Qed.
 
 Instance APP_pi (Var : Set) :
-  Proper (pi ==> pi ==> pi) (@APP Var).
+  Proper (pi ==> pi ==> pi) (@term_app Var).
 Proof.
   intros x x' Hx y y' Hy; transitivity (x * y'); auto.
 Qed.

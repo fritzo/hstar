@@ -1,4 +1,6 @@
 all: src sandbox doc metrics
+	@echo '----------------'
+	@echo 'PASSED ALL TESTS'
 
 src: FORCE
 	cd src ; ./make.sh

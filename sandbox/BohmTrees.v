@@ -113,13 +113,13 @@ Fixpoint is_normal {Var : Set} (w : Term Var) {struct w} : bool :=
   | x || y => andb (is_normal x) (is_normal y)
   | x (+) y => andb (is_normal x) (is_normal y)
   | x * y => andb (is_inert x) (is_normal y)
-  | LAMBDA x => is_normal x
-  | VAR v => true
+  | term_var v => true
+  | term_lambda x => is_normal x
   end
 with is_inert {Var : Set} (w : Term Var) {struct w} : bool :=
   match w with
   | x * y => andb (is_inert x) (is_normal y)
-  | VAR v => true
+  | term_var v => true
   | _ => false
   end.
 
@@ -174,7 +174,7 @@ Fixpoint try_reduce_step {Var : Set} (x : Term Var) : option (Term Var) :=
   | BOT * y => Some BOT
   | (x1 || x2) * y => Some (x1 * y || x2 * y)
   | (x1 (+) x2) * y => Some (x1 * y (+) x2 * y)
-  | LAMBDA x1 * x2 => Some (beta_sub x1 x2)
+  | term_lambda x1 * x2 => Some (beta_sub x1 x2)
   | l * r =>
       match try_reduce_step l with
       | Some l' => Some (l' * r)
@@ -202,7 +202,7 @@ Fixpoint try_reduce_step {Var : Set} (x : Term Var) : option (Term Var) :=
           | None => None
           end
       end
-  | LAMBDA y => 
+  | term_lambda y => 
       match try_reduce_step y with
       | Some y' => Some (LAMBDA y')
       | None => None
@@ -216,11 +216,11 @@ Fixpoint is_irreducible {Var : Set} (x : Term Var) : bool :=
   | BOT * _ => false
   | (_ || _) * _ => false
   | (_ (+) _) * _ => false
-  | LAMBDA x1 * x2 => false
+  | term_lambda x1 * x2 => false
   | l * r => andb (is_irreducible l) (is_irreducible r)
   | l || r => andb (is_irreducible l) (is_irreducible r)
   | l (+) r => andb (is_irreducible l) (is_irreducible r)
-  | LAMBDA x1 => is_irreducible x1
+  | term_lambda x1 => is_irreducible x1
   | _ => true
   end.
 
@@ -285,8 +285,8 @@ Fixpoint normal_conv {Var : Set} (x : Term Var) : bool :=
   | (x1 || x2) => orb (normal_conv x1) (normal_conv x2)
   | x1 (+) x2 => andb (normal_conv x1) (normal_conv x2)
   | x1 * x2 => normal_conv x1
-  | LAMBDA x => normal_conv x
-  | VAR v => true
+  | term_lambda x => normal_conv x
+  | term_var v => true
   end.
 
 Lemma normal_conv_correct (Var : Set) (x : Term Var) :
