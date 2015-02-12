@@ -3,7 +3,7 @@
 
  Holes | File
  -----:|:----------------------------------------------------------------------
-    21 | [NormalForms](src/NormalForms.v)
+    21 | [BohmTrees](src/BohmTrees.v)
     15 | [InformationOrdering](src/InformationOrdering.v)
     12 | [Reduction](src/Reduction.v)
      3 | [Substitution](src/Substitution.v)

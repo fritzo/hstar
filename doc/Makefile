@@ -10,7 +10,7 @@ body.tex: FORCE
 	$(SRC)/Reduction.v \
 	$(SRC)/Convergence.v \
 	$(SRC)/InformationOrdering.v \
-	$(SRC)/NormalForms.v \
+	$(SRC)/BohmTrees.v \
 	#
 
 main.pdf: main.tex body.tex references.bib

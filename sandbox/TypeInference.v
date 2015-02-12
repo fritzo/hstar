@@ -4,7 +4,7 @@ Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
 Require Import Terms.
-Require Import NormalForms.
+Require Import BohmTrees.
 
 Definition V {Var : Set} : Term Var. Admitted.
 Definition P {Var : Set} : Term Var. Admitted.
