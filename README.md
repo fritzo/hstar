@@ -1,11 +1,11 @@
 [![Build Status](https://travis-ci.org/fritzo/hstar.svg?branch=master)](https://travis-ci.org/fritzo/hstar)
-![Proof Status](https://img.shields.io/badge/proofs-46_holes-red.svg?style=flat)
+![Proof Status](https://img.shields.io/badge/proofs-51_holes-red.svg?style=flat)
 
  Holes | File
  -----:|:----------------------------------------------------------------------
     21 | [NormalForms](src/NormalForms.v)
+    15 | [InformationOrdering](src/InformationOrdering.v)
     12 | [Reduction](src/Reduction.v)
-    10 | [InformationOrdering](src/InformationOrdering.v)
      3 | [Substitution](src/Substitution.v)
 
 # Inadvertently typed &lambda;-join-calculus

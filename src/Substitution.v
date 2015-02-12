@@ -7,8 +7,9 @@ Require Export Terms.
 
 (* adapted from https://coq.inria.fr/cocorico/UntypedLambdaTerms *)
 
-Lemma ext_respectful (a b : Type) (f g : a -> b) (fg : forall x, f x = g x) :
-  respectful eq eq f g.
+Lemma ext_respectful
+  (a b : Type) (f g : a -> b) (r : relation b) (fg : forall x, r (f x) (g x)) :
+  respectful eq r f g.
 Proof.
   intros x x' xx'; rewrite xx'; auto.
 Qed.

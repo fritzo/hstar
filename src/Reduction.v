@@ -53,8 +53,14 @@ Proof.
   inversion H; auto.
 Qed.
 
+Definition none_sub {Var : Set} (x : Term Var) (v : option Var) : Term Var :=
+  match v with
+  | None => x
+  | Some v' => VAR v'
+  end.
+
 Definition lambda_app_sub {Var : Set} (x : Term (option Var)) (y : Term Var) :
-  Term Var := x @ (fun v => match v with None => y | Some v' => VAR v' end).
+  Term Var := x @ (none_sub y).
 
 Inductive beta {Var : Set} : relation (Term Var) :=
   | beta_refl {x} : beta x x
@@ -481,7 +487,7 @@ Proof.
   auto.
 Qed.
 
-
+(** ** Reduction and substitution *)
 
 Lemma term_sub_proper_probe (Var Var' : Set)
   (f : Var -> Term Var') (x y : Term Var) :
@@ -493,30 +499,70 @@ Proof.
   - apply probe_top; auto.
 Qed.
 
+Instance term_map_proper_beta (Var Var' : Set) :
+  Proper (eq ==> beta ==> beta) (@term_map Var Var').
+Proof.
+  intros f f' ff' x x' xx'; rewrite <- ff'; clear f' ff'.
+  revert Var' f; induction xx'; intros Var' f; simpl; auto.
+  - transitivity (term_map f y); auto.
+  - rewrite beta_sub.
+    admit.
+    (*
+    dependent induction x; simpl; auto.
+    *)
+Qed.
+
+Instance some_sub_proper_beta (Var Var' : Set) :
+  Proper ((eq ==> beta) ==> eq ==> beta) (@some_sub Var Var').
+Proof.
+  intros f f' ff'; compute in ff'.
+  intros v v' vv'; rewrite <- vv'; clear v' vv'.
+  case_eq v; auto.
+  intros v' vv'; simpl; rewrite ff'; reflexivity.
+Qed.
+
+Lemma some_sub_beta 
+  (Var Var' : Set) (f g : Var -> Term Var') :
+  (forall v, beta (f v) (g v)) ->
+  forall v, beta (some_sub f v) (some_sub g v).
+Proof.
+  intros Hb v; case_eq v; auto.
+  intros v' vv'; simpl; rewrite Hb; reflexivity.
+Qed.
+
 Lemma term_sub_beta_left
   (Var Var' : Set) (f g : Var -> Term Var') (x : Term Var) :
   (forall v, beta (f v) (g v)) -> beta (x @ f) (x @ g).
 Proof.
-  intros fg; induction x; auto.
+  revert Var' f g; induction x; intros Var' f g fg; auto.
   - simpl; transitivity ((x1 @ g) || (x2 @ f)); auto.
   - simpl; transitivity ((x1 @ g) (+) (x2 @ f)); auto.
   - simpl; transitivity ((x1 @ g) * (x2 @ f)); auto.
   - simpl; auto.
-  - apply beta_lambda.
-    admit.
-    (* TODO how to do heterogeneous induction? *)
+  - simpl; apply beta_lambda.
+    rewrite (IHx (option Var') (some_sub f) (some_sub g)); clear IHx;
+    intros; auto.
+    apply ext_respectful in fg; rewrite fg; reflexivity.
 Qed.
 Hint Resolve term_sub_beta_left.
+
+Lemma lambda_app_sub_sub
+  (Var : Set) (y : Term Var) (x : Term (option Var))
+  (Var' : Set) (f : Var -> Term Var') :
+  lambda_app_sub x y @ f = lambda_app_sub (x @ some_sub f) (y @ f).
+Proof.
+  revert Var' f.
+  dependent induction x; intros; try (simpl; auto; reflexivity).
+Admitted.
 
 Lemma term_sub_beta_right
   (Var Var' : Set) (f : Var -> Term Var') (x y : Term Var) :
   beta x y -> beta (x @ f) (y @ f).
 Proof.
-  intro xy; induction xy; repeat rewrite term_sub_ap;
+  intro xy; revert Var' f; induction xy; intros Var' f;
   try (simpl; auto; reflexivity).
   - transitivity (y @ f); auto.
-  - admit.
-  - admit.
+  - simpl; rewrite beta_sub, lambda_app_sub_sub; reflexivity.
 Qed.
 Hint Resolve term_sub_beta_right.
 
@@ -531,12 +577,18 @@ Lemma term_sub_pi_left
   (Var Var' : Set) (f g : Var -> Term Var') (x : Term Var) :
   (forall v, pi (f v) (g v)) -> pi (x @ f) (x @ g).
 Proof.
-  intros fg; induction x; auto.
+  revert Var' f g; induction x; intros Var' f g fg; auto.
   - simpl; transitivity ((x1 @ f) || (x2 @ g)); auto.
   - simpl; transitivity ((x1 @ f) (+) (x2 @ g)); auto.
   - simpl; transitivity ((x1 @ f) * (x2 @ g)); auto.
-  - admit.
-  - admit.
+  - simpl; auto.
+  - simpl; apply pi_lambda.
+    rewrite (IHx (option Var') (some_sub f) (some_sub g)); clear IHx;
+    intros; auto.
+    admit.
+    (* TODO add Instance Proper for sub parts
+    apply ext_respectful in fg; rewrite fg; reflexivity.
+    *)
 Qed.
 Hint Resolve term_sub_pi_left.
 
@@ -558,14 +610,20 @@ Proof.
   [apply term_sub_pi_right | apply term_sub_pi_left]; auto.
 Qed.
 
+(** ** Reduction and closing terms *)
+
 Instance term_close_proper_beta (Var : Set) :
   Proper (beta ==> beta) (@close Var).
 Proof.
   intros x x' xx'; apply weaken_beta in xx'; induction xx'; auto.
   revert z xx' IHxx'; induction H; intros;
   try (compute; term_simpl; eauto; reflexivity).
-  - admit.
-  - admit.
+  - unfold close; simpl.
+    admit.
+  - unfold close in *; simpl.
+    rewrite beta_sub.
+    unfold lambda_app_sub in *.
+    admit.
 Qed.
 
 Instance term_close_proper_pi (Var : Set) :
