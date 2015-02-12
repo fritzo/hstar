@@ -35,24 +35,31 @@ Proof.
 Qed.
 
 
-Inductive probe {Var : Set} : relation (Term Var) :=
-  | probe_refl {x} : probe x x
-  | probe_trans {x} y {z} : probe x y -> probe y z -> probe x z
-  | probe_top {x} : probe x (x * TOP).
+Inductive probe: forall (Var Var': Set), Term Var -> Term Var' -> Prop :=
+  | probe_refl {Var x} : probe Var Var x x
+  | probe_trans {Var x} Var' y {Var'' z} :
+      probe Var Var' x y -> probe Var' Var'' y z -> probe Var Var'' x z
+  | probe_top {Var x} : probe Var Var x (x * TOP)
+  | probe_lambda {Var x} : probe (option' Var) Var x (LAMBDA x).
 Hint Constructors probe.
 
-Inductive probe_step {Var : Set} : relation (Term Var) :=
-  | probe_step_top {x} : probe_step x (x * TOP).
+Inductive probe_step : forall (Var Var' : Set), Term Var -> Term Var' -> Prop :=
+  | probe_step_top {Var x} : probe_step Var Var x (x * TOP)
+  | probe_step_lambda {Var x} :
+      probe_step (option' Var) Var x (LAMBDA x).
 Hint Constructors probe_step.
 
+(* Coq does not support heterogeneous relations as nicely as homogeneous. *)
+(* Probe could be weakened further by requiring lambdas precede tops. *)
 Lemma weaken_probe (Var : Set) (x y : Term Var) :
-  probe x y <-> weak_star probe_step x y.
+  probe Var Var x y <-> weak_star probe_step x y.
 Proof.
   rewrite <- weaken_star.
   split; intro H; induction H; eauto.
   inversion H; auto.
 Qed.
 
+(* OLD large-step
 Definition none_sub {Var : Set} (x : Term Var) (v : option Var) : Term Var :=
   match v with
   | None => x
@@ -61,6 +68,34 @@ Definition none_sub {Var : Set} (x : Term Var) (v : option Var) : Term Var :=
 
 Definition lambda_app_sub {Var : Set} (x : Term (option Var)) (y : Term Var) :
   Term Var := x @ (none_sub y).
+*)
+
+Inductive protect {Var : set} : Term Var -> Term (option Var) -> Prop :=
+  | protect_top : protect TOP TOP
+  | protect_bot : protect BOT BOT
+  | protect_join {x x' y y'} :
+      protect x x' -> protect y y' -> protect (x || y) (x' || y')
+  | protect_rand {x x' y y'} :
+      protect x x' -> protect y y' -> protect (x (+) y) (x' (+) y')
+  | protect_app {x x' y y'} :
+      protect x x' -> protect y y' -> protect (x * y) (x' * y')
+  | protect_var {v} : protect (VAR v) (VAR (Some v))
+  | protect_lambda {x} : protect (LAMBDA x) TOP (* TODO *).
+
+Inductive sub_step {Var : Set} : relation (Term Var) :=
+  | sub_step_top {x} : sub_step (LAMBDA TOP * x) TOP
+  | sub_step_bot {x} : sub_step (LAMBDA BOT * x) BOT
+  | sub_step_join {f1 f2 x} :
+      sub_step (LAMBDA (f1 || f2) * x) ((LAMBDA f1 * x) || (LAMBDA f2 * x))
+  | sub_step_rand {f1 f2 x} :
+      sub_step (LAMBDA (f1 || f2) * x) ((LAMBDA f1 * x) (+) (LAMBDA f2 * x))
+  | sub_step_app {f1 f2 x} :
+      sub_step (LAMBDA (f1 * f2) * x) ((LAMBDA f1 * x) * (LAMBDA f2 * x))
+  | sub_step_var_none {v x} : sub_step (LAMBDA (VAR None) * x) x
+  | sub_step_var_some {v x} : sub_step (LAMBDA (VAR (Some v)) * x) (VAR v)
+  | sub_step_lambda {f x x'} :
+      protect x x' ->
+      sub_step (LAMBDA (LAMBDA f) * x) (LAMBDA (LAMBDA f * x')).
 
 Inductive beta {Var : Set} : relation (Term Var) :=
   | beta_refl {x} : beta x x
@@ -73,7 +108,10 @@ Inductive beta {Var : Set} : relation (Term Var) :=
   | beta_rand_right {x y y'} : beta y y' -> beta (x (+) y) (x (+) y')
   | beta_lambda {x x'} :
       @beta (option Var) x x' -> beta (LAMBDA x) (LAMBDA x')
+  (* OLD large step
   | beta_sub {x y} : beta (LAMBDA x * y) (lambda_app_sub x y)
+  *)
+  | beta_sub {x y z} : sub_step (LAMBDA x * y) z -> beta (LAMBDA x * y) z
   | beta_j_ap {x y z} : beta ((x || y) * z) (x * z || y * z)
   | beta_r_ap {x y z} : beta ((x (+) y) * z) (x * z (+) y * z)
   | beta_r_idem {x} : beta (x (+) x) x
