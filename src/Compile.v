@@ -1,3 +1,5 @@
+(** * Converting between combinatory algebra and lambda-calculus *)
+
 Require Import Coq.Program.Equality.
 Require Import Codes.
 Require Import Combinators.

@@ -130,22 +130,8 @@ Proof.
   induction x; simpl; auto; intro H; inversion H.
 Qed.
 
-Definition if_true (b : bool) : Set := if b then unit else Empty_set. 
-Definition if_false (b : bool) : Set := if b then Empty_set else unit. 
-
-(*
-Notation "x <--> y" := ((x -> y) * (y -> x))%type
-  (at level 95, no associativity).
-*)
-
 Lemma normal_is_normal {Var : Set} (x : Term Var) :
  normal x <-> is_normal x = true.
-(* normal x <--> is_normal x = true. *)
-(* normal x <--> if_true (is_normal x). *)
-(* normal x <-> is_normal x = true. *)
-(* normal x <-> eq_true (is_normal x). *)
-(* normal x <-> is_true (is_normal x). *)
-(* normal x <-> Is_true (is_normal x). *)
 Proof.
   split.
   - intro H; induction H; simpl; auto.
