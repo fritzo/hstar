@@ -17,6 +17,7 @@ Definition sum {Var : Set} : Term Var. Admitted.
 Definition exp {Var : Set} : Term Var. Admitted.
 *)
 
+Notation "x :: a" := (a * x == x)%term : term_scope.
 
 (* Generically:
 Module dependent.
