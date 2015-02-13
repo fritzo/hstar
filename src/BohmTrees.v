@@ -175,7 +175,7 @@ Fixpoint try_reduce_step {Var : Set} (x : Term Var) : option (Term Var) :=
   | BOT * y => Some BOT
   | (x1 || x2) * y => Some (x1 * y || x2 * y)
   | (x1 (+) x2) * y => Some (x1 * y (+) x2 * y)
-  | term_lambda x1 * x2 => Some (beta_sub x1 x2)
+  | term_lambda x1 * x2 => Some (lambda_app_sub x1 x2)
   | l * r =>
       match try_reduce_step l with
       | Some l' => Some (l' * r)

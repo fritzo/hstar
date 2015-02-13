@@ -16,6 +16,8 @@ Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
 Require Export Notations.
 
+
+(* ------------------------------------------------------------------------ *)
 (** ** Terms *)
 
 Inductive Term {Var : Set} : Set :=
@@ -46,40 +48,9 @@ Notation "x * y" := (APP x y) : term_scope.
 Notation "x || y" := (JOIN x y) : term_scope.
 Notation "x (+) y" := (RAND x y) : term_scope.
 
-(* adapted from https://coq.inria.fr/cocorico/UntypedLambdaTerms *)
 
-Fixpoint term_map {Var Var' : Set} (h : Var -> Var') (t : Term Var) :
-  Term Var' :=
-  match t with
-  | TOP => TOP
-  | BOT => BOT
-  | t1 || t2 => term_map h t1 || term_map h t2
-  | t1 (+) t2 => term_map h t1 (+) term_map h t2
-  | t1 * t2 => term_map h t1 * term_map h t2
-  | term_var x => VAR (h x)
-  | term_lambda t1 => LAMBDA (term_map (option_map h) t1)
-  end.
-
-Fixpoint term_sub {Var Var' : Set} (h : Var -> Term Var') (t : Term Var) :
-  Term Var' :=
-  match t with
-  | TOP => TOP
-  | BOT => BOT
-  | t1 || t2 => term_sub h t1 || term_sub h t2
-  | t1 (+) t2 => term_sub h t1 (+) term_sub h t2
-  | t1 * t2 => term_sub h t1 * term_sub h t2
-  | term_var v => h v
-  | term_lambda t1 => LAMBDA (term_sub (fun x => 
-    match x with
-    | None => VAR None
-    | Some y => term_map (@Some Var') (h y)
-    end) t1)
-  end.
-
-Notation "x @ f" := (term_sub f x) : term_scope.
-
-Definition beta_sub {Var : Set} (x : Term (option Var)) (y : Term Var) :
-  Term Var := x @ (fun v => match v with None => y | Some v' => VAR v' end).
+(* ------------------------------------------------------------------------ *)
+(** ** Lambda notation *)
 
 Fixpoint iter {a : Type} (z : a) (s : a -> a) (n : nat) {struct n} :=
   match n with
@@ -117,7 +88,6 @@ Definition var_ {Var : Set} (n : nat) : Term (option_ n Var) :=
   @VAR (option_ n Var) (iter_dep (@None' Var) Some' n).
 *)
 
-
 Section I.
   Definition v0 {Var : Set} : Term (option_ 1 Var) := VAR None.
   Definition v1 {Var : Set} : Term (option_ 2 Var) := VAR (Some None).
@@ -139,13 +109,232 @@ Section I.
 End I.
 Print S.  (* Ugly! *)
 
-
 Notation "x 'o' y" := (B * x * y) : term_scope.
 
 (* TODO figure out how to use lambda notation
 Notation "\ x , y" := (LAMBDA) : code_scope.
 *)
 
+
+(* ------------------------------------------------------------------------ *)
+(** ** Substitution *)
+
+(* adapted from https://coq.inria.fr/cocorico/UntypedLambdaTerms *)
+
+Lemma ext_respectful
+  (a b : Type) (f g : a -> b) (r : relation b) (fg : forall x, r (f x) (g x)) :
+  respectful eq r f g.
+Proof.
+  intros x x' xx'; rewrite xx'; auto.
+Qed.
+
+Instance option_map_proper (Var Var' : Set) :
+  Proper ((eq ==> eq) ==> eq ==> eq) (@option_map Var Var').
+Proof.
+  intros f f' ff' v v' vv'; compute in ff'; rewrite <- vv'; clear v' vv'.
+  case_eq v; intro v0; intros; simpl; auto.
+  assert (f v0 = f' v0) as eq; [apply ff' | rewrite eq]; auto.
+Qed.
+
+Fixpoint term_map {Var Var' : Set} (f : Var -> Var') (x : Term Var) :
+  Term Var' :=
+  match x with
+  | TOP => TOP
+  | BOT => BOT
+  | x1 || x2 => term_map f x1 || term_map f x2
+  | x1 (+) x2 => term_map f x1 (+) term_map f x2
+  | x1 * x2 => term_map f x1 * term_map f x2
+  | term_var x => VAR (f x)
+  | term_lambda x1 => LAMBDA (term_map (option_map f) x1)
+  end.
+
+Instance term_map_proper (Var Var' : Set) :
+  Proper ((eq ==> eq) ==> eq ==> eq) (@term_map Var Var').
+Proof.
+  intros f f' ff' x x' xx'; compute in ff'; rewrite <- xx'; clear x' xx'.
+  revert Var' f f' ff'; induction x; intros Var' f f' ff'; simpl; auto.
+  - rewrite (IHx1 Var' f f'), (IHx2 Var' f f'); auto.
+  - rewrite (IHx1 Var' f f'), (IHx2 Var' f f'); auto.
+  - rewrite (IHx1 Var' f f'), (IHx2 Var' f f'); auto.
+  - rewrite (ff' v v); auto.
+  - rewrite (IHx (option Var') (option_map f) (option_map f')); auto.
+    apply option_map_proper; auto.
+Qed.
+
+Definition some_sub
+  {Var Var' : Set} (f : Var -> Term Var') (v : option Var) :
+  Term (option Var') :=
+  match v with
+  | None => VAR None
+  | Some v' => term_map (@Some Var') (f v')
+  end.
+
+Instance some_sub_proper (Var Var' : Set) :
+  Proper ((eq ==> eq) ==> eq ==> eq) (@some_sub Var Var').
+Proof.
+  intros f f' ff' v v' vv'; compute in ff'; rewrite <- vv'; clear v' vv'.
+  case_eq v; intro v0; intros; simpl; auto.
+  assert (f v0 = f' v0) as eq; [apply ff' | rewrite eq]; auto.
+Qed.
+
+Fixpoint term_sub {Var Var' : Set} (f : Var -> Term Var') (x : Term Var) :
+  Term Var' :=
+  match x with
+  | TOP => TOP
+  | BOT => BOT
+  | x1 || x2 => term_sub f x1 || term_sub f x2
+  | x1 (+) x2 => term_sub f x1 (+) term_sub f x2
+  | x1 * x2 => term_sub f x1 * term_sub f x2
+  | term_var v => f v
+  | term_lambda x1 => LAMBDA (term_sub (some_sub f) x1)
+  end.
+
+Instance term_sub_proper (Var Var' : Set) :
+  Proper ((eq ==> eq) ==> eq ==> eq) (@term_sub Var Var').
+Proof.
+  intros f f' ff'; compute in ff'.
+  intros x x' xx'; rewrite <- xx'; clear x' xx'.
+  revert Var' f f' ff'; induction x; intros Var' f f' ff'; auto.
+  - simpl; rewrite (IHx1 Var' f f'), (IHx2 Var' f f'); auto.
+  - simpl; rewrite (IHx1 Var' f f'), (IHx2 Var' f f'); auto.
+  - simpl; rewrite (IHx1 Var' f f'), (IHx2 Var' f f'); auto.
+  - compute; auto.
+  - simpl; rewrite (IHx _ (some_sub f) (some_sub f')); clear IHx; auto.
+    intros v v' vv'; rewrite <- vv'; clear v' vv' x.
+    apply some_sub_proper; auto.
+Qed.
+
+Notation "x @ f" := (term_sub f x) : term_scope.
+
+Definition sub_top {Var : Set} (v : Var) : Closed := TOP.
+Definition close {Var : Set} : Term Var -> Closed := term_sub sub_top.
+
+Definition sub_empty {Var : Set} (v : Empty_set) : Var := match v with end.
+Definition open (Var : Set) : Closed -> Term Var := term_map sub_empty.
+
+Tactic Notation "term_simpl" := autorewrite with term_simpl.
+Tactic Notation "term_simpl" "in" hyp(H) := autorewrite with term_simpl in H.
+
+Lemma var_monad_unit_right (Var : Set) (x : Term Var) : x @ VAR = x.
+Proof.
+  induction x; auto; simpl;
+  repeat
+    match goal with
+    | [H : _ @ VAR = _ |- _] => rewrite H; clear H
+    end;
+  try reflexivity.
+  admit.
+Qed.
+Hint Rewrite var_monad_unit_right : term_simpl.
+
+Lemma var_monad_unit_left (Var Var' : Set) (f : Var -> Term Var') x :
+  (VAR x) @ f = f x.
+Proof.
+  compute; auto.
+Qed.
+Hint Rewrite var_monad_unit_left : term_simpl.
+
+Lemma term_sub_ap (Var Var' : Set) (x y : Term Var) (f : Var -> Term Var') :
+  (x * y @ f) = (x @ f) * (y @ f).
+Proof.
+  simpl; auto.
+Qed.
+Hint Rewrite term_sub_ap : term_simpl.
+
+Lemma term_sub_join (Var Var' : Set) (x y : Term Var) (f : Var -> Term Var') :
+  (x || y @ f) = (x @ f) || (y @ f).
+Proof.
+  simpl; auto.
+Qed.
+Hint Rewrite term_sub_join : term_simpl.
+
+Lemma term_sub_rand (Var Var' : Set) (x y : Term Var) (f : Var -> Term Var') :
+  (x (+) y @ f) = (x @ f) (+) (y @ f).
+Proof.
+  simpl; auto.
+Qed.
+Hint Rewrite term_sub_rand : term_simpl.
+
+Lemma term_sub_lambda
+  (Var Var' : Set) (x : Term (option Var)) (f : Var -> Term Var') :
+  (LAMBDA x @ f) = LAMBDA (x @ some_sub f).
+Proof.
+  simpl; auto.
+Qed.
+Hint Rewrite term_sub_lambda : term_simpl.
+
+Lemma var_monad_assoc
+  (Var Var' Var'' : Set)
+  (f : Var -> Term Var')
+  (g : Var' -> Term Var'')
+  (x : Term Var) :
+  (x @ f) @ g = x @ (fun v => (f v) @ g).
+Proof.
+  revert Var' Var'' f g; induction x; intros Var' Var'' f g; auto.
+  - term_simpl; rewrite IHx1; rewrite IHx2; auto.
+  - term_simpl; rewrite IHx1; rewrite IHx2; auto.
+  - term_simpl; rewrite IHx1; rewrite IHx2; auto.
+  - term_simpl; rewrite IHx; simpl; auto.
+    admit.
+Qed.
+Hint Rewrite var_monad_assoc : term_simpl.
+
+Lemma close_idempotent (Var : Set) (x : Term Var) : close (close x) = close x.
+Proof.
+  compute; term_simpl; induction x; auto.
+Qed.
+Hint Rewrite close_idempotent : beta_simpl.
+Hint Rewrite close_idempotent : term_simpl.
+
+Lemma close_closed (x : Closed) : close x = x.
+Proof.
+  unfold Closed in x; unfold close, sub_top.
+  dependent induction x; term_simpl;
+  match goal with [v : Empty_set |- _] => destruct v | _ => idtac end; auto.
+  - rewrite IHx1; rewrite IHx2; reflexivity.
+  - rewrite IHx1; rewrite IHx2; reflexivity.
+  - rewrite IHx1; rewrite IHx2; reflexivity.
+  - clear IHx.
+    set (f := fun _ : Empty_set => TOP).
+    rewrite <- var_monad_unit_right; simpl.
+    assert (forall v, f v = VAR v) as eq; [intro v; case v|].
+    apply ext_respectful in eq.
+    apply some_sub_proper in eq.
+    apply term_sub_proper in eq.
+    unfold respectful in eq.
+    rewrite (eq x x); auto.
+Qed.
+Hint Rewrite close_closed : beta_simpl.
+Hint Rewrite close_closed : term_simpl.
+
+Lemma open_close
+  (Var : Set) (f : Var -> Term Empty_set) (x : Term Empty_set) :
+  (open Var x) @ f = x.
+Proof.
+  unfold open.
+  revert Var f; dependent induction x; intros Var f; simpl; auto.
+  - rewrite (IHx1 Var f), (IHx2 Var f); auto.
+  - rewrite (IHx1 Var f), (IHx2 Var f); auto.
+  - rewrite (IHx1 Var f), (IHx2 Var f); auto.
+  - case v.
+  - admit.
+Qed.
+
+Lemma term_sub_ext (Var Var' : Set)
+  (f g : Var -> Term Var') (fg : forall v, f v = g v) x :
+  x @ f = x @ g.
+Proof.
+  revert Var' f g fg; induction x; intros Var' f g fg; simpl; auto.
+  - rewrite (IHx1 Var' f g), (IHx2 Var' f g); auto.
+  - rewrite (IHx1 Var' f g), (IHx2 Var' f g); auto.
+  - rewrite (IHx1 Var' f g), (IHx2 Var' f g); auto.
+  - rewrite (IHx (option Var') (some_sub f) (some_sub g)); auto.
+    apply ext_respectful in fg.
+    intros; apply (some_sub_proper Var _ f g fg); auto.
+Qed.
+
+
+(* ------------------------------------------------------------------------ *)
 (** ** Reduction relations *)
 
 Inductive star {Var : Set} (r : relation (Term Var)) : relation (Term Var) :=
@@ -194,12 +383,27 @@ Proof.
   inversion H; auto.
 Qed.
 
+Definition none_sub {Var : Set} (x : Term Var) (v : option Var) : Term Var :=
+  match v with
+  | None => x
+  | Some v' => VAR v'
+  end.
+
+Definition lambda_app_sub {Var : Set} (x : Term (option Var)) (y : Term Var) :
+  Term Var := x @ (none_sub y).
+
 Inductive beta {Var : Set} : relation (Term Var) :=
   | beta_refl {x} : beta x x
   | beta_trans {x} y {z} : beta x y -> beta y z -> beta x z
-  | beta_left {x x' y} : beta x x' -> beta (x * y) (x' * y)
-  | beta_right {x y y'} : beta y y' -> beta (x * y) (x * y')
-  | beta_lam {x y} : beta (LAMBDA x * y) (beta_sub x y)
+  | beta_app_left {x x' y} : beta x x' -> beta (x * y) (x' * y)
+  | beta_app_right {x y y'} : beta y y' -> beta (x * y) (x * y')
+  | beta_join_left {x x' y} : beta x x' -> beta (x || y) (x' || y)
+  | beta_join_right {x y y'} : beta y y' -> beta (x || y) (x || y')
+  | beta_rand_left {x x' y} : beta x x' -> beta (x (+) y) (x' (+) y)
+  | beta_rand_right {x y y'} : beta y y' -> beta (x (+) y) (x (+) y')
+  | beta_lambda {x x'} :
+      @beta (option Var) x x' -> beta (LAMBDA x) (LAMBDA x')
+  | beta_sub {x y} : beta (LAMBDA x * y) (lambda_app_sub x y)
   | beta_j_ap {x y z} : beta ((x || y) * z) (x * z || y * z)
   | beta_r_ap {x y z} : beta ((x (+) y) * z) (x * z (+) y * z)
   | beta_r_idem {x} : beta (x (+) x) x
@@ -209,9 +413,19 @@ Inductive beta {Var : Set} : relation (Term Var) :=
 Hint Constructors beta.
 
 Inductive beta_step {Var : Set} : relation (Term Var) :=
-  | beta_step_left {x x' y} : beta_step x x' -> beta_step (x * y) (x' * y)
-  | beta_step_right {x y y'} : beta_step y y' -> beta_step (x * y) (x * y')
-  | beta_step_lam {x y} : beta_step (LAMBDA x * y) (beta_sub x y)
+  | beta_step_app_left {x x' y} : beta_step x x' -> beta_step (x * y) (x' * y)
+  | beta_step_app_right {x y y'} : beta_step y y' -> beta_step (x * y) (x * y')
+  | beta_step_join_left {x x' y} :
+      beta_step x x' -> beta_step (x || y) (x' || y)
+  | beta_step_join_right {x y y'} :
+      beta_step y y' -> beta_step (x || y) (x || y')
+  | beta_step_rand_left {x x' y} :
+      beta_step x x' -> beta_step (x (+) y) (x' (+) y)
+  | beta_step_rand_right {x y y'} :
+      beta_step y y' -> beta_step (x (+) y) (x (+) y')
+  | beta_step_lambda {x x'} :
+      @beta_step (option Var) x x' -> beta_step (LAMBDA x) (LAMBDA x')
+  | beta_step_sub {x y} : beta_step (LAMBDA x * y) (lambda_app_sub x y)
   | beta_step_j_ap {x y z} : beta_step ((x || y) * z) (x * z || y * z)
   | beta_step_r_ap {x y z} : beta_step ((x (+) y) * z) (x * z (+) y * z)
   | beta_step_r_idem {x} : beta_step (x (+) x) x
@@ -224,19 +438,25 @@ Lemma weaken_beta (Var : Set) (x y : Term Var) :
   beta x y <-> weak_star beta_step x y.
 Proof.
   rewrite <- weaken_star.
-  split; intro H; induction H; eauto.
-  - clear H; induction IHbeta; eauto.
-  - clear H; induction IHbeta; eauto.
-  - induction H; auto.
+  split; intro H; induction H; eauto;
+  match goal with
+  | [IH : star _ _ _ |- star _ _ _ ] => clear H; induction IH; eauto
+  | _ => induction H; auto
+  end.
 Qed.
 
 
 Inductive pi {Var : Set} : relation (Term Var) :=
   | pi_refl {x} : pi x x
   | pi_trans {x} y {z} : pi x y -> pi y z -> pi x z
-  | pi_left {x x' y} : pi x x' -> pi (x * y) (x' * y)
-  | pi_right {x y y'} : pi y y' -> pi (x * y) (x * y')
-  | pi_lam {x y} : pi (LAMBDA x * y) (beta_sub x y)
+  | pi_app_left {x x' y} : pi x x' -> pi (x * y) (x' * y)
+  | pi_app_right {x y y'} : pi y y' -> pi (x * y) (x * y')
+  | pi_join_left {x x' y} : pi x x' -> pi (x || y) (x' || y)
+  | pi_join_right {x y y'} : pi y y' -> pi (x || y) (x || y')
+  | pi_rand_left {x x' y} : pi x x' -> pi (x (+) y) (x' (+) y)
+  | pi_rand_right {x y y'} : pi y y' -> pi (x (+) y) (x (+) y')
+  | pi_lambda {x x'} : @pi (option Var) x x' -> pi (LAMBDA x) (LAMBDA x')
+  | pi_sub {x y} : pi (LAMBDA x * y) (lambda_app_sub x y)
   | pi_j_ap {x y z} : pi ((x || y) * z) (x * z || y * z)
   | pi_r_ap {x y z} : pi ((x (+) y) * z) (x * z (+) y * z)
   | pi_r_idem {x} : pi (x (+) x) x
@@ -250,9 +470,15 @@ Inductive pi {Var : Set} : relation (Term Var) :=
 Hint Constructors pi.
 
 Inductive pi_step {Var : Set} : relation (Term Var) :=
-  | pi_step_left {x x' y} : pi_step x x' -> pi_step (x * y) (x' * y)
-  | pi_step_right {x y y'} : pi_step y y' -> pi_step (x * y) (x * y')
-  | pi_step_lam {x y} : pi_step (LAMBDA x * y) (beta_sub x y)
+  | pi_step_app_left {x x' y} : pi_step x x' -> pi_step (x * y) (x' * y)
+  | pi_step_app_right {x y y'} : pi_step y y' -> pi_step (x * y) (x * y')
+  | pi_step_join_left {x x' y} : pi_step x x' -> pi_step (x || y) (x' || y)
+  | pi_step_join_right {x y y'} : pi_step y y' -> pi_step (x || y) (x || y')
+  | pi_step_rand_left {x x' y} : pi_step x x' -> pi_step (x (+) y) (x' (+) y)
+  | pi_step_rand_right {x y y'} : pi_step y y' -> pi_step (x (+) y) (x (+) y')
+  | pi_step_lambda {x x'} :
+      @pi_step (option Var) x x' -> pi_step (LAMBDA x) (LAMBDA x')
+  | pi_step_sub {x y} : pi_step (LAMBDA x * y) (lambda_app_sub x y)
   | pi_step_j_ap {x y z} : pi_step ((x || y) * z) (x * z || y * z)
   | pi_step_r_ap {x y z} : pi_step ((x (+) y) * z) (x * z (+) y * z)
   | pi_step_r_idem {x} : pi_step (x (+) x) x
@@ -269,28 +495,25 @@ Lemma weaken_pi (Var : Set) (x y : Term Var) :
   pi x y <-> weak_star pi_step x y.
 Proof.
   rewrite <- weaken_star.
-  split; intro H; induction H; eauto.
-  - clear H; induction IHpi; eauto.
-  - clear H; induction IHpi; eauto.
-  - induction H; auto.
+  split; intro H; induction H; eauto;
+  match goal with
+  | [IH : star _ _ _ |- star _ _ _ ] => clear H; induction IH; eauto
+  | _ => induction H; auto
+  end.
 Qed.
 
 
 Hint Rewrite @beta_j_ap @beta_r_ap @beta_r_idem : beta_safe.
-Hint Rewrite @beta_lam : beta_unsafe.
+Hint Rewrite @beta_sub : beta_unsafe.
 
 Tactic Notation "beta_simpl" :=
-  autorewrite with beta_safe.
+  autorewrite with term_simpl beta_safe.
 Tactic Notation "beta_simpl" "in" hyp(H) :=
-  autorewrite with beta_safe in H.
+  autorewrite with term_simpl beta_safe in H.
 Tactic Notation "beta_reduce" :=
-  autorewrite with beta_safe beta_unsafe.
+  autorewrite with term_simpl beta_safe beta_unsafe.
 Tactic Notation "beta_reduce" "in" hyp(H) :=
-  autorewrite with beta_safe beta_unsafe in H.
-Tactic Notation "term_simpl" :=
-  autorewrite with beta_safe term_simpl.
-Tactic Notation "term_simpl" "in" hyp(H) :=
-  autorewrite with beta_safe term_simpl in H.
+  autorewrite with term_simpl beta_safe beta_unsafe in H.
 
 (** To avoid nontermination in [beta_reduce],
     we provide a mechanism to "freeze" terms during reduction. *)
@@ -437,12 +660,14 @@ Proof.
   - intros x y; rewrite weak_star_flip; compute; apply weaken_beta.
   - apply weaken_beta.
   - compute; intros x y z xy yz.
-    induction xy; induction yz; auto.
     (* TODO try induction over just one variable,
        mapping beta to beta.
        The only problem is with steps that are the same (use refl)
        and in beta_r_ when redexes intersect.
        Try to write a tactic matching against beta constructors. *)
+    (* OLD
+    induction xy; induction yz; auto.
+    *)
 Admitted. 
 
 Instance commuting_flip_beta_probe (Var : Set) :
@@ -533,8 +758,10 @@ Proof.
   - intros x y; rewrite weak_star_flip; compute; apply weaken_pi.
   - apply weaken_pi.
   - compute; intros x y z xy yz.
-    induction xy; induction yz; auto.
     (* TODO similar to commuting_flip_beta_beta *)
+    (* OLD
+    induction xy; induction yz; auto.
+    *)
 Admitted. 
 
 Instance commuting_flip_pi_probe (Var : Set) :
@@ -585,7 +812,203 @@ Proof.
   transitivity (TOP * TOP : Term Var); auto.
   transitivity (K * TOP * TOP : Term Var); auto.
   unfold K.
-  rewrite beta_lam; compute.
-  rewrite beta_lam; compute.
+  rewrite beta_sub; compute.
+  rewrite beta_sub; compute.
   auto.
+Qed.
+
+
+(* ------------------------------------------------------------------------ *)
+(** ** Reduction and substitution *)
+
+Lemma term_sub_proper_probe (Var Var' : Set)
+  (f : Var -> Term Var') (x y : Term Var) :
+  probe x y -> probe (x @ f) (y @ f).
+Proof.
+  intro xy; induction xy; simpl.
+  - reflexivity.
+  - transitivity (y @ f); auto.
+  - apply probe_top; auto.
+Qed.
+
+Instance term_map_proper_beta (Var Var' : Set) :
+  Proper (eq ==> beta ==> beta) (@term_map Var Var').
+Proof.
+  intros f f' ff' x x' xx'; rewrite <- ff'; clear f' ff'.
+  revert Var' f; induction xx'; intros Var' f; simpl; auto.
+  - transitivity (term_map f y); auto.
+  - rewrite beta_sub.
+    admit.
+    (*
+    dependent induction x; simpl; auto.
+    *)
+Qed.
+
+Instance some_sub_proper_beta (Var Var' : Set) :
+  Proper ((eq ==> beta) ==> eq ==> beta) (@some_sub Var Var').
+Proof.
+  intros f f' ff'; compute in ff'.
+  intros v v' vv'; rewrite <- vv'; clear v' vv'.
+  case_eq v; auto.
+  intros v' vv'; simpl; rewrite ff'; reflexivity.
+Qed.
+
+Lemma some_sub_beta 
+  (Var Var' : Set) (f g : Var -> Term Var') :
+  (forall v, beta (f v) (g v)) ->
+  forall v, beta (some_sub f v) (some_sub g v).
+Proof.
+  intros Hb v; case_eq v; auto.
+  intros v' vv'; simpl; rewrite Hb; reflexivity.
+Qed.
+
+Lemma term_sub_beta_left
+  (Var Var' : Set) (f g : Var -> Term Var') (x : Term Var) :
+  (forall v, beta (f v) (g v)) -> beta (x @ f) (x @ g).
+Proof.
+  revert Var' f g; induction x; intros Var' f g fg; auto.
+  - simpl; transitivity ((x1 @ g) || (x2 @ f)); auto.
+  - simpl; transitivity ((x1 @ g) (+) (x2 @ f)); auto.
+  - simpl; transitivity ((x1 @ g) * (x2 @ f)); auto.
+  - simpl; auto.
+  - simpl; apply beta_lambda.
+    rewrite (IHx (option Var') (some_sub f) (some_sub g)); clear IHx;
+    intros; auto.
+    apply ext_respectful in fg; rewrite fg; reflexivity.
+Qed.
+Hint Resolve term_sub_beta_left.
+
+Lemma lambda_app_sub_sub
+  (Var : Set) (y : Term Var) (x : Term (option Var))
+  (Var' : Set) (f : Var -> Term Var') :
+  lambda_app_sub x y @ f = lambda_app_sub (x @ some_sub f) (y @ f).
+Proof.
+  revert Var' f.
+  dependent induction x; intros; try (simpl; auto; reflexivity).
+Admitted.
+
+Lemma term_sub_beta_right
+  (Var Var' : Set) (f : Var -> Term Var') (x y : Term Var) :
+  beta x y -> beta (x @ f) (y @ f).
+Proof.
+  intro xy; revert Var' f; induction xy; intros Var' f;
+  try (simpl; auto; reflexivity).
+  - transitivity (y @ f); auto.
+  - simpl; rewrite beta_sub, lambda_app_sub_sub; reflexivity.
+Qed.
+Hint Resolve term_sub_beta_right.
+
+Instance term_sub_proper_beta (Var Var' : Set) :
+  Proper ((eq ==> beta) ==> beta ==> beta) (@term_sub Var Var').
+Proof.
+  intros f g Hfg x y Hxy; transitivity (y @ f);
+  [apply term_sub_beta_right | apply term_sub_beta_left]; auto.
+Qed.
+
+Lemma term_sub_pi_left
+  (Var Var' : Set) (f g : Var -> Term Var') (x : Term Var) :
+  (forall v, pi (f v) (g v)) -> pi (x @ f) (x @ g).
+Proof.
+  revert Var' f g; induction x; intros Var' f g fg; auto.
+  - simpl; transitivity ((x1 @ f) || (x2 @ g)); auto.
+  - simpl; transitivity ((x1 @ f) (+) (x2 @ g)); auto.
+  - simpl; transitivity ((x1 @ f) * (x2 @ g)); auto.
+  - simpl; auto.
+  - simpl; apply pi_lambda.
+    rewrite (IHx (option Var') (some_sub f) (some_sub g)); clear IHx;
+    intros; auto.
+    admit.
+    (* TODO add Instance Proper for sub parts
+    apply ext_respectful in fg; rewrite fg; reflexivity.
+    *)
+Qed.
+Hint Resolve term_sub_pi_left.
+
+Lemma term_sub_pi_right
+  (Var Var' : Set) (f : Var -> Term Var') (x y : Term Var) :
+  pi x y -> pi (x @ f) (y @ f).
+Proof.
+  intro xy; induction xy; repeat rewrite term_sub_ap; simpl; auto.
+  - transitivity (y @ f); auto.
+  - admit.
+  - admit.
+Qed.
+Hint Resolve term_sub_pi_right.
+
+Instance term_sub_proper_pi (Var Var' : Set) :
+  Proper ((eq ==> pi) ==> pi ==> pi) (@term_sub Var Var').
+Proof.
+  intros f g Hfg x y Hxy; transitivity (y @ f);
+  [apply term_sub_pi_right | apply term_sub_pi_left]; auto.
+Qed.
+
+
+(* ------------------------------------------------------------------------ *)
+(** ** Reduction and closing terms *)
+
+Instance term_close_proper_beta (Var : Set) :
+  Proper (beta ==> beta) (@close Var).
+Proof.
+  intros x x' xx'; apply weaken_beta in xx'; induction xx'; auto.
+  revert z xx' IHxx'; induction H; intros;
+  try (compute; term_simpl; eauto; reflexivity).
+  - unfold close; simpl.
+    admit.
+  - unfold close in *; simpl.
+    rewrite beta_sub.
+    unfold lambda_app_sub in *.
+    admit.
+Qed.
+
+Instance term_close_proper_pi (Var : Set) :
+  Proper (pi ==> pi) (@close Var).
+Proof.
+  intros x x' xx'; apply weaken_pi in xx'; induction xx'; auto.
+  revert z xx' IHxx'; induction H; intros;
+  try (compute; term_simpl; eauto; reflexivity).
+  - admit.
+  - admit.
+Qed.
+
+Lemma probe_step_close (Var : Set) (x y : Term Var) :
+  probe_step x y -> probe (close x) (close y).
+Proof.
+  intro Hb; induction Hb; compute; auto.
+Qed.
+
+Lemma probe_close (Var : Set) (x y : Term Var) :
+  probe x y -> probe (close x) (close y).
+Proof.
+  intro Hb; rewrite weaken_probe in Hb; induction Hb; auto.
+  rewrite <- IHHb; clear Hb IHHb; auto using probe_step_close.
+Qed.
+
+Lemma beta_step_close (Var : Set) (x y : Term Var) :
+  beta_step x y -> beta (close x) (close y).
+Proof.
+  intro Hb; induction Hb; try (compute; beta_reduce; auto).
+  - admit.
+  - admit.
+Qed.
+
+Lemma beta_close (Var : Set) (x y : Term Var) :
+  beta x y -> beta (close x) (close y).
+Proof.
+  intro Hb; rewrite weaken_beta in Hb; induction Hb; auto.
+  rewrite <- IHHb; clear Hb IHHb; auto using beta_step_close.
+Qed.
+
+Lemma pi_step_close (Var : Set) (x y : Term Var) :
+  pi_step x y -> pi (close x) (close y).
+Proof.
+  intro Hb; induction Hb; try (compute; beta_reduce; auto).
+  - admit.
+  - admit.
+Qed.
+
+Lemma pi_close (Var : Set) (x y : Term Var) :
+  pi x y -> pi (close x) (close y).
+Proof.
+  intro Hb; rewrite weaken_pi in Hb; induction Hb; auto.
+  rewrite <- IHHb; clear Hb IHHb; auto using pi_step_close.
 Qed.
