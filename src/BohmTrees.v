@@ -9,14 +9,7 @@ Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
 Require Import Coq.Logic.Decidable.
 Require Import Coq.Bool.Bool.
-Require Export Reduction.
-
-Definition conv {Var : Set} : Term Var -> Prop. Admitted.
-Definition term_le {Var : Set} : relation (Term Var). Admitted.
-Definition term_eq {Var : Set} : relation (Term Var). Admitted.
-Notation "x == y" := (term_eq x y) : term_scope.
-Notation "x [= y" := (term_le x y) : term_scope.
-Notation "x :: a" := (a * x == x) : term_scope.
+Require Export InformationOrdering.
 
 (** Bohm trees generalize the normal forms of pure lambda-calculus,
     where the language is extended by
