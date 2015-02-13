@@ -18,17 +18,17 @@ Require Export Notations.
 
 (** ** Terms *)
 
-Inductive term {Var : Set} : Set :=
-  | term_top : term
-  | term_bot : term
-  | term_join : term -> term -> term
-  | term_rand : term -> term -> term
-  | term_app : term -> term -> term
-  | term_var : Var -> term
-  | term_lambda : @term (option Var) -> term.
-Hint Constructors term.
-Definition Term (Var : Set) := @term Var.
-Definition Closed := @term Empty_set.
+Inductive Term {Var : Set} : Set :=
+  | term_top : Term
+  | term_bot : Term
+  | term_join : Term -> Term -> Term
+  | term_rand : Term -> Term -> Term
+  | term_app : Term -> Term -> Term
+  | term_var : Var -> Term
+  | term_lambda : @Term (option Var) -> Term.
+Arguments Term : default implicits.
+Hint Constructors Term.
+Definition Closed := Term Empty_set.
 
 Notation "'TOP'" := term_top : term_scope.
 Notation "'BOT'" := term_bot : term_scope.
@@ -40,7 +40,7 @@ Notation "'LAMBDA'" := term_lambda : term_scope.
 
 Open Scope term_scope.
 Delimit Scope term_scope with term.
-Bind Scope term_scope with term.
+Bind Scope term_scope with Term.
 
 Notation "x * y" := (APP x y) : term_scope.
 Notation "x || y" := (JOIN x y) : term_scope.

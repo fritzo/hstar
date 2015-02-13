@@ -11,21 +11,21 @@ Require Export Notations.
 
 (** ** Codes *)
 
-Inductive code {Var : Set} : Set :=
-  | code_var : Var -> code
-  | code_ap : code -> code -> code
-  | code_top : code
-  | code_bot : code
-  | code_j : code
-  | code_r : code
-  | code_i : code
-  | code_k : code
-  | code_b : code
-  | code_c : code
-  | code_s : code.
-Hint Constructors code.
-Definition Code (Var : Set) := @code Var.
-Definition Closed := @code Empty_set.
+Inductive Code {Var : Set} : Set :=
+  | code_var : Var -> Code
+  | code_ap : Code -> Code -> Code
+  | code_top : Code
+  | code_bot : Code
+  | code_j : Code
+  | code_r : Code
+  | code_i : Code
+  | code_k : Code
+  | code_b : Code
+  | code_c : Code
+  | code_s : Code.
+Arguments Code : default implicits.
+Hint Constructors Code.
+Definition Closed := Code Empty_set.
 
 Notation "'TOP'" := code_top : code_scope.
 Notation "'BOT'" := code_bot : code_scope.
@@ -39,7 +39,7 @@ Notation "'S'" := code_s : code_scope.
 
 Open Scope code_scope.
 Delimit Scope code_scope with code.
-Bind Scope code_scope with code.
+Bind Scope code_scope with Code.
 
 Notation "x * y" := (code_ap x y) : code_scope.
 Notation "x 'o' y" := (code_b * x * y) : code_scope.

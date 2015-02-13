@@ -12,7 +12,7 @@ Open Scope code_scope.
 
 (** ** Properties of types *)
 
-Notation "x :: a" := (a * x == x) : code_scope.
+Notation "x :: a" := (a * x == x)%code : code_scope.
 
 Definition closure {Var : Set} (a : Code Var) := I [= a /\ a o a == a.
 

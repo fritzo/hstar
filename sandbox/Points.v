@@ -40,7 +40,7 @@ Open Scope point_scope.
 Delimit Scope point_scope with point.
 Bind Scope point_scope with Point.
 
-Definition definable {Var : Set} (p : Point Var) := {x : code & p = [x]}.
+Definition definable {Var : Set} (p : Point Var) := {x : Code Var & p = [x]}.
 
 Definition point_le {Var : Set} (p p' : Point Var) :=
   codes_le (access p) (access p').

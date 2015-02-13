@@ -48,7 +48,7 @@ Definition precodes_ap {Var : Set} (s1 s2 : Precodes Var) : Precodes Var :=
 Definition precodes_le {Var : Set} (s1 s2 : Precodes Var) : Prop :=
   let (index1, enum1) := predirect s1 in
   let (index2, enum2) := predirect s2 in
-  forall c : code,
+  forall c : Code Var,
   forall i1 : index1, conv (c * (enum1 i1)) ->
   exists i2 : index2, conv (c * (enum2 i2)).
 
@@ -90,7 +90,7 @@ Section Codes_ap.
 
   Let index12 := (index1 * index2)%type.
 
-  Let enum12 (i : index12) : code :=
+  Let enum12 (i : index12) : Code Var :=
     let (i1, i2) := i in
     (enum1 i1) * (enum2 i2).
 
@@ -121,7 +121,7 @@ Section Codes_sub.
 
   Let index := prod (forall v : Var, (fs v).(index)) xs.(index).
 
-  Let enum (i : index) : code :=
+  Let enum (i : index) : Code Var' :=
     let (fi, xi) := i in
     let f v := (fs v).(enum) (fi v) in
     let x := xs.(enum) xi in
@@ -266,5 +266,5 @@ Section direct_example.
   Let pair := Eval compute in close_var (\x, \y, \z, z * x * y).
   Notation "<< x , y >>" := (pair * x * y).
   Let A_implicit : Codes Var :=
-    codes_sup (<<s, r>> for s : code for r : code if r o s [= I).
+    codes_sup (<<s, r>> for s : Code Var for r : Code Var if r o s [= I).
 End direct_example.
