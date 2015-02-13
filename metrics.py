@@ -46,6 +46,14 @@ def get_metrics(coq_files):
 
 
 @parsable.command
+def print_hole_count(*coq_files):
+    '''
+    Print number of holes in files
+    '''
+    print sum(counts['count'] for counts in count_holes(coq_files))
+
+
+@parsable.command
 def update_readme(*coq_files):
     '''
     Update README.md by replacing the line matching

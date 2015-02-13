@@ -1,6 +1,9 @@
+
+HOLE_COUNT:=$(shell ./metrics.py print-hole-count src/*.v)
+
 all: src sandbox doc metrics
-	@echo '----------------'
-	@echo 'PASSED ALL TESTS'
+	@echo '---------------------------------'
+	@echo 'PASSED WITH' $(HOLE_COUNT) 'HOLES'
 
 src: FORCE
 	cd src ; ./make.sh

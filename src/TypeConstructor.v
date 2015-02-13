@@ -8,7 +8,9 @@ Require Import Coq.Classes.Morphisms.
 Require Export InformationOrdering.
 Require Import Nontermination.
 Require Import LeastFixedPoint.
+(*
 Require Import BohmTrees.
+*)
 Open Scope code_scope.
 
 (* ------------------------------------------------------------------------ *)
@@ -318,6 +320,17 @@ Proof.
   intro H.
   (* TODO use a join argument: A = Join ys and forall y in ys, y f x [= x *)
 Admitted.
+
+(* TODO use BohmTrees lemmas instead of this *)
+Lemma conv_bt_witness (x : Closed) :
+  conv x -> exists k1 k2 b, K ^ k1 * (K ^ k2 o (C * I * BOT) ^ b) [= x.
+Proof.
+  intro H; rewrite conv_closed in H; destruct H as [y [xy yt]].
+  apply weaken_probe in xy; apply weaken_pi in yt.
+  dependent induction yt; eauto.
+  - admit.
+  - admit.
+Qed.
 
 Theorem A_repairs (i : Closed) : ~ i [= BOT -> I [= A * exp * i.
 Proof.

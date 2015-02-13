@@ -12,10 +12,8 @@ body.tex: FORCE
 	$(SRC)/Combinators.v \
 	$(SRC)/Nontermination.v \
 	$(SRC)/LeastFixedPoint.v \
-	$(SRC)/BohmTrees.v \
 	$(SRC)/TypeConstructor.v \
 	$(SRC)/Types.v \
-	$(SRC)/Applications.v \
 	#
 
 main.pdf: main.tex body.tex references.bib
