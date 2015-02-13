@@ -12,7 +12,7 @@ Proof.
   auto.
 Qed.
 
-Lemma conv_nle_bot (Var : Set) (x : Code Var) : conv x <-> ~ x [= BOT.
+Lemma conv_nle_bot (Var : Set) (x : Code Var) : code_conv x <-> ~ x [= BOT.
 Proof.
   split.
   - unfold code_le; intros H Hneg.
@@ -31,7 +31,7 @@ Proof.
     apply sub_top_le.
 Qed.
 
-Lemma not_conv_eq_bot (Var : Set) (x : Code Var) : ~ conv x <-> x == BOT.
+Lemma not_conv_eq_bot (Var : Set) (x : Code Var) : ~ code_conv x <-> x == BOT.
 Proof.
   split.
   - intro Hd; split; auto.
@@ -49,7 +49,7 @@ Proof.
     apply not_conv_bot in Hc; auto.
 Qed.
 
-Lemma not_conv_div_bot (Var : Set) : ~ conv (div * BOT : Code Var).
+Lemma not_conv_div_bot (Var : Set) : ~ code_conv (div * BOT : Code Var).
 Proof.
   (* TODO enumerate pi-reachable terms, then show TOP is not reachable *)
 Admitted.

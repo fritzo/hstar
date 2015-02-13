@@ -11,12 +11,12 @@ Require Import Coq.Logic.Decidable.
 Require Import Coq.Bool.Bool.
 Require Import DeBruijn.
 
-Definition conv {Var : Set} : Term Var -> Prop. Admitted.
+Definition term_conv {Var : Set} : Term Var -> Prop. Admitted.
 Definition term_le {Var : Set} : relation (Term Var). Admitted.
 Definition term_eq {Var : Set} : relation (Term Var). Admitted.
-Notation "x == y" := (term_eq x y) : term_scope.
-Notation "x [= y" := (term_le x y) : term_scope.
-Notation "x :: a" := (a * x == x) : term_scope.
+Notation "x == y" := (term_eq x y)%term : term_scope.
+Notation "x [= y" := (term_le x y)%term : term_scope.
+Notation "x :: a" := (term_app a x == x)%term : term_scope.
 
 (** Bohm trees generalize the normal forms of pure lambda-calculus,
     where the language is extended by
@@ -133,8 +133,10 @@ Qed.
 Definition if_true (b : bool) : Set := if b then unit else Empty_set. 
 Definition if_false (b : bool) : Set := if b then Empty_set else unit. 
 
+(*
 Notation "x <--> y" := ((x -> y) * (y -> x))%type
   (at level 95, no associativity).
+*)
 
 Lemma normal_is_normal {Var : Set} (x : Term Var) :
  normal x <-> is_normal x = true.
@@ -291,7 +293,7 @@ Fixpoint normal_conv {Var : Set} (x : Term Var) : bool :=
   end.
 
 Lemma normal_conv_correct (Var : Set) (x : Term Var) :
-  if normal_conv x then conv x else ~ conv x.
+  if normal_conv x then term_conv x else ~ term_conv x.
 Proof.
   induction x; simpl; auto.
 Admitted.
@@ -299,11 +301,11 @@ Admitted.
 (* These version has better style, but how to implement it? *)
 
 Fixpoint normal_conv' {Var : Set} (x : Term Var) :
-  normal x -> {conv x} + {~ conv x}.
+  normal x -> {term_conv x} + {~ term_conv x}.
 Admitted.
 
 Fixpoint try_decide_conv {Var : Set} (x : Term Var) :
-  {conv x} + {~ conv x} + {~normal x}.
+  {term_conv x} + {~ term_conv x} + {~normal x}.
 Admitted.
 
 
@@ -331,7 +333,7 @@ Admitted.
 Definition normal_le {Var : Set} : relation (Term Var) :=
   fun x y => normal_is_le x y = true.
 
-Fixpoint try_decide_le (x y : Closed) :
+Fixpoint try_decide_le (x y : ClosedTerm) :
   {x [= y} + {~ x [= y} + {~normal x \/ ~normal y}.
 Admitted.
 
@@ -376,7 +378,7 @@ Admitted.
 
 (** Bohm's theorem construct from this witness a separating context. *)
 
-Theorem Bohms_theorem (x y : Closed) :
+Theorem Bohms_theorem (x y : ClosedTerm) :
   normal x -> normal y -> ~ x [= y ->
   exists c, TOP [= c * x /\ c * y [= BOT.
 Proof.
@@ -386,12 +388,12 @@ Admitted.
 (** Constructively, we can decide order among normal forms
     and discover a witness (even a normal witness) of non-ordering. *)
 
-Fixpoint normal_le_witness (x y : Closed) :
+Fixpoint normal_le_witness (x y : ClosedTerm) :
   normal x -> normal y ->
   {c | normal c /\ TOP [= c * x /\ c * y [= BOT} + {x [= y}.
 Admitted.
 
-Fixpoint try_decide_le_witness (x y : Closed) :
+Fixpoint try_decide_le_witness (x y : ClosedTerm) :
   {c | TOP [= c * x /\ c * y [= BOT /\ normal c} +
   {x [= y} +
   {~normal x \/ ~normal y}.

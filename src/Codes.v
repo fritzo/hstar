@@ -25,7 +25,7 @@ Inductive Code {Var : Set} : Set :=
   | code_s : Code.
 Arguments Code : default implicits.
 Hint Constructors Code.
-Definition Closed := Code Empty_set.
+Definition ClosedCode := Code Empty_set.
 
 Notation "'TOP'" := code_top : code_scope.
 Notation "'BOT'" := code_bot : code_scope.
@@ -41,10 +41,10 @@ Open Scope code_scope.
 Delimit Scope code_scope with code.
 Bind Scope code_scope with Code.
 
-Notation "x * y" := (code_ap x y) : code_scope.
-Notation "x 'o' y" := (code_b * x * y) : code_scope.
-Notation "x || y" := (code_j * x * y) : code_scope.
-Notation "x (+) y" := (code_r * x * y) : code_scope.
+Notation "x * y" := (code_ap x y)%code : code_scope.
+Notation "x 'o' y" := (code_b * x * y)%code : code_scope.
+Notation "x || y" := (code_j * x * y)%code : code_scope.
+Notation "x (+) y" := (code_r * x * y)%code : code_scope.
 
 Definition code_join {Var : Set} x y : Code Var := x || y.
 

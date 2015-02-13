@@ -12,11 +12,11 @@ Open Scope code_scope.
 
 Definition code_le {Var : Set} (x y : Code Var) :=
   forall (Var' : Set) (c : Code Var') (f : Var -> Code Var'),
-  conv (c * (x @ f)) -> conv (c * (y @ f)).
-Notation "x [= y" := (code_le x y) : code_scope.
+  code_conv (c * (x @ f)) -> code_conv (c * (y @ f)).
+Notation "x [= y" := (code_le x y)%code : code_scope.
 
 Definition code_eq {Var : Set} (x y : Code Var) := x [= y /\ y [= x.
-Notation "x == y" := (code_eq x y) : code_scope.
+Notation "x == y" := (code_eq x y)%code : code_scope.
 
 Instance code_le_eq_subrelation (Var : Set) :
   subrelation (@code_eq Var) (@code_le Var).
@@ -215,14 +215,14 @@ Ltac monotonicity :=
   | [|- _ == _] => code_eq_monotonicity
   end.
 
-Instance conv_proper_le (Var : Set) : Proper (code_le ++> impl) (@conv Var).
+Instance conv_proper_le (Var : Set) : Proper (code_le ++> impl) (@code_conv Var).
 Proof.
   intros x y Hxy Hc; unfold code_le in Hxy.
   rewrite <- var_monad_unit_right; rewrite <- beta_i.
   apply Hxy; code_simpl; auto.
 Qed.
 
-Instance conv_proper_eq (Var : Set) : Proper (code_eq ==> iff) (@conv Var).
+Instance conv_proper_eq (Var : Set) : Proper (code_eq ==> iff) (@code_conv Var).
 Proof.
   intros x y [Hxy Hyx]; split; intro Hc;
   [rewrite <- Hxy | rewrite <- Hyx]; auto.
@@ -500,7 +500,7 @@ Fixpoint code_apply {Var : Set} (x : Code Var) (ys : list (Code Var)) :
   | (y ::ys')%list => code_apply (x * y) ys'
   end.
 
-Notation "x ** y" := (code_apply x y) : code_scope.
+Notation "x ** y" := (code_apply x y)%code : code_scope.
 
 Instance code_apply_proper_le (Var : Set) :
   Proper (code_le ==> eq ==> code_le) (@code_apply Var).
@@ -522,7 +522,7 @@ Fixpoint code_repeat {Var : Set} (x : Code Var) (n : nat) : list (Code Var) :=
   | Succ n' => (x :: code_repeat x n')%list
   end.
 
-Notation "x ^^ n" := (code_repeat x n) : code_scope.
+Notation "x ^^ n" := (code_repeat x n)%code : code_scope.
 
 Fixpoint code_tuple {Var : Set} (ys : list (Code Var)) : Code Var :=
   match ys with
@@ -557,7 +557,7 @@ Proof.
 Qed.
 Hint Resolve code_repeat_top.
 
-Lemma ap_top_conv (Var : Set) (x : Code Var) : conv x <-> conv (x * TOP).
+Lemma ap_top_conv (Var : Set) (x : Code Var) : code_conv x <-> code_conv (x * TOP).
 Proof.
   assert (probe x (x * TOP)) as eq; auto.
   rewrite <- eq; reflexivity.
@@ -565,7 +565,7 @@ Qed.
 
 Definition weak_code_le {Var : Set} (x x' : Code Var) : Prop :=
   forall (ys : list (Code Empty_set)) (f : Var -> Code Empty_set),
-  conv ((x @ f) ** ys) -> conv ((x' @ f) ** ys).
+  code_conv ((x @ f) ** ys) -> code_conv ((x' @ f) ** ys).
 
 Lemma weak_code_le_complete (Var : Set) (x x' : Code Var) :
   x [= x' -> weak_code_le x x'.
@@ -580,7 +580,7 @@ Lemma weak_code_le_sound (Var : Set) (x x' : Code Var) :
 Proof.
   unfold code_le; intros H Var' c f Hconv.
   assert (forall (ys : list (Code Var')),
-    conv ((x @ f) ** ys) -> conv ((x' @ f) ** ys)) as H'; auto; clear H.
+    code_conv ((x @ f) ** ys) -> code_conv ((x' @ f) ** ys)) as H'; auto; clear H.
   set (y := x @ f) in *; set (y' := x' @ f) in *.
   inversion Hconv; simpl; auto.
   (* TODO maybe prove by induction on BT of c? *)
@@ -594,7 +594,7 @@ Qed.
 
 Ltac code_le_weaken := apply code_le_weaken; unfold weak_code_le.
 
-Lemma conv_ap (Var : Set) (x a : Code Var) : conv (x * a) -> conv x.
+Lemma conv_ap (Var : Set) (x a : Code Var) : code_conv (x * a) -> code_conv x.
 Proof.
   rewrite (code_le_top _ a).
   intros [y [xy yt]].
@@ -604,7 +604,7 @@ Proof.
 Qed.
 
 Lemma conv_apply (Var : Set) (x : Code Var) (ys : list (Code Var)) :
-  conv (x ** ys) -> conv x.
+  code_conv (x ** ys) -> code_conv x.
 Proof.
   revert x; induction ys; simpl; intros; eauto using conv_ap.
 Qed.

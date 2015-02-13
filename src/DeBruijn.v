@@ -30,7 +30,7 @@ Inductive Term {Var : Set} : Set :=
   | term_lambda : @Term (option Var) -> Term.
 Arguments Term : default implicits.
 Hint Constructors Term.
-Definition Closed := Term Empty_set.
+Definition ClosedTerm := Term Empty_set.
 
 Notation "'TOP'" := term_top : term_scope.
 Notation "'BOT'" := term_bot : term_scope.
@@ -44,9 +44,9 @@ Open Scope term_scope.
 Delimit Scope term_scope with term.
 Bind Scope term_scope with Term.
 
-Notation "x * y" := (APP x y) : term_scope.
-Notation "x || y" := (JOIN x y) : term_scope.
-Notation "x (+) y" := (RAND x y) : term_scope.
+Notation "x * y" := (APP x y)%term : term_scope.
+Notation "x || y" := (JOIN x y)%term : term_scope.
+Notation "x (+) y" := (RAND x y)%term : term_scope.
 
 
 (* ------------------------------------------------------------------------ *)
@@ -109,10 +109,10 @@ Section I.
 End I.
 Print S.  (* Ugly! *)
 
-Notation "x 'o' y" := (B * x * y) : term_scope.
+Notation "x 'o' y" := (B * x * y)%term : term_scope.
 
 (* TODO figure out how to use lambda notation
-Notation "\ x , y" := (LAMBDA) : code_scope.
+Notation "\ x , y" := (LAMBDA)%term : code_scope.
 *)
 
 
@@ -204,13 +204,13 @@ Proof.
     apply some_sub_proper; auto.
 Qed.
 
-Notation "x @ f" := (term_sub f x) : term_scope.
+Notation "x @ f" := (term_sub f x)%term : term_scope.
 
-Definition sub_top {Var : Set} (v : Var) : Closed := TOP.
-Definition close {Var : Set} : Term Var -> Closed := term_sub sub_top.
+Definition sub_top {Var : Set} (v : Var) : ClosedTerm := TOP.
+Definition close {Var : Set} : Term Var -> ClosedTerm := term_sub sub_top.
 
 Definition sub_empty {Var : Set} (v : Empty_set) : Var := match v with end.
-Definition open (Var : Set) : Closed -> Term Var := term_map sub_empty.
+Definition open (Var : Set) : ClosedTerm -> Term Var := term_map sub_empty.
 
 Tactic Notation "term_simpl" := autorewrite with term_simpl.
 Tactic Notation "term_simpl" "in" hyp(H) := autorewrite with term_simpl in H.
@@ -286,9 +286,9 @@ Qed.
 Hint Rewrite close_idempotent : beta_simpl.
 Hint Rewrite close_idempotent : term_simpl.
 
-Lemma close_closed (x : Closed) : close x = x.
+Lemma close_closed (x : ClosedTerm) : close x = x.
 Proof.
-  unfold Closed in x; unfold close, sub_top.
+  unfold ClosedTerm in x; unfold close, sub_top.
   dependent induction x; term_simpl;
   match goal with [v : Empty_set |- _] => destruct v | _ => idtac end; auto.
   - rewrite IHx1; rewrite IHx2; reflexivity.

@@ -191,7 +191,7 @@ Definition code_lambda {Var : Set} (x y : Code (nat + Var)) :
   | _ => BOT  (* TODO implement pattern matching here *)
   end.
 
-Notation "\ x , y" := (code_lambda x y) : code_scope.
+Notation "\ x , y" := (code_lambda x y)%code : code_scope.
 
 (** ** Standard combinators *)
 
@@ -254,7 +254,7 @@ Proof.
   rewrite code_eq_v' at 1; beta_simpl; auto.
 Qed.
 
-Lemma conv_div (Var : Set) (x : Code Var) : conv x <-> conv (div * x).
+Lemma conv_div (Var : Set) (x : Code Var) : code_conv x <-> code_conv (div * x).
 Proof.
   split; intro Hc.
     rewrite code_eq_div.
@@ -263,7 +263,7 @@ Proof.
   admit. (* TODO use limit characterization of div and induction on probe *)
 Qed.
 
-Lemma conv_div_top (x : Code Empty_set) : conv x <-> div * x == TOP.
+Lemma conv_div_top (x : Code Empty_set) : code_conv x <-> div * x == TOP.
 Proof.
   split.
     (* OLD
@@ -274,7 +274,7 @@ Proof.
     admit.
   intros [H' H]; clear H'; unfold code_le in H.
   (* rewrite <- var_monad_unit_right; rewrite <- beta_i. *)
-  assert (conv (I * (TOP @ code_var) : Code Empty_set)) as Ht; code_simpl; auto.
+  assert (code_conv (I * (TOP @ code_var) : Code Empty_set)) as Ht; code_simpl; auto.
   set (Hd := H Empty_set I code_var Ht).
   code_simpl in Hd.
   apply conv_div; auto.

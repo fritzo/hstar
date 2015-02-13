@@ -6,17 +6,17 @@ Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
 Require Export Substitution.
 
-Definition conv {Var : Set} (x : Code Var) : Prop :=
+Definition code_conv {Var : Set} (x : Code Var) : Prop :=
   exists y, probe (close x) y /\ pi y TOP.
 
-Lemma conv_close (Var : Set) (x : Code Var) : conv (close x) <-> conv x.
+Lemma conv_close (Var : Set) (x : Code Var) : code_conv (close x) <-> code_conv x.
 Proof.
-  unfold conv; code_simpl; tauto.
+  unfold code_conv; code_simpl; tauto.
 Qed.
 
-Lemma conv_closed (x : Closed) : conv x <-> exists y, probe x y /\ pi y TOP.
+Lemma conv_closed (x : ClosedCode) : code_conv x <-> exists y, probe x y /\ pi y TOP.
 Proof.
-  unfold conv; rewrite close_closed; reflexivity.
+  unfold code_conv; rewrite close_closed; reflexivity.
 Qed.
 
 Inductive prob {Var : Set} : Code Var -> Prop :=
@@ -38,17 +38,17 @@ Ltac wlog_closed x :=
   assert (close x = x) as Hcx; [rewrite -> Ex; apply close_idempotent|];
   repeat
   match goal with
-    | [ H : conv x |- _] =>
+    | [ H : code_conv x |- _] =>
         rewrite <- conv_close in H;
         replace (close cx) with x in H
-    | [|- conv x ] =>
+    | [|- code_conv x ] =>
         rewrite <- conv_close;
         replace (close cx) with x
     | _ => idtac
   end.
 
 Instance conv_proper_beta (Var : Set) :
-  Proper (beta ==> iff) (@conv Var).
+  Proper (beta ==> iff) (@code_conv Var).
 Proof.
   intros x x' xx'; split; intro H;
   wlog_closed x; wlog_closed x';
@@ -66,7 +66,7 @@ Proof.
     rewrite yy'; auto.
 Qed.
 
-Instance conv_proper_pi (Var : Set) : Proper (pi --> impl) (@conv Var).
+Instance conv_proper_pi (Var : Set) : Proper (pi --> impl) (@code_conv Var).
 Proof.
   intros x x' xx' [y [xy yt]];
   wlog_closed x; wlog_closed x';
@@ -76,7 +76,7 @@ Proof.
   split; [rewrite <- Ex'; auto| eauto].
 Qed.
 
-Instance conv_proper_probe (Var : Set) : Proper (probe ==> iff) (@conv Var).
+Instance conv_proper_probe (Var : Set) : Proper (probe ==> iff) (@code_conv Var).
 Proof.
   intros x x' xx'; split; intro H;
   wlog_closed x; wlog_closed x';
@@ -93,7 +93,7 @@ Proof.
     rewrite <- Ex; auto.
 Qed.
 
-Lemma conv_top (Var : Set) : conv (TOP : Code Var).
+Lemma conv_top (Var : Set) : code_conv (TOP : Code Var).
 Proof.
   exists TOP; split; auto.
 Qed.
@@ -136,7 +136,7 @@ Proof.
   intros Ht; induction Ht; intros; heads.
 Qed.
 
-Lemma not_conv_heads_bot (Var : Set) (x : Code Var) : heads BOT x -> ~ conv x.
+Lemma not_conv_heads_bot (Var : Set) (x : Code Var) : heads BOT x -> ~ code_conv x.
 Proof.
   intros H [y [xy yt]].
   apply (heads_close) in H.
@@ -145,7 +145,7 @@ Proof.
   inversion H; auto.
 Qed.
 
-Lemma not_conv_bot (Var : Set) : ~ conv (BOT : Code Var).
+Lemma not_conv_bot (Var : Set) : ~ code_conv (BOT : Code Var).
 Proof.
   apply not_conv_heads_bot; heads.
 Qed.

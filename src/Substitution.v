@@ -19,7 +19,7 @@ Fixpoint code_sub {Var Var' : Set}
   | S => S
   end.
 
-Notation "x @ f" := (code_sub f x) : code_scope.
+Notation "x @ f" := (code_sub f x)%code : code_scope.
 
 Definition sub_top {Var : Set} (v : Var) : Code Empty_set := TOP.
 Definition close {Var : Set} : Code Var -> Code Empty_set := code_sub sub_top.
@@ -66,7 +66,7 @@ Qed.
 Hint Rewrite close_idempotent : beta_simpl.
 Hint Rewrite close_idempotent : code_simpl.
 
-Lemma close_closed (x : Closed) : close x = x.
+Lemma close_closed (x : ClosedCode) : close x = x.
 Proof.
   compute; code_simpl; induction x;
   match goal with [v : Empty_set |- _] => destruct v | _ => idtac end; auto.

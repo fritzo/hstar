@@ -49,8 +49,8 @@ Definition precodes_le {Var : Set} (s1 s2 : Precodes Var) : Prop :=
   let (index1, enum1) := predirect s1 in
   let (index2, enum2) := predirect s2 in
   forall c : Code Var,
-  forall i1 : index1, conv (c * (enum1 i1)) ->
-  exists i2 : index2, conv (c * (enum2 i2)).
+  forall i1 : index1, code_conv (c * (enum1 i1)) ->
+  exists i2 : index2, code_conv (c * (enum2 i2)).
 
 (** ** Indexed codes with directedness certificates *)
 
@@ -232,8 +232,8 @@ Definition codes_le {Var : Set} (s1 s2 : Codes Var) : Prop :=
   let (index1, enum1, _, _) := s1 in
   let (index2, enum2, _, _) := s2 in
   forall {Var' : Set} (c : Code Var') (f : Var -> Code Var'),
-  forall i1 : index1, conv (c * (enum1 i1 @ f))%code ->
-  exists i2 : index2, conv (c * (enum2 i2 @ f))%code.
+  forall i1 : index1, code_conv (c * (enum1 i1 @ f))%code ->
+  exists i2 : index2, code_conv (c * (enum2 i2 @ f))%code.
 
 Definition codes_eq {Var : Set} (x y : Codes Var) : Prop :=
   codes_le x y /\ codes_le y x.

@@ -51,7 +51,7 @@ Qed.
 Lemma Y_limit_lb
   (Var : Set) (f : Code Var)
   (Var' : Set) (c : Code Var') (b : Var -> Code Var') :
-  conv (c * (Y * f @ b)) -> exists n, conv (c * (f ^ n * BOT @ b)).
+  code_conv (c * (Y * f @ b)) -> exists n, code_conv (c * (f ^ n * BOT @ b)).
 Proof.
   (* sketch: prove the only beta path from [Y * f] to [f ...] is [code_eq_y]. *)
 Admitted.

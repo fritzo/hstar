@@ -264,7 +264,7 @@ Qed.
 
 (** ** Definability and accessibility *)
 
-(* FIXME should [definable] and [conv] be [Set] or [Prop]? *)
+(* FIXME should [definable] and [code_conv] be [Set] or [Prop]? *)
 
 Inductive definable : Ob -> Set :=
   | S_definable : definable S
@@ -279,20 +279,20 @@ Axiom accessibility :
   forall x : Ob, x = Join (y for y : Ob if definable y).
 
 (** This is specialized to SKJ, TODO update for SKRJ *)
-Inductive conv : Ob -> Set :=
-  | conv_TOP : conv TOP
-  | conv_AP_TOP x : conv (x * TOP) -> conv x.
+Inductive code_conv : Ob -> Set :=
+  | conv_TOP : code_conv TOP
+  | conv_AP_TOP x : code_conv (x * TOP) -> code_conv x.
 
-Hint Constructors conv.
+Hint Constructors code_conv.
 
 Axiom LESS_conv :
-  forall x y, (forall f, definable f -> conv (f*x) -> conv (f*y)) -> x [= y.
+  forall x y, (forall f, definable f -> code_conv (f*x) -> code_conv (f*y)) -> x [= y.
 
 Notation "x <--> y" := ((x -> y) * (y -> x))%type
   (at level 95, no associativity) : type_scope.
 
 Lemma eq_conv :
-  forall x y, (forall f, definable f -> conv (f*x) <--> conv (f*y)) -> x = y.
+  forall x y, (forall f, definable f -> code_conv (f*x) <--> code_conv (f*y)) -> x = y.
 Proof.
   intros x y H.
   apply LESS_antisym; apply LESS_conv; intros f Hdef; firstorder.

@@ -8,9 +8,7 @@ Require Import Coq.Classes.Morphisms.
 Require Export InformationOrdering.
 Require Import Nontermination.
 Require Import LeastFixedPoint.
-(*
 Require Import BohmTrees.
-*)
 Open Scope code_scope.
 
 (* ------------------------------------------------------------------------ *)
@@ -322,8 +320,8 @@ Proof.
 Admitted.
 
 (* TODO use BohmTrees lemmas instead of this *)
-Lemma conv_bt_witness (x : Closed) :
-  conv x -> exists k1 k2 b, K ^ k1 * (K ^ k2 o (C * I * BOT) ^ b) [= x.
+Lemma conv_bt_witness (x : ClosedCode) :
+  code_conv x -> exists k1 k2 b, K ^ k1 * (K ^ k2 o (C * I * BOT) ^ b) [= x.
 Proof.
   intro H; rewrite conv_closed in H; destruct H as [y [xy yt]].
   apply weaken_probe in xy; apply weaken_pi in yt.
@@ -332,7 +330,7 @@ Proof.
   - admit.
 Qed.
 
-Theorem A_repairs (i : Closed) : ~ i [= BOT -> I [= A * exp * i.
+Theorem A_repairs (i : ClosedCode) : ~ i [= BOT -> I [= A * exp * i.
 Proof.
   intro H; apply conv_nle_bot in H.
   apply conv_bt_witness in H; destruct H as [k1 [k2 [b H]]]; revert i H.
@@ -347,7 +345,7 @@ Proof.
   admit.
 Qed.
 
-Theorem A_raises (i : Closed) : ~ i [= I -> TOP [= A * exp * i.
+Theorem A_raises (i : ClosedCode) : ~ i [= I -> TOP [= A * exp * i.
 Proof.
   (* TODO this requires a Bohm-out argument *)
 Admitted.

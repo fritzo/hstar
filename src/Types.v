@@ -12,7 +12,7 @@ Open Scope code_scope.
 
 (** ** Properties of types *)
 
-Notation "x :: a" := (a * x == x)%code : code_scope.
+Notation "x :: a" := (code_ap a x == x)%code : code_scope.
 
 Definition closure {Var : Set} (a : Code Var) := I [= a /\ a o a == a.
 
@@ -250,7 +250,7 @@ Proof.
 Qed.
 Hint Rewrite V_TOP : code_simpl.
 
-Inductive TOP_fixes : Closed -> Prop :=
+Inductive TOP_fixes : ClosedCode -> Prop :=
   | TOP_fixes_eq x y : x == y -> TOP_fixes x -> TOP_fixes y
   | TOP_fixes_top : TOP_fixes TOP.
 Hint Constructors TOP_fixes.
@@ -263,12 +263,12 @@ Qed.
 
 (* main theorem *)
 
-Theorem TOP_sound (x : Closed) : x :: TOP -> TOP_fixes x.
+Theorem TOP_sound (x : ClosedCode) : x :: TOP -> TOP_fixes x.
 Proof.
   intros H; code_simpl in H; rewrite <- H; auto.
 Qed.
 
-Theorem TOP_inhab (x : Closed) : x :: TOP <-> TOP_fixes x.
+Theorem TOP_inhab (x : ClosedCode) : x :: TOP <-> TOP_fixes x.
 Proof.
   split.
     apply TOP_sound.
@@ -569,7 +569,7 @@ Qed.
 Hint Rewrite div_inhab_top : code_simpl.
 
 (* FIXME this only works for closed codes *)
-Inductive div_fixes : Closed -> Prop :=
+Inductive div_fixes : ClosedCode -> Prop :=
   | div_fixes_eq x y : x == y -> div_fixes x -> div_fixes y
   | div_fixes_bot : div_fixes BOT
   | div_fixes_top : div_fixes TOP.
@@ -581,7 +581,7 @@ Proof.
   intro H; induction H; eauto.
 Qed.
 
-Theorem div_sound (x : Closed) : x :: div -> div_fixes x.
+Theorem div_sound (x : ClosedCode) : x :: div -> div_fixes x.
 Proof.
   intros H.
   case_le (x [= BOT) as H'.
@@ -591,7 +591,7 @@ Proof.
     apply conv_div_top in H'; rewrite H'; auto.
 Qed.
 
-Theorem div_inhab (x : Closed) : x :: div <-> div_fixes x.
+Theorem div_inhab (x : ClosedCode) : x :: div <-> div_fixes x.
 Proof.
   split.
     apply div_sound.
@@ -768,7 +768,7 @@ Proof.
 Qed.
 Hint Rewrite semi_inhab_top : code_simpl.
 
-Inductive semi_fixes : Closed -> Prop :=
+Inductive semi_fixes : ClosedCode -> Prop :=
   | semi_fixes_eq x y : x == y -> semi_fixes x -> semi_fixes y
   | semi_fixes_bot : semi_fixes BOT
   | semi_fixes_i : semi_fixes I
@@ -783,7 +783,7 @@ Qed.
 
 (* main theorem *)
 
-Theorem semi_sound (x : Closed) : x :: semi -> semi_fixes x.
+Theorem semi_sound (x : ClosedCode) : x :: semi -> semi_fixes x.
 Proof.
   intros H.
   case_le (x [= BOT) as Hbot.
@@ -796,7 +796,7 @@ Proof.
   rewrite eq; auto.
 Qed.
 
-Theorem semi_inhab (x : Closed) : x :: semi <-> semi_fixes x.
+Theorem semi_inhab (x : ClosedCode) : x :: semi <-> semi_fixes x.
 Proof.
   split.
     apply semi_sound.
@@ -911,7 +911,7 @@ Proof.
 Qed.
 Hint Rewrite boool_inhab_top : code_simpl.
 
-Inductive boool_fixes : Closed -> Prop :=
+Inductive boool_fixes : ClosedCode -> Prop :=
   | boool_fixes_eq x y : x == y -> boool_fixes x -> boool_fixes y
   | boool_fixes_bot : boool_fixes BOT
   | boool_fixes_k : boool_fixes K
@@ -926,7 +926,7 @@ Proof.
   intro H; induction H; eauto.
 Qed.
 
-Theorem boool_sound (x : Closed) : x :: boool -> boool_fixes x.
+Theorem boool_sound (x : ClosedCode) : x :: boool -> boool_fixes x.
 Proof.
   intros H.
   case_le (x [= BOT) as Hbot.
@@ -944,7 +944,7 @@ Proof.
   *)
 Admitted.
 
-Theorem boool_inhab (x : Closed) : x :: boool <-> boool_fixes x.
+Theorem boool_inhab (x : ClosedCode) : x :: boool <-> boool_fixes x.
 Proof.
   split.
     apply boool_sound.
@@ -1041,7 +1041,7 @@ Proof.
 Qed.
 Hint Rewrite bool_j_top : code_simpl.
 
-Inductive bool_fixes : Closed -> Prop :=
+Inductive bool_fixes : ClosedCode -> Prop :=
   | bool_fixes_eq x y : x == y -> bool_fixes x -> bool_fixes y
   | bool_fixes_bot : bool_fixes BOT
   | bool_fixes_k : bool_fixes K
@@ -1064,7 +1064,7 @@ Proof.
   apply absolute_consistency in H; contradiction H.
 Qed.
 
-Theorem bool_sound (x : Closed) : x :: bool -> bool_fixes x.
+Theorem bool_sound (x : ClosedCode) : x :: bool -> bool_fixes x.
 Proof.
   intro H; set (H' := H);
   unfold bool in H'; fold (@boool Empty_set) in H'; fold (@P Empty_set) in H'.
@@ -1075,7 +1075,7 @@ Proof.
   apply code_nle_top_j in H; contradiction H.
 Qed.
 
-Theorem bool_inhab (x : Closed) : x :: bool <-> bool_fixes x.
+Theorem bool_inhab (x : ClosedCode) : x :: bool <-> bool_fixes x.
 Proof.
   split.
     apply bool_sound.

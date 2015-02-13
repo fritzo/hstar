@@ -13,6 +13,7 @@ body.tex: FORCE
 	$(SRC)/Nontermination.v \
 	$(SRC)/LeastFixedPoint.v \
 	$(SRC)/DeBruijn.v \
+	$(SRC)/Compile.v \
 	$(SRC)/BohmTrees.v \
 	$(SRC)/TypeConstructor.v \
 	$(SRC)/Types.v \

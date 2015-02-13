@@ -129,7 +129,7 @@ Section Omega.
   Let x := VAR 0.
   Definition Omega := encode ((\x, x*x) * (\x, x*x)).
 End Omega.
-Lemma Omega_diverges : conv Omega -> Empty_set.
+Lemma Omega_diverges : code_conv Omega -> Empty_set.
 Proof.
   compute; intros H.
   inversion H.
