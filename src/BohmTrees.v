@@ -273,7 +273,7 @@ Fixpoint normal_conv {Var : Set} (x : Term Var) : bool :=
   | BOT => false
   | (x1 || x2) => orb (normal_conv x1) (normal_conv x2)
   | x1 (+) x2 => andb (normal_conv x1) (normal_conv x2)
-  | x1 * x2 => normal_conv x1
+  | x1 * x2 => normal_conv x1  (* assumes x is normal *)
   | term_lambda x => normal_conv x
   | term_var v => true
   end.
@@ -284,15 +284,13 @@ Proof.
   induction x; simpl; auto.
 Admitted.
 
-(* These version has better style, but how to implement it? *)
-
 Definition normal_conv' {Var : Set} (x : Term Var) :
   normal x -> {term_conv x} + {~ term_conv x}.
 Proof.
   intro Hn.
   set (H := normal_conv_correct Var x).
   case_eq (normal_conv x); intro Hc; rewrite Hc in H; simpl in H;
-  [ apply left | apply right]; auto.
+  [ apply left | apply right]; assumption.
 Defined.
 
 Definition try_decide_conv {Var : Set} (x : Term Var) :
@@ -303,7 +301,7 @@ Proof.
     apply inleft; apply normal_conv'; auto.
   - assert (~ is_normal x = true) as Hn'.
       rewrite Hn; auto.
-    assert (~normal x) as Hc'.
+    assert (~ normal x) as Hc'.
       intro Hc'; apply normal_is_normal in Hc'; contradiction.
     apply inright; auto.
 Defined.
@@ -321,14 +319,18 @@ Admitted.
 Fixpoint normal_is_le {Var : Set} (x y : Term Var) : bool.
 Admitted.
 
-Fixpoint normal_is_le' {Var : Set} (x y : Term Var) :
-  normal x -> normal y -> {x [= y} + {~ x [= y}.
-Admitted.
-
 Lemma normal_is_le_correct (Var : Set) (x y : Term Var) :
   normal x -> normal y ->
   if normal_is_le x y then x [= y else ~ x [= y.
 Admitted.
+
+Definition normal_is_le' {Var : Set} (x y : Term Var) :
+  normal x -> normal y -> {x [= y} + {~ x [= y}.
+Proof.
+  intros Hnx Hny; set (H := normal_is_le_correct Var x y Hnx Hny).
+  case_eq (normal_is_le x y); intro eq; rewrite eq in H; simpl in H;
+  [apply left | apply right]; assumption.
+Defined.
 
 Definition normal_le {Var : Set} : relation (Term Var) :=
   fun x y => normal_is_le x y = true.
@@ -342,70 +344,72 @@ Admitted.
 (** The [normal_dense] theorem motivates where to allow [JOIN] and [RAND]
     in Bohm trees.
     Whereas \cite{obermeyer2009automated} restricts [JOIN] and [RAND] to
-    the arguments of an [inert] variable,
+    the argument of an [inert] variables,
     we here allow them at the top level
-    to allow finite joins and dyadic mixtures.
+    to allow finite joins of dyadic mixtures.
     *)
 
-Theorem normal_dense {Var : Set} (x y : Term Var) :
-  (forall x', normal x' -> x' [= x -> x' [= y) -> x [= y.
+Theorem normal_dense {Var : Set} (p q : Term Var) :
+  (forall x, normal x -> p * x [= q * x) -> p [= q.
 Admitted.
+
+Corollary normal_dense_below {Var : Set} (x y : Term Var) :
+  (forall x', normal x' -> x' [= x -> x' [= y) -> x [= y.
+Proof.
+Admitted.
+
+Corollary normal_dense_above {Var : Set} (x y : Term Var) :
+  (forall x', normal x' -> y [= x' -> x [= x') -> x [= y.
+Admitted.
+
+
+(** Classically we can provide normal witnesses of non-ordering. *)
 
 Lemma prop_curry (a b c : Prop) : (a /\ b -> c) <-> (a -> b -> c).
 Proof.
   firstorder.
 Qed.
 
-(** Classically we can provide normal witnesses of non-ordering. *)
+Lemma impl_not_impl_not (a b : Prop) : (~ b -> ~ a) <-> (a -> b).
+Proof.
+  apply contrapositive; apply classic.
+Qed.
+
+Corollary nle_normal_witness_left {Var : Set} (x y : Term Var) :
+  ~ x [= y ->
+  exists x', normal x' /\ x' [= x /\
+  ~ x' [= y.
+Proof.
+  intro Hxy.
+  set (H := normal_dense_below x y); apply impl_not_impl_not in H; auto.
+  apply not_all_ex_not in H; destruct H as [x' H]; exists x'.
+  repeat split; auto.
+  - apply not_imply_elim in H; assumption.
+  - apply not_imply_elim2 in H; apply not_imply_elim in H; assumption.
+Qed.
+
+Corollary nle_normal_witness_right {Var : Set} (x y : Term Var) :
+  ~ x [= y ->
+  exists y', normal y' /\ y [= y' /\
+  ~ x [= y'.
+Proof.
+  intro Hxy.
+  set (H := normal_dense_above x y); apply impl_not_impl_not in H; auto.
+  apply not_all_ex_not in H; destruct H as [y' H]; exists y'.
+  repeat split; auto.
+  - apply not_imply_elim in H; assumption.
+  - apply not_imply_elim2 in H; apply not_imply_elim in H; assumption.
+Qed.
 
 Corollary nle_normal_witnesses {Var : Set} (x y : Term Var) :
   ~ x [= y ->
-  exists x', normal x' /\ x [= x' /\
-  exists y', normal y' /\ y' [= y' /\
+  exists x', normal x' /\ x' [= x /\
+  exists y', normal y' /\ y [= y' /\
   ~ x' [= y'.
 Proof.
-  intro H.
-  (* OLD
-  eapply ex_intro.
-  rewrite <- and_assoc.
-  apply imply_to_and.
-  rewrite prop_curry.
-  *)
-  (* TODO undo eapply, then apply normal_dense
-  apply ex_not_not_all.
-  *)
-Admitted.
-
-(** Bohm's theorem construct from this witness a separating context. *)
-
-Theorem Bohms_theorem (x y : ClosedTerm) :
-  normal x -> normal y -> ~ x [= y ->
-  exists c, TOP [= c * x /\ c * y [= BOT.
-Proof.
-  (* TODO use the Bohm-out method *)
-Admitted.
-
-(** Constructively, we can decide order among normal forms
-    and discover a witness (even a normal witness) of non-ordering. *)
-
-Fixpoint normal_le_witness (x y : ClosedTerm) :
-  normal x -> normal y ->
-  {c | normal c /\ TOP [= c * x /\ c * y [= BOT} + {x [= y}.
-Admitted.
-
-Fixpoint try_decide_le_witness (x y : ClosedTerm) :
-  {c | TOP [= c * x /\ c * y [= BOT /\ normal c} +
-  {x [= y} +
-  {~normal x \/ ~normal y}.
-Admitted.
-
-(* Extraction *)
-(* begin hide *)
-
-Extraction Language Ocaml.
-Extraction "BohmTrees.ml" is_normal.
-
-Extraction Language Haskell.
-Extraction "BohmTrees.hs" is_normal.
-
-(* end hide *)
+  intro xy.
+  set (Hx := nle_normal_witness_left x y xy); destruct Hx as [x' [? [? xy']]].
+  exists x'; split; auto; split; auto.
+  set (Hy := nle_normal_witness_right x' y xy'); destruct Hy as [y' [? [? ?]]].
+  exists y'; split; auto; split; auto.
+Qed.
