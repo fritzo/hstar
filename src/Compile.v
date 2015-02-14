@@ -1,6 +1,10 @@
 (** * Converting between combinatory algebra and lambda-calculus *)
 
+Require Import Coq.Program.Basics.
 Require Import Coq.Program.Equality.
+Require Import Coq.Setoids.Setoid.
+Require Import Coq.Classes.RelationClasses.
+Require Import Coq.Classes.Morphisms.
 Require Import Codes.
 Require Import Combinators.
 Require Export DeBruijn.
@@ -235,3 +239,138 @@ Section compile_decompile.
     - beta_eta.
   Qed.
 End compile_decompile.
+
+
+(* ------------------------------------------------------------------------ *)
+(** We can now define convergence and ordering in terms of [compile] *)
+
+Definition term_conv {Var : Set} (t : Term Var) := code_conv (compile t).
+Definition term_le {Var : Set} (x y : Term Var) := compile x [= compile y.
+Definition term_eq {Var : Set} (x y : Term Var) := compile x == compile y.
+
+Notation "x == y" := (term_eq x y)%term : term_scope.
+Notation "x [= y" := (term_le x y)%term : term_scope.
+Notation "x :: a" := (term_app a x == x)%term : term_scope.
+
+Instance term_le_reflexive (Var : Set) : Reflexive (@term_le Var).
+Proof.
+  simpl_relation; intros; auto.
+Qed.
+
+Instance term_le_transitive (Var : Set) : Transitive (@term_le Var).
+Proof.
+  unfold term_le; intros x y z xy yz; transitivity (compile y); auto.
+Qed.
+
+Instance term_eq_reflexive (Var : Set) : Reflexive (@term_eq Var).
+Proof.
+  simpl_relation; intros; auto.
+Qed.
+
+Instance term_eq_transitive (Var : Set) : Transitive (@term_eq Var).
+Proof.
+  unfold term_eq; intros x y z xy yz; transitivity (compile y); auto.
+Qed.
+
+Instance term_eq_symmetric (Var : Set) : Symmetric (@term_eq Var).
+Proof.
+  unfold term_eq; intros x y xy; symmetry; assumption.
+Qed.
+
+Instance term_eq_le_subrelation (Var : Set) :
+  subrelation term_eq (@term_le Var).
+Proof.
+  unfold term_le, term_eq; intros x y [xy yx]; simpl; auto.
+Qed.
+
+Instance term_conv_proper_eq (Var : Set) :
+  Proper (term_eq ==> iff) (@term_conv Var).
+Proof.
+  unfold term_conv, term_eq; intros x x' xx'; rewrite xx'; reflexivity.
+Qed.
+
+Instance term_conv_proper_le (Var : Set) :
+  Proper (term_le ==> impl) (@term_conv Var).
+Proof.
+  unfold term_conv, term_le, flip, impl; intros x x' xx'; rewrite xx'; tauto.
+Qed.
+
+Instance compile_proper_eq (Var : Set) :
+  Proper (term_eq ==> code_eq) (@compile Var).
+Proof.
+  simpl_relation.
+Qed.
+
+Instance compile_proper_le (Var : Set) :
+  Proper (term_le ==> code_le) (@compile Var).
+Proof.
+  intros x x' xx'; unfold term_le; assumption.
+Qed.
+
+Instance decompile_proper_eq (Var : Set) :
+  Proper (code_eq ==> term_eq) (@decompile Var).
+Proof.
+  intros x x' xx'; unfold term_eq;
+  repeat rewrite compile_decompile; assumption.
+Qed.
+
+Instance decompile_proper_le (Var : Set) :
+  Proper (code_le ==> term_le) (@decompile Var).
+Proof.
+  intros x x' xx'; unfold term_le;
+  repeat rewrite compile_decompile; assumption.
+Qed.
+
+Instance term_join_proper_eq (Var : Set) :
+  Proper (term_eq ==> term_eq ==> term_eq) (@term_join Var).
+Proof.
+  intros x x' xx' y y' yy'; transitivity (x' || y);
+  unfold term_eq in *; simpl; auto.
+Qed.
+
+Instance term_rand_proper_eq (Var : Set) :
+  Proper (term_eq ==> term_eq ==> term_eq) (@term_rand Var).
+Proof.
+  intros x x' xx' y y' yy'; transitivity (x' (+) y);
+  unfold term_eq in *; simpl; auto.
+Qed.
+
+Instance term_app_proper_eq (Var : Set) :
+  Proper (term_eq ==> term_eq ==> term_eq) (@term_app Var).
+Proof.
+  intros x x' xx' y y' yy'; transitivity (x' * y);
+  unfold term_eq in *; simpl; auto.
+Qed.
+
+Instance term_lambda_proper_eq (Var : Set) :
+  Proper (term_eq ==> term_eq) (@term_lambda Var).
+Proof.
+  intros x x' xx'; unfold term_eq in *; simpl; rewrite xx'; auto.
+Qed.
+
+Instance term_join_proper_le (Var : Set) :
+  Proper (term_le ==> term_le ==> term_le) (@term_join Var).
+Proof.
+  intros x x' xx' y y' yy'; transitivity (x' || y);
+  unfold term_le in *; simpl; auto.
+Qed.
+
+Instance term_rand_proper_le (Var : Set) :
+  Proper (term_le ==> term_le ==> term_le) (@term_rand Var).
+Proof.
+  intros x x' xx' y y' yy'; transitivity (x' (+) y);
+  unfold term_le in *; simpl; auto.
+Qed.
+
+Instance term_app_proper_le (Var : Set) :
+  Proper (term_le ==> term_le ==> term_le) (@term_app Var).
+Proof.
+  intros x x' xx' y y' yy'; transitivity (x' * y);
+  unfold term_le in *; simpl; auto.
+Qed.
+
+Instance term_lambda_proper_le (Var : Set) :
+  Proper (term_le ==> term_le) (@term_lambda Var).
+Proof.
+  intros x x' xx'; unfold term_le in *; simpl; rewrite xx'; auto.
+Qed.

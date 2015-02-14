@@ -13,14 +13,6 @@ Require Import InformationOrdering.
 Require Import Nontermination.
 Require Export Compile.
 
-Definition term_conv {Var : Set} (t : Term Var) := code_conv (compile t).
-Definition term_le {Var : Set} (x y : Term Var) := compile x [= compile y.
-Definition term_eq {Var : Set} (x y : Term Var) := compile x == compile y.
-
-Notation "x == y" := (term_eq x y)%term : term_scope.
-Notation "x [= y" := (term_le x y)%term : term_scope.
-Notation "x :: a" := (term_app a x == x)%term : term_scope.
-
 (* TODO prove reflexive, transitive, etc. *)
 
 (** Bohm trees generalize the normal forms of pure lambda-calculus,
