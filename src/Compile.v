@@ -58,7 +58,10 @@ Section compiles_to_compile.
 End compiles_to_compile.
 
 
-Definition protect {Var : Set} : Term Var -> Term (option' Var) :=
+Definition code_protect {Var : Set} : Code Var -> Code (option' Var) :=
+  code_sub (fun v : Var => code_var (Some v)).
+
+Definition term_protect {Var : Set} : Term Var -> Term (option' Var) :=
   term_map (@Some Var).
 
 (* TODO this needs to be changed to get [decompile_compile] to hold,
@@ -71,22 +74,22 @@ Fixpoint decompile {Var : Set} (c : Code Var) : Term Var :=
   | (R * x * y)%code => decompile x (+) decompile y
   | I => DeBruijn.I
   | (K * x)%code =>
-      let x' := protect (decompile x) in
+      let x' := term_protect (decompile x) in
       LAMBDA x'
   | (B * x * y)%code =>
-      (* should this be [decompile (protect x * v)] ? *)
-      let x' := protect (decompile x) in
-      let y' := protect (decompile y) in
+      (* should this be [decompile (term_protect x * v)] ? *)
+      let x' := term_protect (decompile x) in
+      let y' := term_protect (decompile y) in
       let v := VAR None in
       LAMBDA (x' * (y' * v))
   | (C * x * y)%code =>
-      let x' := protect (decompile x) in
-      let y' := protect (decompile y) in
+      let x' := term_protect (decompile x) in
+      let y' := term_protect (decompile y) in
       let v := VAR None in
       LAMBDA (x' * v * y')
   | (S * x * y)%code =>
-      let x' := protect (decompile x) in
-      let y' := protect (decompile y) in
+      let x' := term_protect (decompile x) in
+      let y' := term_protect (decompile y) in
       let v := VAR None in
       LAMBDA (x' * v * (y' * v))
   | (x * y)%code => (decompile x * decompile y)
@@ -112,27 +115,27 @@ Inductive decompiles_to {Var : Set} : Code Var -> Term Var -> Prop :=
   | decompiles_to_i : decompiles_to I DeBruijn.I
   | decompiles_to_k1 x x' :
       decompiles_to x x' ->
-      let x'' := protect x' in
+      let x'' := term_protect x' in
       decompiles_to (K * x)%code (LAMBDA x'')
   | decompiles_to_b2 x x' y y' :
       decompiles_to x x' ->
       decompiles_to y y' ->
-      let x'' := protect x' in
-      let y'' := protect y' in
+      let x'' := term_protect x' in
+      let y'' := term_protect y' in
       let v := VAR None in
       decompiles_to (B * x * y)%code (LAMBDA (x'' * (y'' * v)))
   | decompiles_to_c2 x x' y y' :
       decompiles_to x x' ->
       decompiles_to y y' ->
-      let x'' := protect x' in
-      let y'' := protect y' in
+      let x'' := term_protect x' in
+      let y'' := term_protect y' in
       let v := VAR None in
       decompiles_to (C * x * y)%code (LAMBDA (x'' * v * y''))
   | decompiles_to_s2 x x' y y' :
       decompiles_to x x' ->
       decompiles_to y y' ->
-      let x'' := protect x' in
-      let y'' := protect y' in
+      let x'' := term_protect x' in
+      let y'' := term_protect y' in
       let v := VAR None in
       decompiles_to (S * x * y)%code (LAMBDA (x'' * v * (y'' * v)))
   | decompiles_to_app x x' y y':
@@ -262,3 +265,43 @@ Section decompile_compile.
       rewrite IHt; reflexivity.
   Qed.
 End decompile_compile.
+
+Section compile_decompile.
+
+  Lemma compile_protect (Var : Set) (t : Term Var) :
+    compile (term_protect t) = code_protect (compile t).
+  Proof.
+    apply compiles_to_compile.
+    induction t; try (compute; auto; reflexivity).
+    admit.
+  Qed.
+
+  Lemma protect_decompile (Var : Set) (c : Code Var) :
+    decompile (code_protect c) = term_protect (decompile c).
+  Proof.
+    apply decompiles_to_decompile.
+    admit.
+  Qed.
+
+  Lemma code_abs_protect (Var : Set) (c : Code Var) :
+    code_abs id (code_protect c) = (K * c)%code.
+  Proof.
+    induction c; try (simpl; auto; reflexivity).
+    admit. (* TODO this should be true *)
+  Qed.
+
+  Lemma compile_decompile (Var : Set) (c : Code Var) :
+    (compile (decompile c) == c)%code.
+  Proof.
+    induction c; simpl; auto.
+    - case_eq c1; intros; try (simpl; auto; reflexivity).
+      + admit.
+      + simpl; rewrite IHc2; beta_eta.
+      + simpl; rewrite IHc2; beta_eta.
+      + simpl; rewrite compile_protect.
+        rewrite code_abs_protect.
+        monotonicity; assumption.
+    - beta_eta.
+    - beta_eta.
+  Qed.
+End compile_decompile.

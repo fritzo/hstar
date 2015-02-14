@@ -78,13 +78,13 @@ Fixpoint force_normal {Var : Set} (t : Term Var) : Normal Var :=
       | Inert_bot => Normal_bot
       | x' => Normal_app x' (force_normal y)
       end
-  | LAMBDA x => Normal_lambda (force_normal x)
-  | VAR v => Normal_var v
+  | term_lambda x => Normal_lambda (force_normal x)
+  | term_var v => Normal_var v
   end
 with force_inert {Var : Set} (t : Term Var) {struct t} : Inert Var :=
   match t with
   | x * y => Inert_app (force_inert x) (force_normal y)
-  | VAR v => Inert_var v
+  | term_var v => Inert_var v
   | _ => false
   end.
 *)
