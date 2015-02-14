@@ -3,8 +3,7 @@
 Require Import Coq.Program.Equality.
 Require Import Codes.
 Require Import Combinators.
-Require Import DeBruijn.
-Require Import BohmTrees.
+Require Export DeBruijn.
 
 Fixpoint compile {Var : Set} (t : Term Var) : Code Var :=
   match t with
@@ -178,96 +177,27 @@ Section decompiles_to_decompile.
 End decompiles_to_decompile.
 
 
-Section decompile_abs_lambda.
-  Local Ltac rewrite_hyp :=
-    repeat
-    match goal with
-    | H : decompiles_to ?t ?c |- _ =>
-        apply decompiles_to_decompile in H; rewrite H; clear H
-    end.
+Lemma compile_app (Var : Set) (x y : Term Var) :
+  (compile (x * y) = (compile x) * (compile y))%code.
+Proof.
+  simpl; reflexivity.
+Qed.
 
-  Lemma decompiles_to_abs_lambda
-    (Var : Set) (c : Code (option Var)) (t : Term (option Var)) :
-    decompiles_to c t -> decompiles_to (code_abs id c) (LAMBDA t).
-  Proof.
-    intro H; dependent induction H; apply decompiles_to_decompile;
-    try (simpl; reflexivity).
-    - apply decompiles_to_decompile in IHdecompiles_to1.
-    (* TODO fix decompile so that this holds *)
-  Admitted.
+Lemma compile_lambda_app (Var : Set) (x : Term (option Var)) (y : Term Var) :
+  (compile (lambda_app_sub x y) == code_abs id (compile x) * compile y)%code.
+Proof.
+  dependent induction x.
+  - simpl; code_simpl; reflexivity.
+  - simpl; code_simpl; reflexivity.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+Qed.
 
-  Lemma decompile_abs_lambda
-    (Var : Set) (c : Code (option Var)) (t : Term (option Var)) :
-    decompile (code_abs id c) = (LAMBDA (decompile c)).
-  Proof.
-    apply decompiles_to_decompile.
-    apply decompiles_to_abs_lambda.
-    apply decompiles_to_decompile.
-    reflexivity.
-  Qed.
-End decompile_abs_lambda.
-
-Section decompile_compile.
-  Local Ltac decompile_compile :=
-    simpl;
-    repeat match goal with
-    | [H : decompile (compile ?x) = ?x |- _] => rewrite H; simpl
-    end;
-    auto.
-
-  Local Ltac compiles_to :=
-    simpl;
-    repeat match goal with
-    | [H : compiles_to ?t ?c |- _] =>
-        apply compiles_to_compile in H; try rewrite H
-    end;
-    auto.
-
-  Lemma decompile_compile_normal (Var : Set) (t : Term Var) :
-    normal t -> decompile (compile t) = t.
-  Proof.
-    intro Hn; induction Hn; decompile_compile.
-    - case_eq (compile x); intros; auto.
-      + apply compiles_to_compile in H0; inversion H0; auto.
-        rewrite H1, H2; simpl.
-        admit.
-      + admit.
-      + apply compiles_to_compile in H0; inversion H0; auto.
-        rewrite H1, H2; simpl.
-        admit.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-      (* TODO
-      set (cx := compile x); assert (compile x = cx) as Hc;
-      [ auto | apply compiles_to_compile in Hc ].
-      inversion Hc; decompile_compile; compiles_to.
-      *)
-    - rewrite decompile_abs_lambda; auto.
-      rewrite IHHn; reflexivity.
-  Qed.
-
-  Lemma decompile_compile (Var : Set) (t : Term Var) :
-    decompile (compile t) = t.
-  Proof.
-    induction t; decompile_compile; auto.
-    - case_eq (compile t1); simpl; auto.
-      + intros; case_eq c; auto;
-        admit.
-      + intros.
-        admit.
-    - rewrite decompile_abs_lambda; auto.
-      rewrite IHt; reflexivity.
-  Qed.
-End decompile_compile.
 
 Section compile_decompile.
-
   Lemma compile_protect (Var : Set) (t : Term Var) :
     compile (term_protect t) = code_protect (compile t).
   Proof.

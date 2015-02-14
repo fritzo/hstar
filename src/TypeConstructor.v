@@ -8,7 +8,9 @@ Require Import Coq.Classes.Morphisms.
 Require Export InformationOrdering.
 Require Import Nontermination.
 Require Import LeastFixedPoint.
+(* FIXME this breaks proofs below
 Require Import BohmTrees.
+*)
 Open Scope code_scope.
 
 (* ------------------------------------------------------------------------ *)

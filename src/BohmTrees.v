@@ -9,14 +9,19 @@ Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
 Require Import Coq.Logic.Decidable.
 Require Import Coq.Bool.Bool.
-Require Import DeBruijn.
+Require Import InformationOrdering.
+Require Import Nontermination.
+Require Export Compile.
 
-Definition term_conv {Var : Set} : Term Var -> Prop. Admitted.
-Definition term_le {Var : Set} : relation (Term Var). Admitted.
-Definition term_eq {Var : Set} : relation (Term Var). Admitted.
+Definition term_conv {Var : Set} (t : Term Var) := code_conv (compile t).
+Definition term_le {Var : Set} (x y : Term Var) := compile x [= compile y.
+Definition term_eq {Var : Set} (x y : Term Var) := compile x == compile y.
+
 Notation "x == y" := (term_eq x y)%term : term_scope.
 Notation "x [= y" := (term_le x y)%term : term_scope.
 Notation "x :: a" := (term_app a x == x)%term : term_scope.
+
+(* TODO prove reflexive, transitive, etc. *)
 
 (** Bohm trees generalize the normal forms of pure lambda-calculus,
     where the language is extended by
@@ -50,57 +55,6 @@ with inert {Var : Set} : Term Var -> Set :=
   | inert_var v : inert (VAR v)
   | inert_app x y : inert x -> normal y -> inert (x * y).
 Hint Constructors normal inert.
-
-Inductive Normal_ {Var : Set} : Set :=
-  | Normal_top : Normal_
-  | Normal_bot : Normal_
-  | Normal_join : Normal_ -> Normal_ -> Normal_
-  | Normal_rand : Normal_ -> Normal_ -> Normal_
-  | Normal_app : Inert_ -> Normal_ -> Normal_
-  | Normal_lambda : @Normal_ (option Var) -> Normal_
-  | Normal_var : Var -> Normal_
-with Inert_ {Var : Set} : Set :=
-  | Inert_var : Var -> Inert_
-  | Inert_app : Inert_ -> Normal_ -> Inert_.
-Hint Constructors Normal_ Inert_.
-Definition Normal (Var : Set) := @Normal_ Var.
-Definition Inert (Var : Set) := @Inert_ Var.
-
-(* This does not work
-Fixpoint force_normal {Var : Set} (t : Term Var) : Normal Var :=
-  match t with
-  | TOP => Normal_top
-  | BOT => Normal_bot
-  | x || y => Normal_join (force_normal x) (force_normal y)
-  | x (+) y => Normal_rand (force_normal x) (force_normal y)
-  | x * y =>
-      match force_inert x with
-      | Inert_bot => Normal_bot
-      | x' => Normal_app x' (force_normal y)
-      end
-  | term_lambda x => Normal_lambda (force_normal x)
-  | term_var v => Normal_var v
-  end
-with force_inert {Var : Set} (t : Term Var) {struct t} : Inert Var :=
-  match t with
-  | x * y => Inert_app (force_inert x) (force_normal y)
-  | term_var v => Inert_var v
-  | _ => false
-  end.
-*)
-
-Fixpoint force_normal {Var : Set} (t : Term Var) : Normal Var.
-Admitted.
-Fixpoint forget_normal {Var : Set} (n : Normal Var) : Term Var.
-Admitted.
-
-Lemma force_forget_normal (Var : Set) (n : Normal Var) :
-  force_normal (forget_normal n) = n.
-Admitted.
-
-Lemma forget_force_normal (Var : Set) (t : Term Var) :
-  forget_normal (force_normal t) [= t.
-Admitted.
 
 Lemma inert_normal {Var : Set} (x : Term Var) : inert x -> normal x.
 Proof.
@@ -157,6 +111,64 @@ Proof.
   unfold decidable; rewrite normal_is_normal; decide equality.
 Qed.
 
+Inductive reduce {Var : Set} : relation (Term Var) :=
+  | reduce_refl x : reduce x x
+  | reduce_trans x y z : reduce x y -> reduce y z -> reduce x z
+  | reduce_join_left x x' y : reduce x x' -> reduce (x || y) (x' || y)
+  | reduce_join_right x y y' : reduce y y' -> reduce (x || y) (x || y')
+  | reduce_rand_left x x' y : reduce x x' -> reduce (x (+) y) (x' (+) y)
+  | reduce_rand_right x y y' : reduce y y' -> reduce (x (+) y) (x (+) y')
+  | reduce_app_left x x' y : reduce x x' -> reduce (x * y) (x' * y)
+  | reduce_app_right x y y' : reduce y y' -> reduce (x * y) (x * y')
+  | reduce_lambda x x' :
+      @reduce (option Var) x x' -> reduce (LAMBDA x) (LAMBDA x') 
+  | reduce_top y : reduce (TOP * y) TOP
+  | reduce_bot y : reduce (BOT * y) BOT
+  | reduce_join_app x y z : reduce ((x || y) * z) (x * z || y * z)
+  | reduce_rand_app x y z : reduce ((x (+) y) * z) (x * z (+) y * z)
+  | reduce_lambda_app x y : reduce (term_lambda x * y) (lambda_app_sub x y).
+Hint Constructors reduce.
+
+Instance reduce_reflexive (Var : Set) : Reflexive (@reduce Var) :=
+  reduce_refl.
+
+Instance reduce_transitive (Var : Set) : Transitive (@reduce Var) :=
+  reduce_trans.
+
+Instance term_join_proper_reduce (Var : Set) :
+  Proper (reduce ==> reduce ==> reduce) (@term_join Var).
+Proof.
+  intros x x' xx' y y' yy'; transitivity (x' || y);
+  [apply reduce_join_left | apply reduce_join_right]; assumption.
+Qed.
+
+Instance term_rand_proper_reduce (Var : Set) :
+  Proper (reduce ==> reduce ==> reduce) (@term_rand Var).
+Proof.
+  intros x x' xx' y y' yy'; transitivity (x' (+) y);
+  [apply reduce_rand_left | apply reduce_rand_right]; assumption.
+Qed.
+
+Instance term_app_proper_reduce (Var : Set) :
+  Proper (reduce ==> reduce ==> reduce) (@term_app Var).
+Proof.
+  intros x x' xx' y y' yy'; transitivity (x' * y);
+  [apply reduce_app_left | apply reduce_app_right]; assumption.
+Qed.
+
+Instance term_lambda_proper_reduce (Var : Set) :
+  Proper (reduce ==> reduce) (@term_lambda Var) := reduce_lambda.
+
+Instance reduce_eq_subrelation (Var : Set) : subrelation reduce (@term_eq Var).
+Proof.
+  unfold term_eq; intros x y xy; induction xy; simpl; auto.
+  - transitivity (compile y); assumption.
+  - rewrite IHxy; auto.
+  - code_simpl; auto.
+  - code_simpl; auto.
+  - rewrite compile_lambda_app; auto.
+Qed.
+
 Fixpoint try_reduce_step {Var : Set} (x : Term Var) : option (Term Var) :=
   match x with
   | TOP * y => Some TOP
@@ -198,6 +210,32 @@ Fixpoint try_reduce_step {Var : Set} (x : Term Var) : option (Term Var) :=
       end
   | _ => None
   end.
+
+Section try_reduce_step_reduce.
+  Local Ltac case_reduce x H :=
+    let x' := fresh x "'" in
+    let eq := fresh "E" x in
+    case_eq (try_reduce_step x); [intros x' eq | intro eq];
+    rewrite eq in H; simpl in H; auto.
+
+  Lemma try_reduce_step_reduce (Var : Set) (x : Term Var) :
+    match try_reduce_step x with
+    | None => True
+    | Some x' => reduce x x'
+    end.
+  Proof.
+    induction x; simpl; auto.
+    - case_reduce x1 IHx1; case_reduce x2 IHx2.
+    - case_reduce x1 IHx1; case_reduce x2 IHx2.
+    - case_reduce x1 IHx1;
+      case_eq x1; intros; simpl; auto.
+      + rewrite <- H; rewrite IHx1; reflexivity.
+      + rewrite <- H; rewrite IHx1; reflexivity.
+      + case_reduce x2 IHx2.
+      + case_reduce x2 IHx2.
+    - case_reduce x IHx.
+  Qed.
+End try_reduce_step_reduce.
 
 Fixpoint is_irreducible {Var : Set} (x : Term Var) : bool :=
   match x with
