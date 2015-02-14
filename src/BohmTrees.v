@@ -286,13 +286,27 @@ Admitted.
 
 (* These version has better style, but how to implement it? *)
 
-Fixpoint normal_conv' {Var : Set} (x : Term Var) :
+Definition normal_conv' {Var : Set} (x : Term Var) :
   normal x -> {term_conv x} + {~ term_conv x}.
-Admitted.
+Proof.
+  intro Hn.
+  set (H := normal_conv_correct Var x).
+  case_eq (normal_conv x); intro Hc; rewrite Hc in H; simpl in H;
+  [ apply left | apply right]; auto.
+Defined.
 
-Fixpoint try_decide_conv {Var : Set} (x : Term Var) :
+Definition try_decide_conv {Var : Set} (x : Term Var) :
   {term_conv x} + {~ term_conv x} + {~normal x}.
-Admitted.
+Proof.
+  case_eq (is_normal x); intro Hn.
+  - apply normal_is_normal in Hn.
+    apply inleft; apply normal_conv'; auto.
+  - assert (~ is_normal x = true) as Hn'.
+      rewrite Hn; auto.
+    assert (~normal x) as Hc'.
+      intro Hc'; apply normal_is_normal in Hc'; contradiction.
+    apply inright; auto.
+Defined.
 
 
 Inductive dyadic : Set :=
