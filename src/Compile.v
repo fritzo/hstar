@@ -175,6 +175,35 @@ Section decompiles_to_decompile.
 End decompiles_to_decompile.
 
 
+Section decompile_abs_lambda.
+  Local Ltac rewrite_hyp :=
+    repeat
+    match goal with
+    | H : decompiles_to ?t ?c |- _ =>
+        apply decompiles_to_decompile in H; rewrite H; clear H
+    end.
+
+  Lemma decompiles_to_abs_lambda
+    (Var : Set) (c : Code (option Var)) (t : Term (option Var)) :
+    decompiles_to c t -> decompiles_to (code_abs id c) (LAMBDA t).
+  Proof.
+    intro H; dependent induction H; apply decompiles_to_decompile;
+    try (simpl; reflexivity).
+    - apply decompiles_to_decompile in IHdecompiles_to1.
+    (* TODO fix decompile so that this holds *)
+  Admitted.
+
+  Lemma decompile_abs_lambda
+    (Var : Set) (c : Code (option Var)) (t : Term (option Var)) :
+    decompile (code_abs id c) = (LAMBDA (decompile c)).
+  Proof.
+    apply decompiles_to_decompile.
+    apply decompiles_to_abs_lambda.
+    apply decompiles_to_decompile.
+    reflexivity.
+  Qed.
+End decompile_abs_lambda.
+
 Section decompile_compile.
   Local Ltac decompile_compile :=
     simpl;
@@ -195,13 +224,29 @@ Section decompile_compile.
     normal t -> decompile (compile t) = t.
   Proof.
     intro Hn; induction Hn; decompile_compile.
-    - admit.
+    - case_eq (compile x); intros; auto.
+      + apply compiles_to_compile in H0; inversion H0; auto.
+        rewrite H1, H2; simpl.
+        admit.
+      + admit.
+      + apply compiles_to_compile in H0; inversion H0; auto.
+        rewrite H1, H2; simpl.
+        admit.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
       (* TODO
       set (cx := compile x); assert (compile x = cx) as Hc;
       [ auto | apply compiles_to_compile in Hc ].
       inversion Hc; decompile_compile; compiles_to.
       *)
-    - admit.
+    - rewrite decompile_abs_lambda; auto.
+      rewrite IHHn; reflexivity.
   Qed.
 
   Lemma decompile_compile (Var : Set) (t : Term Var) :
@@ -213,8 +258,7 @@ Section decompile_compile.
         admit.
       + intros.
         admit.
-    - apply decompiles_to_decompile in IHt; induction IHt;
-      try (simpl; auto; reflexivity);
-      admit.
+    - rewrite decompile_abs_lambda; auto.
+      rewrite IHt; reflexivity.
   Qed.
 End decompile_compile.
