@@ -48,10 +48,22 @@ with inert {Var : Set} : Term Var -> Set :=
   | inert_app x y : inert x -> normal y -> inert (x * y).
 Hint Constructors normal inert.
 
-Lemma inert_normal {Var : Set} (x : Term Var) : inert x -> normal x.
+Lemma inert_normal (Var : Set) (x : Term Var) : inert x -> normal x.
 Proof.
   intro H; induction H; eauto.
 Qed.
+Hint Resolve inert_normal.
+
+Fixpoint normal_protect (Var : Set) (x : Term Var) (n : normal x) {struct n} :
+  normal (term_protect x)
+with inert_protect (Var : Set) (x : Term Var) (i : inert x) {struct i} :
+  inert (term_protect x).
+Proof.
+  - induction n; unfold term_protect; simpl; fold (@term_protect Var); auto.
+    + admit.  (* TODO use an option_map lemma or sth *)
+  - induction i; unfold term_protect; simpl; fold (@term_protect Var); auto.
+Admitted.
+Hint Resolve normal_protect inert_protect.
 
 Fixpoint is_normal {Var : Set} (w : Term Var) {struct w} : bool :=
   match w with
@@ -120,6 +132,12 @@ Inductive reduce {Var : Set} : relation (Term Var) :=
   | reduce_rand_app x y z : reduce ((x (+) y) * z) (x * z (+) y * z)
   | reduce_lambda_app x y : reduce (term_lambda x * y) (lambda_app_sub x y).
 Hint Constructors reduce.
+
+Hint Rewrite
+  @reduce_top @reduce_bot @reduce_join_app @reduce_rand_app @reduce_lambda_app
+  : term_simpl.
+
+Ltac term_simpl := autorewrite with term_simpl using simpl.
 
 Instance reduce_reflexive (Var : Set) : Reflexive (@reduce Var) :=
   reduce_refl.
@@ -295,6 +313,8 @@ Proof.
     induction x1; auto.
 Qed.
 
+
+(* ------------------------------------------------------------------------ *)
 (** Many properties of Bohm trees are decidable *)
 
 Fixpoint normal_conv {Var : Set} (x : Term Var) : bool :=
@@ -379,7 +399,21 @@ Admitted.
     to allow finite joins of dyadic mixtures.
     *)
 
-Theorem normal_dense {Var : Set} (p q : Term Var) :
+(* TODO define [Continuous] in terms of [ContinuousLattice]
+Class ContinuousLattice (a : Type) (le : relation a) := {
+  clat_bot : a;
+  clat_join : 
+*)
+
+(* this is restricted to piecewise constant functions *)
+Class Continuous {Var : Set} (p : Term Var -> Prop) :=
+  continuous x : (exists z, z [= x /\ forall y, z [= y -> y [= x -> p y) -> p x.
+
+Theorem normal_dense {Var : Set} (p : Term Var -> Prop) :
+  Continuous p -> (forall x, normal x -> p x) -> forall x, p x.
+Admitted.
+
+Theorem normal_dense_le {Var : Set} (p q : Term Var) :
   (forall x, normal x -> p * x [= q * x) -> p [= q.
 Admitted.
 
@@ -393,6 +427,7 @@ Corollary normal_dense_above {Var : Set} (x y : Term Var) :
 Admitted.
 
 
+(* ------------------------------------------------------------------------ *)
 (** Classically we can provide normal witnesses of non-ordering. *)
 
 Lemma prop_curry (a b c : Prop) : (a /\ b -> c) <-> (a -> b -> c).
@@ -443,3 +478,102 @@ Proof.
   set (Hy := nle_normal_witness_right x' y xy'); destruct Hy as [y' [? [? ?]]].
   exists y'; split; auto; split; auto.
 Qed.
+
+
+(* ------------------------------------------------------------------------ *)
+(** Whereas [normal] allows us to do dense induction over all terms,
+    the [normal_pi] relation allows
+    dense induction over terms below a given term. *)
+
+Inductive normal_pi {Var : Set} : Term Var -> Term Var -> Prop :=
+  | normal_pi_refl x : normal x -> normal_pi x x
+  | normal_pi_trans x y z : normal_pi x y -> normal_pi y z -> normal_pi x z
+  | normal_pi_join_left x x' y :
+      normal_pi x x' -> normal y -> normal_pi (x || y) (x' || y)
+  | normal_pi_join_right x y y' :
+      normal x -> normal_pi y y' -> normal_pi (x || y) (x || y')
+  | normal_pi_rand_left x x' y :
+      normal_pi x x' -> normal y -> normal_pi (x (+) y) (x' (+) y)
+  | normal_pi_rand_right x y y' :
+      normal x -> normal_pi y y' -> normal_pi (x (+) y) (x (+) y')
+  | normal_pi_app_left x x' y :
+      normal_pi x x' -> normal (x * y) -> normal_pi (x * y) (x' * y)
+  | normal_pi_app_right x y y' :
+      normal_pi y y' -> normal (x * y) -> normal_pi (x * y) (x * y')
+  | normal_pi_lambda x x' :
+      @normal_pi (option Var) x x' -> normal_pi (LAMBDA x) (LAMBDA x')
+  | normal_pi_bot x : normal x -> normal_pi x BOT
+  | normal_pi_top x : normal x -> normal_pi TOP x
+  | normal_pi_j_left x y : normal x -> normal y -> normal_pi (x || y) x
+  | normal_pi_j_right x y : normal x -> normal y -> normal_pi (x || y) y
+  | normal_pi_j_idem x : normal x -> normal_pi x (x || x)
+  | normal_pi_r_idem x : normal x -> normal_pi x (x (+) x)
+  (* Is all this symmetry garbage really needed?
+  | normal_pi_j_comm x y : normal x -> normal y -> normal_pi (x || y) (y || x)
+  | normal_pi_j_assoc x y z : normal x -> normal y -> normal z ->
+      normal_pi ((x || y) || z) (x || (y || z))
+  | normal_pi_r_comm x y : normal x -> normal y ->
+      normal_pi (x (+) y) (y (+) x)
+  | normal_pi_r_sym w x y z : normal w -> normal x -> normal y -> normal z ->
+      normal_pi ((w (+) x) (+) (y (+) z)) ((y (+) x) (+) (w (+) z))
+  | normal_pi_eta_contract x : inert x ->
+      normal_pi (LAMBDA (term_protect x * VAR None)) x
+  *)
+  | normal_pi_eta_expand x : inert x ->
+      normal_pi x (LAMBDA (term_protect x * VAR None))
+.
+Hint Constructors normal_pi.
+
+Instance normal_pi_transitive (Var : Set) : Transitive (@normal_pi Var) :=
+  normal_pi_trans.
+
+Lemma normal_pi_normal_left (Var : Set) (x y : Term Var) :
+  normal_pi x y -> normal x.
+Proof.
+  intro xy; induction xy; auto.
+Qed.
+(* Hint Resolve normal_pi_normal_left. *)
+
+Lemma normal_pi_normal_right (Var : Set) (x y : Term Var) :
+  normal_pi x y -> normal y.
+Proof.
+  intro xy; induction xy; auto.
+  - admit.
+  - admit.
+Qed.
+(* Hint Resolve normal_pi_normal_right. *)
+
+Instance normal_proper_normal_pi (Var : Set) :
+  Proper (normal_pi ==> iff) (@normal Var).
+Proof.
+  intros x x' xx'; split; intro H.
+  - apply (normal_pi_normal_right Var x x'); assumption.
+  - apply (normal_pi_normal_left Var x x'); assumption.
+Qed.
+
+Instance join_proper_normal_pi (Var : Set) :
+  Proper (normal_pi ==> normal_pi ==> normal_pi) (@term_join Var).
+Proof.
+  intros x x' xx' y y' yy'.
+  assert (normal x); [apply (normal_pi_normal_left Var x x'); auto|].
+  assert (normal x'); [apply (normal_pi_normal_right Var x x'); auto|].
+  assert (normal y); [apply (normal_pi_normal_left Var y y'); auto|].
+  transitivity (x' || y); auto.
+Qed.
+
+Lemma normal_pi_join (Var : Set) (x y z : Term Var) :
+  normal_pi x y -> normal_pi x z -> normal_pi x (y || z).
+Proof.
+  intros xy xz.
+  assert (normal x); [apply (normal_pi_normal_left Var x y); auto|].
+  assert (normal y); [rewrite <- xy; auto|].
+  assert (normal z); [rewrite <- xz; auto|].
+  rewrite normal_pi_j_idem; auto.
+  transitivity (y || x); auto.
+Qed.
+
+Theorem normal_pi_dense {Var : Set} (t : Term Var) (p : Term Var -> Prop) :
+  Continuous p ->
+  (forall x, normal_pi t x -> p x) ->
+  forall x, x [= t -> p x.
+Admitted.
