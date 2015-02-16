@@ -542,6 +542,14 @@ Inductive normal_pi {Var : Set} : Term Var -> Term Var -> Prop :=
 .
 Hint Constructors normal_pi.
 
+Lemma normal_pi_complete (Var : Set) (x y : Term Var) :
+  normal x -> normal y -> x [= y ->
+  exists x', normal x' /\ x' == x /\ normal_pi y x'.
+Proof.
+  intros Hnx Hny Hxy.
+  (* TODO eta-expand x to y's shape *)
+Admitted.
+
 Instance normal_pi_transitive (Var : Set) : Transitive (@normal_pi Var) :=
   normal_pi_trans.
 
