@@ -110,6 +110,22 @@ Proof.
     + admit.
 Qed.
 
+Lemma normal_is_normal_false {Var : Set} (x : Term Var) :
+ ~ normal x <-> is_normal x = false.
+Proof.
+  case_eq (is_normal x); intros H; split; intro H'; auto.
+  - rewrite normal_is_normal in H'; contradiction.
+  - inversion H'.
+  - rewrite normal_is_normal, H; auto.
+Qed.
+
+Ltac case_normal x :=
+  let Hnx := fresh "Hn" x in
+  case_eq (is_normal x);
+  intro Hnx;
+  [ rewrite <- normal_is_normal in Hnx
+  | rewrite <- normal_is_normal_false in Hnx].
+
 Lemma normal_decidable {Var : Set} (x : Term Var) : decidable (normal x).
 Proof.
   unfold decidable; rewrite normal_is_normal; decide equality.
@@ -346,14 +362,9 @@ Defined.
 Definition try_decide_conv {Var : Set} (x : Term Var) :
   {term_conv x} + {~ term_conv x} + {~normal x}.
 Proof.
-  case_eq (is_normal x); intro Hn.
-  - apply normal_is_normal in Hn.
-    apply inleft; apply normal_conv'; auto.
-  - assert (~ is_normal x = true) as Hn'.
-      rewrite Hn; auto.
-    assert (~ normal x) as Hc'.
-      intro Hc'; apply normal_is_normal in Hc'; contradiction.
-    apply inright; auto.
+  case_normal x.
+  - apply inleft; apply normal_conv'; auto.
+  - apply inright; auto.
 Defined.
 
 
@@ -385,9 +396,16 @@ Defined.
 Definition normal_le {Var : Set} : relation (Term Var) :=
   fun x y => normal_is_le x y = true.
 
-Fixpoint try_decide_le (x y : ClosedTerm) :
+Definition try_decide_le (x y : ClosedTerm) :
   {x [= y} + {~ x [= y} + {~normal x \/ ~normal y}.
-Admitted.
+Proof.
+  case_normal x; case_normal y.
+  - apply inleft; apply normal_is_le'; auto.
+  - apply inright; auto.
+  - apply inright; auto.
+  - apply inright; auto.
+Defined.
+
 
 (** ** Theorems about bohm trees and order *)
 
