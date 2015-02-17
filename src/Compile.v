@@ -252,6 +252,42 @@ Notation "x == y" := (term_eq x y)%term : term_scope.
 Notation "x [= y" := (term_le x y)%term : term_scope.
 Notation "x :: a" := (term_app a x == x)%term : term_scope.
 
+Lemma compile_conv (Var : Set) (x : Term Var) :
+  code_conv (compile x) <-> term_conv x.
+Proof.
+  unfold term_conv; tauto.
+Qed.
+
+Lemma compile_le (Var : Set) (x y : Term Var) :
+  (compile x [= compile y)%code <-> x [= y.
+Proof.
+  unfold term_le; repeat rewrite compile_decompile; tauto.
+Qed.
+
+Lemma compile_eq (Var : Set) (x y : Term Var) :
+  (compile x == compile y)%code <-> x == y.
+Proof.
+  unfold term_eq; repeat rewrite compile_decompile; tauto.
+Qed.
+
+Lemma decompile_conv (Var : Set) (x : Code Var) :
+  term_conv (decompile x) <-> code_conv x.
+Proof.
+  unfold term_conv; rewrite compile_decompile; tauto.
+Qed.
+
+Lemma decompile_le (Var : Set) (x y : Code Var) :
+  decompile x [= decompile y <-> (x [= y)%code.
+Proof.
+  unfold term_le; repeat rewrite compile_decompile; tauto.
+Qed.
+
+Lemma decompile_eq (Var : Set) (x y : Code Var) :
+  decompile x == decompile y <-> (x == y)%code.
+Proof.
+  unfold term_eq; repeat rewrite compile_decompile; tauto.
+Qed.
+
 Instance term_le_reflexive (Var : Set) : Reflexive (@term_le Var).
 Proof.
   simpl_relation; intros; auto.
@@ -281,6 +317,18 @@ Instance term_eq_le_subrelation (Var : Set) :
   subrelation term_eq (@term_le Var).
 Proof.
   unfold term_le, term_eq; intros x y [xy yx]; simpl; auto.
+Qed.
+
+(* why is this needed? *)
+Instance term_le_proper_eq (Var : Set) :
+  Proper (term_eq ==> term_eq ==> iff) (@term_le Var).
+Proof.
+  intros x x' [xx' x'x] y y' [yy' y'y].
+  split; intro H; unfold term_le.
+  - transitivity (compile x); auto.
+    transitivity (compile y); auto.
+  - transitivity (compile x'); auto.
+    transitivity (compile y'); auto.
 Qed.
 
 Instance term_conv_proper_eq (Var : Set) :
@@ -374,3 +422,33 @@ Instance term_lambda_proper_le (Var : Set) :
 Proof.
   intros x x' xx'; unfold term_le in *; simpl; rewrite xx'; auto.
 Qed.
+
+
+(** Some useful lemmas transferred from [Code]. *)
+
+Lemma decompile_app (Var : Set) (x y : Code Var) :
+  decompile (x * y)%code == (decompile x) * (decompile y).
+Proof.
+  apply decompile_eq;
+  rewrite compile_app;
+  repeat rewrite compile_decompile;
+  reflexivity.
+Qed.
+
+Lemma term_le_join (Var : Set) (x y z : Term Var) :
+  x || y [= z <-> x [= z /\ y [= z.
+Proof.
+  unfold term_le; simpl; auto.
+Qed.
+
+Lemma term_le_join_left (Var : Set) (x y : Term Var) : x [= x || y.
+Proof.
+  unfold term_le; simpl; auto.
+Qed.
+
+Lemma term_le_join_right (Var : Set) (x y : Term Var) : y [= x || y.
+Proof.
+  unfold term_le; simpl; auto.
+Qed.
+
+Ltac term_to_code := unfold term_conv, term_le, term_le; simpl; auto.

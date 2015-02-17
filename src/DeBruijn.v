@@ -106,6 +106,10 @@ Section I.
     LAMBDA (LAMBDA (LAMBDA (v2 * v0 * v1))).
   Definition S : Term Var := Eval compute in
     LAMBDA (LAMBDA (LAMBDA (v2 * v0 * (v1 * v0)))).
+  Definition J : Term Var := Eval compute in
+    LAMBDA (LAMBDA (v0 || v1)).
+  Definition R : Term Var := Eval compute in
+    LAMBDA (LAMBDA (v0 (+) v1)).
 End I.
 Print S.  (* Ugly! *)
 

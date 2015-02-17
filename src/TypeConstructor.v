@@ -1,5 +1,6 @@
 (** * A constructor for polymorphic types *)
 
+Require Import Coq.Logic.Decidable.
 Require Import Coq.Program.Basics.
 Require Import Coq.Program.Equality.
 Require Import Coq.Setoids.Setoid.
@@ -278,28 +279,13 @@ Proof.
   intros H; apply A_above_complete in H.
   induction H; auto.
   - transitivity y; auto.
-  - rewrite code_eq_y; beta_simpl.
-    rewrite pi_j_left.
-    rewrite pi_j_left.
-    rewrite pi_j_left.
-    auto.
-  - rewrite code_eq_y; beta_simpl.
-    rewrite pi_j_left.
-    rewrite pi_j_left.
-    rewrite pi_j_right.
-    auto.
-  - rewrite code_eq_y; beta_simpl.
-    rewrite pi_j_left.
-    rewrite pi_j_right.
-    auto.
-  - rewrite code_eq_y; beta_simpl.
-    rewrite pi_j_right.
-    rewrite pi_j_left.
-    rewrite IHA_above; auto.
-  - rewrite code_eq_y; beta_simpl.
-    rewrite pi_j_right.
-    rewrite pi_j_right.
-    rewrite IHA_above; auto.
+  - rewrite pi_j_left, pi_j_left, pi_j_left, code_eq_y; beta_simpl; auto.
+  - rewrite pi_j_left, pi_j_left, pi_j_right, code_eq_y; beta_simpl; auto.
+  - rewrite pi_j_left, pi_j_right, code_eq_y; beta_simpl; auto.
+  - rewrite code_eq_y; beta_simpl;
+    rewrite pi_j_right, pi_j_left, IHA_above; auto.
+  - rewrite code_eq_y; beta_simpl;
+    rewrite pi_j_right, pi_j_right, IHA_above; auto.
 Qed.
 
 Lemma A_sound (Var : Set) (s r : Code Var) : <<s, r>> [= A -> A_prop <<s, r>>.
@@ -309,7 +295,7 @@ Proof.
   (* TODO reason about pairs and least fixed points *)
 Admitted.
 
-(* We will make much use of the following theorems *)
+(** We will make much use of the following theorems *)
 
 Theorem A_fixes (Var : Set) (f x : Code Var) :
   (forall s r : Code Var, r o s [= I -> f * s * r * x [= x) ->
@@ -319,36 +305,63 @@ Proof.
   (* TODO use a join argument: A = Join ys and forall y in ys, y f x [= x *)
 Admitted.
 
-(* TODO use BohmTrees lemmas instead of this *)
-Lemma conv_bt_witness (x : ClosedCode) :
-  code_conv x -> exists k1 k2 b, K ^ k1 * (K ^ k2 o (C * I * BOT) ^ b) [= x.
+Lemma A_exp_top (Var : Set) : A * exp * TOP == (TOP : Code Var).
 Proof.
-  intro H; rewrite conv_closed in H; destruct H as [y [xy yt]].
-  apply weaken_probe in xy; apply weaken_pi in yt.
-  dependent induction yt; eauto.
-  - admit.
-  - admit.
+  split; auto.
+  A_simpl; unfold exp, pair; rewrite code_eq_y; do 3 rewrite pi_j_left.
+  eta_expand as x; beta_simpl; auto.
 Qed.
+
+(* TODO the following two theorems need stronger induction hypotheses,
+   of higher type *)
 
 Theorem A_repairs (i : ClosedCode) : ~ i [= BOT -> I [= A * exp * i.
 Proof.
-  intro H; apply conv_nle_bot in H.
-  apply conv_bt_witness in H; destruct H as [k1 [k2 [b H]]]; revert i H.
-  induction k1; simpl; intros i; code_simpl; revert i.
-    induction k2; simpl; intros i; code_simpl; revert i.
-      induction b; simpl; intros i; code_simpl.
-        intro H; rewrite <- H; rewrite <- (A_complete _ I I); auto.
-        unfold pair, exp; code_simpl; auto.
-      intro H.
-      admit.
-    admit.
-  admit.
+  repeat rewrite <- decompile_le.
+  do 2 rewrite decompile_app; freeze A in freeze exp in simpl.
+  set (i' := decompile i); subst.
+  intro H; apply nle_normal_witness_left in H; destruct H as [n [Hn [ni nb]]].
+  rewrite <- ni; clear i i' ni; revert nb.
+  induction Hn; intro Hnle.
+  - rewrite <- compile_le; freeze A in freeze exp in simpl.
+    repeat rewrite compile_decompile.
+    transitivity (@code_top Var); auto.
+    rewrite A_exp_top; auto.
+  - assert ((BOT [= (BOT : Term Var))%term); [reflexivity | contradiction].
+  - rewrite term_le_join in Hnle.
+    apply not_and in Hnle; auto.
+    destruct Hnle as [Hx | Hy];
+    [rewrite <- term_le_join_left | rewrite <- term_le_join_right]; auto.
+  - admit.  (* TODO use [pconv] instead of [conv] *)
+  (* the last three cases require shifting down and up type. *)
+  - admit.  (* TODO prove a lemma about [inert] terms *)
+  - admit.
+  - admit.
 Qed.
 
 Theorem A_raises (i : ClosedCode) : ~ i [= I -> TOP [= A * exp * i.
 Proof.
-  (* TODO this requires a Bohm-out argument *)
-Admitted.
+  repeat rewrite <- decompile_le.
+  do 2 rewrite decompile_app; freeze A in freeze exp in simpl.
+  set (i' := decompile i); subst.
+  intro H; apply nle_normal_witness_left in H; destruct H as [n [Hn [ni nb]]].
+  rewrite <- ni; clear i i' ni; revert nb.
+  induction Hn; intro Hnle.
+  - rewrite <- compile_le; freeze A in freeze exp in simpl.
+    repeat rewrite compile_decompile.
+    rewrite A_exp_top; auto.
+  - assert ((BOT [= (DeBruijn.I : Term Var))%term);
+      [term_to_code | contradiction].
+  - rewrite term_le_join in Hnle.
+    apply not_and in Hnle; auto.
+    destruct Hnle as [Hx | Hy];
+    [rewrite <- term_le_join_left | rewrite <- term_le_join_right]; auto.
+  - admit.  (* TODO use [pconv] instead of [conv] *)
+  (* the last three cases require shifting down and up type. *)
+  - admit.  (* TODO prove a lemma about [inert] terms *)
+  - admit.
+  - admit.
+Qed.
 
 Notation "\\ x , y ; z" := (A * \x, \y, z)%code : code_scope.
 

@@ -110,7 +110,7 @@ Proof.
     + admit.
 Qed.
 
-Lemma normal_is_normal_false {Var : Set} (x : Term Var) :
+Lemma normal_is_normal' {Var : Set} (x : Term Var) :
  ~ normal x <-> is_normal x = false.
 Proof.
   case_eq (is_normal x); intros H; split; intro H'; auto.
@@ -124,12 +124,62 @@ Ltac case_normal x :=
   case_eq (is_normal x);
   intro Hnx;
   [ rewrite <- normal_is_normal in Hnx
-  | rewrite <- normal_is_normal_false in Hnx].
+  | rewrite <- normal_is_normal' in Hnx].
 
 Lemma normal_decidable {Var : Set} (x : Term Var) : decidable (normal x).
 Proof.
   unfold decidable; rewrite normal_is_normal; decide equality.
 Qed.
+Hint Resolve normal_decidable.
+
+Ltac solve_normal :=
+  match goal with
+  | _ : _ |- normal _ => apply normal_is_normal; simpl; auto
+  end.
+
+Lemma normal_i (Var : Set) : normal (DeBruijn.I : Term Var).
+Proof.
+  solve_normal.
+Qed.
+Hint Resolve normal_i.
+
+Lemma normal_k (Var : Set) : normal (DeBruijn.K : Term Var).
+Proof.
+  solve_normal.
+Qed.
+Hint Resolve normal_k.
+
+Lemma normal_b (Var : Set) : normal (DeBruijn.B : Term Var).
+Proof.
+  solve_normal.
+Qed.
+Hint Resolve normal_b.
+
+Lemma normal_c (Var : Set) : normal (DeBruijn.C : Term Var).
+Proof.
+  solve_normal.
+Qed.
+Hint Resolve normal_c.
+
+Lemma normal_s (Var : Set) : normal (DeBruijn.S : Term Var).
+Proof.
+  solve_normal.
+Qed.
+Hint Resolve normal_s.
+
+Lemma normal_j (Var : Set) : normal (DeBruijn.J : Term Var).
+Proof.
+  solve_normal.
+Qed.
+Hint Resolve normal_j.
+
+Lemma normal_r (Var : Set) : normal (DeBruijn.R : Term Var).
+Proof.
+  solve_normal.
+Qed.
+Hint Resolve normal_r.
+
+(** Bohm trees are normal forms WRT the following notion of reduction. *)
 
 Inductive reduce {Var : Set} : relation (Term Var) :=
   | reduce_refl x : reduce x x
@@ -344,27 +394,44 @@ Fixpoint normal_conv {Var : Set} (x : Term Var) : bool :=
   | term_var v => true
   end.
 
-Lemma normal_conv_correct (Var : Set) (x : Term Var) :
-  if normal_conv x then term_conv x else ~ term_conv x.
+Lemma term_conv_normal_conv (Var : Set) (x : Term Var) :
+  term_conv x <-> normal_conv x = true.
 Proof.
-  induction x; simpl; auto.
 Admitted.
+
+Lemma term_conv_normal_conv' {Var : Set} (x : Term Var) :
+ ~ term_conv x <-> normal_conv x = false.
+Proof.
+  case_eq (normal_conv x); intros H; split; intro H'; auto.
+  - rewrite term_conv_normal_conv in H'; contradiction.
+  - inversion H'.
+  - rewrite term_conv_normal_conv, H; auto.
+Qed.
+
+Ltac case_normal_conv x :=
+  let Hcx := fresh "Hc" x in
+  case_eq (normal_conv x);
+  intro Hcx;
+  [ rewrite <- term_conv_normal_conv in Hcx
+  | rewrite <- term_conv_normal_conv' in Hcx].
+
+Lemma normal_conv_decidable (Var : Set) (x : Term Var) :
+  normal x -> decidable (term_conv x).
+Proof.
+  unfold decidable; rewrite term_conv_normal_conv; decide equality.
+Qed.
+Hint Resolve normal_conv_decidable.
 
 Definition normal_conv' {Var : Set} (x : Term Var) :
   normal x -> {term_conv x} + {~ term_conv x}.
 Proof.
-  intro Hn.
-  set (H := normal_conv_correct Var x).
-  case_eq (normal_conv x); intro Hc; rewrite Hc in H; simpl in H;
-  [ apply left | apply right]; assumption.
+  intro Hn; case_normal_conv x; auto.
 Defined.
 
 Definition try_decide_conv {Var : Set} (x : Term Var) :
   {term_conv x} + {~ term_conv x} + {~normal x}.
 Proof.
-  case_normal x.
-  - apply inleft; apply normal_conv'; auto.
-  - apply inright; auto.
+  case_normal x; [case_normal_conv x|]; auto.
 Defined.
 
 
@@ -395,6 +462,34 @@ Defined.
 
 Definition normal_le {Var : Set} : relation (Term Var) :=
   fun x y => normal_is_le x y = true.
+
+Lemma normal_is_le_le (Var : Set) (x y : Term Var) :
+  normal x -> normal y -> (x [= y <-> normal_is_le x y = true).
+Proof.
+Admitted.
+
+Lemma normal_is_le_le' {Var : Set} (x y : Term Var) :
+  normal x -> normal y -> (~ x [= y <-> normal_is_le x y = false).
+Proof.
+  case_eq (normal_is_le x y); intros H; split; intro H'; auto.
+  - rewrite normal_is_le_le in H'; auto; contradiction.
+  - inversion H'.
+  - rewrite normal_is_le_le, H; auto.
+Qed.
+
+Ltac case_normal_le x y :=
+  let Hxy := fresh "H" x y in
+  case_eq (normal_le x y);
+  intro Hxy;
+  [ rewrite <- normal_is_le_le in Hxy
+  | rewrite <- normal_is_le_le' in Hxy].
+
+Lemma normal_le_decidable (Var : Set) (x y : Term Var) :
+  normal x -> normal y -> decidable (x [= y).
+Proof.
+  intros; unfold decidable; rewrite normal_is_le_le; auto; decide equality.
+Qed.
+Hint Resolve normal_le_decidable.
 
 Definition try_decide_le (x y : ClosedTerm) :
   {x [= y} + {~ x [= y} + {~normal x \/ ~normal y}.
