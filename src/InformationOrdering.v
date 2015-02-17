@@ -18,6 +18,15 @@ Notation "x [= y" := (code_le x y)%code : code_scope.
 Definition code_eq {Var : Set} (x y : Code Var) := x [= y /\ y [= x.
 Notation "x == y" := (code_eq x y)%code : code_scope.
 
+Definition code_ple {Var : Set} (x y : Code Var) :=
+  forall (Var' : Set) (c : Code Var') (f : Var -> Code Var') (p : dyadic),
+  code_pconv (c * (x @ f)) p -> code_pconv (c * (y @ f)) p.
+
+Definition code_pnle {Var : Set} (x y : Code Var) :=
+  exists (Var' : Set) (c : Code Var') (f : Var -> Code Var'),
+  forall (p : dyadic),
+  code_pconv (c * (x @ f)) p -> code_pconv (c * (y @ f)) p.
+
 Instance code_le_eq_subrelation (Var : Set) :
   subrelation (@code_eq Var) (@code_le Var).
 Proof.

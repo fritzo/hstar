@@ -19,14 +19,21 @@ Proof.
   unfold code_conv; rewrite close_closed; reflexivity.
 Qed.
 
-Inductive prob {Var : Set} : Code Var -> Prop :=
-  | prob_top : prob TOP
-  | prob_bot : prob BOT
-  | prob_r p q : prob p -> prob q -> prob (p (+) q).
-Hint Constructors prob.
+Inductive dyadic : Set :=
+  | dyadic_zero : dyadic
+  | dyadic_one : dyadic
+  | dyadic_rand : dyadic -> dyadic -> dyadic.
 
-Definition pconv {Var : Set} (x : Code Var) (p : Code Empty_set) : Prop :=
-  prob p /\ exists y, probe (x @ sub_top) y /\ pi y p.
+Definition dyadic_sub {Var : Set} (zero one : Code Var) : dyadic -> Code Var :=
+  fix sub p :=
+  match p with
+  | dyadic_zero => zero
+  | dyadic_one => one
+  | dyadic_rand p1 p2 => sub p1 (+) sub p2
+  end.
+
+Definition code_pconv {Var : Set} (x : Code Var) (p : dyadic) : Prop :=
+  exists y, probe (close x) y /\ pi y (dyadic_sub BOT TOP p).
 
 Ltac wlog_closed x :=
   let cx := fresh "c" x in

@@ -434,12 +434,6 @@ Proof.
   case_normal x; [case_normal_conv x|]; auto.
 Defined.
 
-
-Inductive dyadic : Set :=
-  | dyadic_one : dyadic
-  | dyadic_zero : dyadic
-  | dyadic_rand : dyadic -> dyadic -> dyadic.
-
 Fixpoint normal_pconv {Var : Set} (x : Term Var) : dyadic.
 Admitted.
 

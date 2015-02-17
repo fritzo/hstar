@@ -325,7 +325,6 @@ Proof.
   induction Hn; intro Hnle.
   - rewrite <- compile_le; freeze A in freeze exp in simpl.
     repeat rewrite compile_decompile.
-    transitivity (@code_top Var); auto.
     rewrite A_exp_top; auto.
   - assert ((BOT [= (BOT : Term Var))%term); [reflexivity | contradiction].
   - rewrite term_le_join in Hnle.
@@ -361,6 +360,32 @@ Proof.
   - admit.  (* TODO prove a lemma about [inert] terms *)
   - admit.
   - admit.
+Qed.
+
+(** To generalize to probability,
+    we need two parametrized relations [code_ple] and [code_pnle] meaning
+    that at least [p] of the time, [code_le] or [~ code_le] holds.
+    Note that [code_pnle] is stronger than
+    "it is false that [code_le] holds at least p of the time".
+    *)
+
+Definition code_ple (p : dyadic) {Var : Set} (x y : Code Var) :=
+  x [= dyadic_sub x y p.
+
+(* FIXME Is this right? *)
+Definition code_pnle (p : dyadic) {Var : Set} (x y : Code Var) :=
+  ~ x || y [= dyadic_sub x y p.
+
+Theorem A_repairs_prob (i : ClosedCode) (p : dyadic) :
+  code_pnle p i BOT -> code_ple p I (A * exp * i).
+Proof.
+  admit.
+Qed.
+
+Theorem A_raises_prob (i : ClosedCode) (p : dyadic) :
+  ~ i [= (dyadic_sub BOT I p) -> dyadic_sub BOT TOP p [= A * exp * i.
+Proof.
+  admit.
 Qed.
 
 Notation "\\ x , y ; z" := (A * \x, \y, z)%code : code_scope.
