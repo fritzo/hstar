@@ -502,6 +502,7 @@ Proof.
 Defined.
 
 
+(* ------------------------------------------------------------------------ *)
 (** ** Theorems about bohm trees and order *)
 
 (** The [normal_dense] theorem motivates where to allow [JOIN] and [RAND]
@@ -512,189 +513,27 @@ Defined.
     to allow finite joins of dyadic mixtures.
     *)
 
-(* TODO define [Continuous] in terms of [ContinuousLattice]
-Class ContinuousLattice (a : Type) (le : relation a) := {
-  clat_bot : a;
-  clat_join : 
-*)
-
-(* this is restricted to piecewise constant functions *)
-Class Continuous {Var : Set} (p : Term Var -> Prop) :=
-  continuous x : (exists z, z [= x /\ forall y, z [= y -> y [= x -> p y) -> p x.
-
-Theorem normal_dense {Var : Set} (p : Term Var -> Prop) :
-  Continuous p -> (forall x, normal x -> p x) -> forall x, p x.
-Admitted.
-
-Theorem normal_dense_le {Var : Set} (p q : Term Var) :
-  (forall x, normal x -> p * x [= q * x) -> p [= q.
-Admitted.
-
-Corollary normal_dense_below {Var : Set} (x y : Term Var) :
+Theorem normal_dense {Var : Set} (x y : Term Var) :
   (forall x', normal x' -> x' [= x -> x' [= y) -> x [= y.
 Proof.
 Admitted.
 
-Corollary normal_dense_above {Var : Set} (x y : Term Var) :
-  (forall x', normal x' -> y [= x' -> x [= x') -> x [= y.
-Admitted.
-
-
-(* ------------------------------------------------------------------------ *)
 (** Classically we can provide normal witnesses of non-ordering. *)
-
-Lemma prop_curry (a b c : Prop) : (a /\ b -> c) <-> (a -> b -> c).
-Proof.
-  firstorder.
-Qed.
 
 Lemma impl_not_impl_not (a b : Prop) : (~ b -> ~ a) <-> (a -> b).
 Proof.
   apply contrapositive; apply classic.
 Qed.
 
-Corollary nle_normal_witness_left {Var : Set} (x y : Term Var) :
+Corollary nle_normal_witness {Var : Set} (x y : Term Var) :
   ~ x [= y ->
   exists x', normal x' /\ x' [= x /\
   ~ x' [= y.
 Proof.
   intro Hxy.
-  set (H := normal_dense_below x y); apply impl_not_impl_not in H; auto.
+  set (H := normal_dense x y); apply impl_not_impl_not in H; auto.
   apply not_all_ex_not in H; destruct H as [x' H]; exists x'.
   repeat split; auto.
   - apply not_imply_elim in H; assumption.
   - apply not_imply_elim2 in H; apply not_imply_elim in H; assumption.
 Qed.
-
-Corollary nle_normal_witness_right {Var : Set} (x y : Term Var) :
-  ~ x [= y ->
-  exists y', normal y' /\ y [= y' /\
-  ~ x [= y'.
-Proof.
-  intro Hxy.
-  set (H := normal_dense_above x y); apply impl_not_impl_not in H; auto.
-  apply not_all_ex_not in H; destruct H as [y' H]; exists y'.
-  repeat split; auto.
-  - apply not_imply_elim in H; assumption.
-  - apply not_imply_elim2 in H; apply not_imply_elim in H; assumption.
-Qed.
-
-Corollary nle_normal_witnesses {Var : Set} (x y : Term Var) :
-  ~ x [= y ->
-  exists x', normal x' /\ x' [= x /\
-  exists y', normal y' /\ y [= y' /\
-  ~ x' [= y'.
-Proof.
-  intro xy.
-  set (Hx := nle_normal_witness_left x y xy); destruct Hx as [x' [? [? xy']]].
-  exists x'; split; auto; split; auto.
-  set (Hy := nle_normal_witness_right x' y xy'); destruct Hy as [y' [? [? ?]]].
-  exists y'; split; auto; split; auto.
-Qed.
-
-
-(* ------------------------------------------------------------------------ *)
-(** Whereas [normal] allows us to do dense induction over all terms,
-    the [normal_pi] relation allows
-    dense induction over terms below a given term. *)
-
-Inductive normal_pi {Var : Set} : Term Var -> Term Var -> Prop :=
-  | normal_pi_refl x : normal x -> normal_pi x x
-  | normal_pi_trans x y z : normal_pi x y -> normal_pi y z -> normal_pi x z
-  | normal_pi_join_left x x' y :
-      normal_pi x x' -> normal y -> normal_pi (x || y) (x' || y)
-  | normal_pi_join_right x y y' :
-      normal x -> normal_pi y y' -> normal_pi (x || y) (x || y')
-  | normal_pi_rand_left x x' y :
-      normal_pi x x' -> normal y -> normal_pi (x (+) y) (x' (+) y)
-  | normal_pi_rand_right x y y' :
-      normal x -> normal_pi y y' -> normal_pi (x (+) y) (x (+) y')
-  | normal_pi_app_left x x' y :
-      normal_pi x x' -> normal (x * y) -> normal_pi (x * y) (x' * y)
-  | normal_pi_app_right x y y' :
-      normal_pi y y' -> normal (x * y) -> normal_pi (x * y) (x * y')
-  | normal_pi_lambda x x' :
-      @normal_pi (option Var) x x' -> normal_pi (LAMBDA x) (LAMBDA x')
-  | normal_pi_bot x : normal x -> normal_pi x BOT
-  | normal_pi_top x : normal x -> normal_pi TOP x
-  | normal_pi_j_left x y : normal x -> normal y -> normal_pi (x || y) x
-  | normal_pi_j_right x y : normal x -> normal y -> normal_pi (x || y) y
-  | normal_pi_j_idem x : normal x -> normal_pi x (x || x)
-  | normal_pi_r_idem x : normal x -> normal_pi x (x (+) x)
-  (* Is all this symmetry garbage really needed?
-  | normal_pi_j_comm x y : normal x -> normal y -> normal_pi (x || y) (y || x)
-  | normal_pi_j_assoc x y z : normal x -> normal y -> normal z ->
-      normal_pi ((x || y) || z) (x || (y || z))
-  | normal_pi_r_comm x y : normal x -> normal y ->
-      normal_pi (x (+) y) (y (+) x)
-  | normal_pi_r_sym w x y z : normal w -> normal x -> normal y -> normal z ->
-      normal_pi ((w (+) x) (+) (y (+) z)) ((y (+) x) (+) (w (+) z))
-  | normal_pi_eta_contract x : inert x ->
-      normal_pi (LAMBDA (term_protect x * VAR None)) x
-  *)
-  | normal_pi_eta_expand x : inert x ->
-      normal_pi x (LAMBDA (term_protect x * VAR None))
-.
-Hint Constructors normal_pi.
-
-Lemma normal_pi_complete (Var : Set) (x y : Term Var) :
-  normal x -> normal y -> x [= y ->
-  exists x', normal x' /\ x' == x /\ normal_pi y x'.
-Proof.
-  intros Hnx Hny Hxy.
-  (* TODO eta-expand x to y's shape *)
-Admitted.
-
-Instance normal_pi_transitive (Var : Set) : Transitive (@normal_pi Var) :=
-  normal_pi_trans.
-
-Lemma normal_pi_normal_left (Var : Set) (x y : Term Var) :
-  normal_pi x y -> normal x.
-Proof.
-  intro xy; induction xy; auto.
-Qed.
-(* Hint Resolve normal_pi_normal_left. *)
-
-Lemma normal_pi_normal_right (Var : Set) (x y : Term Var) :
-  normal_pi x y -> normal y.
-Proof.
-  intro xy; induction xy; auto.
-  - admit.
-  - admit.
-Qed.
-(* Hint Resolve normal_pi_normal_right. *)
-
-Instance normal_proper_normal_pi (Var : Set) :
-  Proper (normal_pi ==> iff) (@normal Var).
-Proof.
-  intros x x' xx'; split; intro H.
-  - apply (normal_pi_normal_right Var x x'); assumption.
-  - apply (normal_pi_normal_left Var x x'); assumption.
-Qed.
-
-Instance join_proper_normal_pi (Var : Set) :
-  Proper (normal_pi ==> normal_pi ==> normal_pi) (@term_join Var).
-Proof.
-  intros x x' xx' y y' yy'.
-  assert (normal x); [apply (normal_pi_normal_left Var x x'); auto|].
-  assert (normal x'); [apply (normal_pi_normal_right Var x x'); auto|].
-  assert (normal y); [apply (normal_pi_normal_left Var y y'); auto|].
-  transitivity (x' || y); auto.
-Qed.
-
-Lemma normal_pi_join (Var : Set) (x y z : Term Var) :
-  normal_pi x y -> normal_pi x z -> normal_pi x (y || z).
-Proof.
-  intros xy xz.
-  assert (normal x); [apply (normal_pi_normal_left Var x y); auto|].
-  assert (normal y); [rewrite <- xy; auto|].
-  assert (normal z); [rewrite <- xz; auto|].
-  rewrite normal_pi_j_idem; auto.
-  transitivity (y || x); auto.
-Qed.
-
-Theorem normal_pi_dense {Var : Set} (t : Term Var) (p : Term Var -> Prop) :
-  Continuous p ->
-  (forall x, normal_pi t x -> p x) ->
-  forall x, x [= t -> p x.
-Admitted.

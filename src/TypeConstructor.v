@@ -320,7 +320,7 @@ Proof.
   repeat rewrite <- decompile_le.
   do 2 rewrite decompile_app; freeze A in freeze exp in simpl.
   set (i' := decompile i); subst.
-  intro H; apply nle_normal_witness_left in H; destruct H as [n [Hn [ni nb]]].
+  intro H; apply nle_normal_witness in H; destruct H as [n [Hn [ni nb]]].
   rewrite <- ni; clear i i' ni; revert nb.
   induction Hn; intro Hnle.
   - rewrite <- compile_le; freeze A in freeze exp in simpl.
@@ -344,7 +344,7 @@ Proof.
   repeat rewrite <- decompile_le.
   do 2 rewrite decompile_app; freeze A in freeze exp in simpl.
   set (i' := decompile i); subst.
-  intro H; apply nle_normal_witness_left in H; destruct H as [n [Hn [ni nb]]].
+  intro H; apply nle_normal_witness in H; destruct H as [n [Hn [ni nb]]].
   rewrite <- ni; clear i i' ni; revert nb.
   induction Hn; intro Hnle.
   - rewrite <- compile_le; freeze A in freeze exp in simpl.
