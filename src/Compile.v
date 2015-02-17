@@ -426,6 +426,8 @@ Qed.
 
 (** Some useful lemmas transferred from [Code]. *)
 
+Ltac term_to_code := unfold term_conv, term_le, term_le; simpl; auto.
+
 Lemma decompile_app (Var : Set) (x y : Code Var) :
   decompile (x * y)%code == (decompile x) * (decompile y).
 Proof.
@@ -438,17 +440,15 @@ Qed.
 Lemma term_le_join (Var : Set) (x y z : Term Var) :
   x || y [= z <-> x [= z /\ y [= z.
 Proof.
-  unfold term_le; simpl; auto.
+  term_to_code.
 Qed.
 
 Lemma term_le_join_left (Var : Set) (x y : Term Var) : x [= x || y.
 Proof.
-  unfold term_le; simpl; auto.
+  term_to_code.
 Qed.
 
 Lemma term_le_join_right (Var : Set) (x y : Term Var) : y [= x || y.
 Proof.
-  unfold term_le; simpl; auto.
+  term_to_code.
 Qed.
-
-Ltac term_to_code := unfold term_conv, term_le, term_le; simpl; auto.

@@ -494,11 +494,8 @@ Hint Resolve normal_le_decidable.
 Definition try_decide_le (x y : ClosedTerm) :
   {x [= y} + {~ x [= y} + {~normal x \/ ~normal y}.
 Proof.
-  case_normal x; case_normal y.
-  - apply inleft; apply normal_is_le'; auto.
-  - apply inright; auto.
-  - apply inright; auto.
-  - apply inright; auto.
+  case_normal x; case_normal y; auto.
+  apply inleft; apply normal_is_le'; auto.
 Defined.
 
 
