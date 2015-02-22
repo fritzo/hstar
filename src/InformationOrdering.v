@@ -467,7 +467,14 @@ Lemma code_eq_c_b_i (Var : Set) (x : Code Var) : x o I == x.
 Proof.
   beta_eta.
 Qed.
-Hint Rewrite code_eq_b_i : code_simpl.
+Hint Rewrite code_eq_c_b_i : code_simpl.
+
+Lemma code_eq_b_assoc (Var : Set) (f g h : Code Var) :
+  (f o g) o h == f o (g o h).
+Proof.
+  eta_expand; beta_simpl; reflexivity.
+Qed.
+Hint Rewrite code_eq_b_assoc : code_simpl.
 
 Lemma code_eq_s_k_b (Var : Set) (x : Code Var) : S * (K * x) == B * x.
 Proof.

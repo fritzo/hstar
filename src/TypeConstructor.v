@@ -114,7 +114,9 @@ Ltac A_prop_pair :=
 (** ** An inductive definition of [A] *)
 
 Lemma A_I_I (Var : Set) : A_prop (<<I, I>> : Code Var).
-Proof. A_prop_pair; beta_eta. Qed.
+Proof.
+  A_prop_pair; beta_eta.
+Qed.
 Hint Resolve A_I_I.
 
 Section raise.
@@ -182,6 +184,21 @@ Section compose.
     (\s, s*\a,\a', s*\b,\b', <<a' --> b, a --> b'>>).
 End compose.
 
+Lemma compose_pair_le (Var : Set) (s1 r1 s2 r2 : Code Var) :
+  <<s1 o s2, r2 o r1>> [= compose * (<<s1, r1>> || <<s2, r2>>).
+Proof.
+  unfold compose; beta_reduce; unfold pair; beta_simpl.
+  rewrite pi_j_left, pi_j_right; reflexivity.
+Qed.
+
+Lemma conjugate_pair_le (Var : Set) (s1 r1 s2 r2 : Code Var) :
+  <<r1 --> s2, s1 --> r2>> [= conjugate * (<<s1, r1>> || <<s2, r2>>).
+Proof.
+  unfold conjugate; beta_reduce; unfold pair; beta_simpl.
+  rewrite pi_j_left, pi_j_right.
+  unfold exp; code_simpl; reflexivity.
+Qed.
+
 Lemma A_compose (Var : Set) (a : Code Var) : A_prop a -> A_prop (compose * a).
 Proof.
   unfold A_prop, sub_pair; intros [Hs Ha]; split.
@@ -230,6 +247,7 @@ Inductive A_above {Var : Set} : Code Var -> Prop :=
   | A_above_pull_push : A_above <<pull, push>>
   | A_above_compose a : A_above a -> A_above (compose * a)
   | A_above_conjugate a : A_above a -> A_above (conjugate * a).
+Hint Constructors A_above.
 
 Instance A_above_le (Var : Set) : Proper (code_le --> impl) (@A_above Var).
 Proof.
@@ -241,8 +259,7 @@ Proof.
   split; destruct H as [Hl Hr]; apply A_above_le; auto.
 Qed.
 
-Lemma A_above_sound (Var : Set) (s r : Code Var) :
-  A_above <<s, r>> -> A_prop <<s, r>>.
+Lemma A_above_sound (Var : Set) (sr : Code Var) : A_above sr -> A_prop sr.
 Proof.
   intro H; induction H; auto.
   rewrite H; auto.
@@ -250,8 +267,7 @@ Qed.
 
 (** The main lemma *)
 
-Lemma A_above_complete (Var : Set) (s r : Code Var) :
-  A_prop <<s, r>> -> A_above <<s, r>>.
+Lemma A_above_complete (Var : Set) (sr : Code Var) : A_prop sr -> A_above sr.
 Proof.
   intro H; destruct H as [Hp Hl].
 Admitted.
@@ -272,8 +288,7 @@ Qed.
 
 Ltac A_simpl := rewrite A_simpl; unfold A_step.
 
-Lemma A_complete (Var : Set) (s r : Code Var) :
-  A_prop <<s, r>> -> <<s, r>> [= A.
+Lemma A_complete (Var : Set) (sr : Code Var) : A_prop sr -> sr [= A.
 Proof.
   A_simpl.
   intros H; apply A_above_complete in H.
@@ -310,6 +325,101 @@ Proof.
   split; auto.
   A_simpl; unfold exp, pair; rewrite code_eq_y; do 3 rewrite pi_j_left.
   eta_expand as x; beta_simpl; auto.
+Qed.
+
+(** We define some moves for Bohm-out arguments below. *)
+
+Lemma A_move_i_i (Var : Set) : <<I, I>> [= (A : Code Var).
+Proof.
+  A_simpl;
+  rewrite code_eq_y, pi_j_left, beta_k, pi_j_left, pi_j_left;
+  reflexivity.
+Qed.
+
+Lemma A_move_raise_lower (Var : Set) : <<raise, lower>> [= (A : Code Var).
+Proof.
+  A_simpl;
+  rewrite code_eq_y, pi_j_left, beta_k, pi_j_left, pi_j_right;
+  reflexivity.
+Qed.
+
+Lemma A_move_pull_push (Var : Set) : <<pull, push>> [= (A : Code Var).
+Proof.
+  A_simpl; rewrite code_eq_y, pi_j_left, beta_k, pi_j_right;
+  reflexivity.
+Qed.
+
+Lemma A_move_compose (Var : Set) (s1 r1 s2 r2 : Code Var) :
+  <<s1, r1>> [= A -> <<s2, r2>> [= A -> <<s1 o s2, r2 o r1>> [= A.
+Proof.
+  rewrite A_simpl at 3; rewrite code_eq_y; rewrite <- A_simpl.
+  unfold A_step; rewrite pi_j_right, pi_j_left.
+  intros H1 H2.
+  assert (<<s1, r1>> || <<s2, r2>> [= A) as H; auto; rewrite <- H.
+  apply compose_pair_le.
+Qed.
+
+Lemma A_move_conjugate (Var : Set) (s1 r1 s2 r2 : Code Var) :
+  <<s1, r1>> [= A -> <<s2, r2>> [= A -> <<r1 --> s2, s1 --> r2>> [= A.
+Proof.
+  rewrite A_simpl at 3; rewrite code_eq_y; rewrite <- A_simpl.
+  unfold A_step; rewrite pi_j_right, pi_j_right.
+  intros H1 H2.
+  assert (<<s1, r1>> || <<s2, r2>> [= A) as H; auto; rewrite <- H.
+  apply conjugate_pair_le.
+Qed.
+
+
+(* TODO use BohmTrees lemmas instead of this *)
+Lemma conv_bt_witness (x : ClosedCode) :
+  code_conv x -> exists k1 k2 b, K ^ k1 * (K ^ k2 o (C * I * BOT) ^ b) [= x.
+Proof.
+  intro H; rewrite conv_closed in H; destruct H as [y [xy yt]].
+  apply weaken_probe in xy; apply weaken_pi in yt.
+  dependent induction yt; eauto.
+  - admit.
+  - admit.
+Qed.
+
+Local Ltac move_i_i := rewrite <- A_move_i_i.
+Local Ltac move_raise_lower := rewrite <- A_move_raise_lower.
+Local Ltac move_pull_push := rewrite <- A_move_pull_push.
+
+Require Import Coq.Classes.Equivalence.
+Require Import Coq.Classes.SetoidTactics.
+
+Theorem A_repairs_pair (i : ClosedCode) :
+  ~ i [= BOT -> exists s r, <<s, r>> [= A /\ I [= r o i o s.
+Proof.
+  intro H; apply conv_nle_bot in H.
+  apply conv_bt_witness in H; destruct H as [k1 [k2 [b H]]].
+  setoid_rewrite <- H; clear H i.
+  induction k1.
+  - (* case: correct head variable *)
+    induction k2; induction b.
+    (* TODO consider the three cases k2=b, k2<b, k2>b *)
+    + exists I, I; move_i_i; unfold exp, pair; code_simpl; auto.
+    + destruct IHb as [s [r [Ha Hi]]]; code_simpl in Hi.
+      exists (s o raise), (lower o r); split.
+        apply A_move_compose; [assumption | apply A_move_raise_lower].
+      simpl; unfold raise, lower; code_simpl.
+      eta_expand as f; simpl; unfold raise, lower; code_simpl.
+      admit.
+    + destruct IHk2 as [s [r [Ha Hi]]]; code_simpl in Hi.
+      admit.
+    + admit.
+  - (* case: incorrect head variable *)
+    simpl.
+    exists raise, lower; split; [apply A_move_raise_lower|].
+    code_simpl.
+    admit.
+Qed.
+
+Corollary A_repairs' (i : ClosedCode) : ~ i [= BOT -> I [= A * exp * i.
+Proof.
+  intro H; apply A_repairs_pair in H; destruct H as [s [r [Ha Hi]]].
+  rewrite <- Ha; unfold pair, exp; code_simpl.
+  assumption.
 Qed.
 
 (* TODO the following two theorems need stronger induction hypotheses,

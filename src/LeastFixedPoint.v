@@ -32,6 +32,24 @@ Proof.
   simpl; beta_simpl; auto.
 Qed.
 
+Lemma power_0' (Var : Set) (f : Code Var) : f ^ 0 == I.
+Proof.
+  beta_eta.
+Qed.
+
+Lemma power_1' (Var : Set) (f : Code Var) : f ^ 1 == f.
+Proof.
+  simpl; beta_eta.
+Qed.
+
+Hint Rewrite power_0' power_1' : code_simpl.
+
+Lemma power_commute_1 (Var : Set) (f : Code Var) (n : nat) :
+  f o f^n == f^n o f.
+Proof.
+  induction n; simpl; code_simpl; auto.
+Qed.
+
 Definition limit_le_code {Var : Set} (f : nat -> Code Var) (x : Code Var) :=
   forall n, f n [= x.
 
