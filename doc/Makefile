@@ -17,6 +17,7 @@ body.tex: FORCE
 	$(SRC)/BohmTrees.v \
 	$(SRC)/TypeConstructor.v \
 	$(SRC)/Types.v \
+	$(SRC)/StrongConstructor.v \
 	#
 
 main.pdf: main.tex body.tex references.bib
