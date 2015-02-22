@@ -1,9 +1,9 @@
 
-HOLE_COUNT:=$(shell ./metrics.py print-hole-count src/*.v)
 
 all: src sandbox doc metrics
 	@echo '---------------------------------'
-	@echo 'PASSED WITH' $(HOLE_COUNT) 'HOLES'
+	@echo 'PASSED WITH' \
+		$(shell ./metrics.py print-hole-count src/*.v) 'HOLES'
 
 src: FORCE
 	cd src ; ./make.sh
@@ -21,6 +21,6 @@ metrics: FORCE
 	./metrics.py update-readme src/*.v
 
 clean: FORCE
-	git clean -dfx
+	git clean -dfx -e 'coq-*' -n
 
 FORCE:
