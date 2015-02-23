@@ -1,5 +1,6 @@
 (** * A constructor for polymorphic types *)
 
+Require Import Omega.
 Require Import Coq.Logic.Decidable.
 Require Import Coq.Program.Basics.
 Require Import Coq.Program.Equality.
@@ -203,16 +204,7 @@ Hint Resolve
   A_move_raise_lower_n A_move_pull_push_n
   : A_moves.
 
-(* TODO use BohmTrees lemmas instead of this *)
-Lemma conv_bt_witness (x : ClosedCode) :
-  code_conv x -> exists h k b, K ^ h * (K ^ k o (C * I * BOT) ^ b) [= x.
-Proof.
-  intro H; rewrite conv_closed in H; destruct H as [y [xy yt]].
-  apply weaken_probe in xy; apply weaken_pi in yt.
-  dependent induction yt; eauto.
-  - admit.
-  - admit.
-Qed.
+Ltac A_moves := auto with A_moves.
 
 Lemma lt_add (p q : nat) : p <= q -> exists r, q = p + r.
 Proof.
@@ -237,60 +229,124 @@ Proof.
   rewrite IHn; unfold raise; beta_eta.
 Qed.
 
+Lemma bohm_out_repair (b : nat) :
+  exists s r : ClosedCode,
+  <<s, r>> [= A /\ I [= r o K ^ b o (C * I * BOT) ^ b o s.
+Proof.
+  exists (raise^b), (lower^b); split; code_simpl; auto with A_moves.
+  rewrite raise_c_i_bot; code_simpl.
+  rewrite lower_k; reflexivity.
+Qed.
+
+Lemma bohm_out_too_many_args (k d : nat) :
+  exists s r : ClosedCode,
+  <<s, r>> [= A /\ TOP [= r o K ^ k o (C * I * BOT) ^ (1 + k + d) o s.
+Proof.
+  exists (raise^(1+d) o pull), (push o lower^(1+d)); split; [A_moves|].
+  replace (1 + k + d) with (k + (1 + d)); [|omega].
+  setoid_rewrite power_add at 2.
+  repeat rewrite code_eq_b_assoc.
+  setoid_rewrite <- code_eq_b_assoc at 5.
+  rewrite raise_c_i_bot; code_simpl.
+  admit.
+Qed.
+
+Lemma bohm_out_too_few_args (b d : nat) :
+  exists s r : ClosedCode,
+  <<s, r>> [= A /\ TOP [= r o (K ^ (1 + d + b)) o (C * I * BOT) ^ b o s.
+Proof.
+  exists (pull o raise^(1+d)), (lower^(1+d) o push);
+  split; code_simpl; auto with A_moves.
+  (* wrong witness:
+  exists (raise^(1+b+d)), (lower^(1+b+d));
+  split; code_simpl; auto with A_moves.
+  rewrite <- (@power_1' _ K) at 1.
+  setoid_rewrite <- code_eq_b_assoc at 2.
+  rewrite <- power_add.
+  rewrite plus_assoc.
+  setoid_rewrite <- code_eq_b_assoc at 1.
+  rewrite lower_k; code_simpl.
+  rewrite <- plus_assoc, plus_comm, <- plus_assoc, power_add.
+  setoid_rewrite <- code_eq_b_assoc.
+  rewrite raise_c_i_bot; code_simpl.
+  rewrite power_add.
+  repeat rewrite power_add; code_simpl.
+  *)
+  admit.
+Qed.
+
+Lemma bohm_out_wrong_head (h k b : nat) :
+  exists s r : ClosedCode,
+  <<s, r>> [= A /\ TOP [= r o (K ^ (1 + h) * K ^ k o (C * I * BOT) ^ b) o s.
+Proof.
+  (* TODO is this right? *)
+  exists (raise^(1+h) o pull), (push o lower^(1+h));
+  split; code_simpl; auto with A_moves.
+  admit.
+Qed.
+
+(* TODO use BohmTrees lemmas instead of this *)
+Lemma nle_bot_witness (x : ClosedCode) :
+  ~x [= BOT -> exists h k b, K ^ h * K ^ k o (C * I * BOT) ^ b [= x.
+Proof.
+  intro H; apply conv_nle_bot in H.
+  rewrite conv_closed in H; destruct H as [y [xy yt]].
+  apply weaken_probe in xy; apply weaken_pi in yt.
+  dependent induction yt; eauto.
+  - admit.
+  - admit.
+Qed.
+
 (** This follows %\cite{obermeyer2009equational}% pp. 48 Lemma 3.6.11. *)
 
 Theorem A_repairs_pair (i : ClosedCode) :
   ~ i [= BOT -> exists s r, <<s, r>> [= A /\ I [= r o i o s.
 Proof.
-  intro H; apply conv_nle_bot in H.
-  apply conv_bt_witness in H; destruct H as [h [k [b H]]].
+  intro H; apply nle_bot_witness in H; destruct H as [h [k [b H]]].
   setoid_rewrite <- H; clear H i.
   destruct h.
   - (* case: correct head variable *)
-    simpl.
+    simpl; setoid_rewrite beta_i; setoid_rewrite code_eq_b_assoc.
     set (kb := lt_eq_lt_dec k b); destruct kb as [[Hlt | Heq] | Hgt].
     + (* case: too many arguments *)
-      apply lt_add in Hlt; destruct Hlt as [d Ed]; subst; simpl.
-      exists (raise^(1+d) o pull), (push o lower^(1+d));
-      code_simpl.
-      admit.
+      apply lt_add in Hlt; destruct Hlt as [d Ed]; subst.
+      replace (Datatypes.S k) with (1 + k); [|omega].
+      setoid_rewrite (@code_le_top _ I) at 1.
+      apply bohm_out_too_many_args.
     + (* case: correct number of arguments *)
       subst.
-      exists (raise^b), (lower^b); split; code_simpl; auto with A_moves.
-      rewrite raise_c_i_bot; code_simpl.
-      rewrite lower_k; reflexivity.
+      apply bohm_out_repair.
     + (* case: too few arguments *)
-      apply lt_add in Hgt; destruct Hgt as [d Ed]; subst; simpl.
-      setoid_rewrite beta_i.
-      exists (pull o raise^(1+d)), (lower^(1+d) o push);
-      split; code_simpl; auto with A_moves.
-      (* wrong witness:
-      exists (raise^(1+b+d)), (lower^(1+b+d));
-      split; code_simpl; auto with A_moves.
-      rewrite <- (@power_1' _ K) at 1.
-      setoid_rewrite <- code_eq_b_assoc at 2.
-      rewrite <- power_add.
-      rewrite plus_assoc.
-      setoid_rewrite <- code_eq_b_assoc at 1.
-      rewrite lower_k; code_simpl.
-      rewrite <- plus_assoc, plus_comm, <- plus_assoc, power_add.
-      setoid_rewrite <- code_eq_b_assoc.
-      rewrite raise_c_i_bot; code_simpl.
-      rewrite power_add.
-      repeat rewrite power_add; code_simpl.
-      *)
-      admit.
+      apply lt_add in Hgt; destruct Hgt as [d Ed]; subst.
+      replace (Datatypes.S b + d) with (1 + d + b); [|omega].
+      setoid_rewrite (@code_le_top _ I) at 1.
+      eapply bohm_out_too_few_args.
   - (* case: incorrect head variable *)
-    simpl.
-    (* TODO is this right? *)
-    exists (raise^(1+h) o pull), (push o lower^(1+h));
-    split; code_simpl; auto with A_moves.
-    admit.
+    replace (Datatypes.S h) with (1 + h); [|omega].
+    setoid_rewrite (@code_le_top _ I) at 1.
+    apply bohm_out_wrong_head.
 Qed.
 
 Corollary A_repairs' (i : ClosedCode) : ~ i [= BOT -> I [= A * exp * i.
 Proof.
   intro H; apply A_repairs_pair in H; destruct H as [s [r [Ha Hi]]].
+  rewrite <- Ha; unfold pair, exp; code_simpl.
+  assumption.
+Qed.
+
+(* TODO state and prove a [nle_i_witness] lemma
+Lemma nle_i_witness (x : ClosedCode) : ~x [= I -> ???.
+*)
+
+Theorem A_raises_pair (i : ClosedCode) :
+  ~ i [= I -> exists s r, <<s, r>> [= A /\ TOP [= r o i o s.
+Proof.
+  admit.
+Qed.
+
+Corollary A_raises' (i : ClosedCode) : ~ i [= I -> TOP [= A * exp * i.
+Proof.
+  intro H; apply A_raises_pair in H; destruct H as [s [r [Ha Hi]]].
   rewrite <- Ha; unfold pair, exp; code_simpl.
   assumption.
 Qed.
