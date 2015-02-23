@@ -50,6 +50,13 @@ Proof.
   induction n; simpl; code_simpl; auto.
 Qed.
 
+Lemma power_add (Var : Set) (f : Code Var) (m n : nat) :
+  f^(m + n) == f^m o f^n.
+Proof.
+  induction m; induction n; simpl; code_simpl; auto.
+  rewrite IHm; simpl; code_simpl; auto.
+Qed.
+
 Definition limit_le_code {Var : Set} (f : nat -> Code Var) (x : Code Var) :=
   forall n, f n [= x.
 

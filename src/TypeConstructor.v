@@ -6,6 +6,8 @@ Require Import Coq.Program.Equality.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
+Require Import Coq.Arith.Compare_dec.
+Require Import Coq.Arith.Plus.
 Require Export InformationOrdering.
 Require Import Nontermination.
 Require Import LeastFixedPoint.
@@ -23,12 +25,6 @@ Section pair.
   Definition pair := Eval compute in close_var (\x,\y,\f, f * x * y).
 End pair.
 Notation "<< x , y >>" := (pair * x * y)%code : code_scope.
-
-Definition is_pair {Var : Set} (x : Code Var) := x == <<x * K, x * (K * I)>>.
-Lemma pair_is_pair (Var : Set) (x y : Code Var) : is_pair <<x, y>>.
-Proof.
-  hnf; unfold pair; beta_reduce; auto.
-Qed.
 
 Lemma pair_extensionality (Var : Set) (x y x' y' : Code Var) :
   <<x, y>> [= <<x', y'>> <-> x [= x' /\ y [= y'.
@@ -183,10 +179,24 @@ Proof.
   apply conjugate_pair_le.
 Qed.
 
+Lemma A_move_raise_lower_n (Var : Set) (n : nat) :
+  <<raise^n, lower^n>> [= (A : Code Var).
+Proof.
+  induction n; simpl.
+  - apply A_move_i_i.
+  - rewrite power_commute_1; apply A_move_compose; auto.
+    apply A_move_raise_lower.
+Qed.
+
+Hint Resolve 
+  A_move_i_i A_move_raise_lower A_move_pull_push
+  A_move_compose A_move_conjugate
+  A_move_raise_lower_n
+  : A_moves.
 
 (* TODO use BohmTrees lemmas instead of this *)
 Lemma conv_bt_witness (x : ClosedCode) :
-  code_conv x -> exists k1 k2 b, K ^ k1 * (K ^ k2 o (C * I * BOT) ^ b) [= x.
+  code_conv x -> exists h k b, K ^ h * (K ^ k o (C * I * BOT) ^ b) [= x.
 Proof.
   intro H; rewrite conv_closed in H; destruct H as [y [xy yt]].
   apply weaken_probe in xy; apply weaken_pi in yt.
@@ -195,37 +205,79 @@ Proof.
   - admit.
 Qed.
 
-Local Ltac move_i_i := rewrite <- A_move_i_i.
-Local Ltac move_raise_lower := rewrite <- A_move_raise_lower.
-Local Ltac move_pull_push := rewrite <- A_move_pull_push.
+Lemma lt_add (p q : nat) : p <= q -> exists r, q = p + r.
+Proof.
+  intro H; induction H; eauto.
+  destruct IHle as [r IH].
+  exists (Succ r); rewrite IH; auto.
+Qed.
 
-Require Import Coq.Classes.Equivalence.
-Require Import Coq.Classes.SetoidTactics.
+Lemma lower_k (n : nat) : lower^n o K^n == (I : ClosedCode).
+Proof.
+  induction n; simpl; code_simpl; auto.
+  rewrite power_commute_1.
+  setoid_rewrite <- code_eq_b_assoc at 2.
+  rewrite IHn; unfold lower; beta_eta.
+Qed.
+
+Lemma raise_c_i_bot (n : nat) : (C * I * BOT)^n o raise^n == (I : ClosedCode).
+Proof.
+  induction n; simpl; code_simpl; auto.
+  rewrite power_commute_1.
+  setoid_rewrite <- code_eq_b_assoc at 2.
+  rewrite IHn; unfold raise; beta_eta.
+Qed.
+
+(** This follows %\cite{obermeyer2009equational}% pp. 48 Lemma 3.6.11. *)
 
 Theorem A_repairs_pair (i : ClosedCode) :
   ~ i [= BOT -> exists s r, <<s, r>> [= A /\ I [= r o i o s.
 Proof.
   intro H; apply conv_nle_bot in H.
-  apply conv_bt_witness in H; destruct H as [k1 [k2 [b H]]].
+  apply conv_bt_witness in H; destruct H as [h [k [b H]]].
   setoid_rewrite <- H; clear H i.
-  induction k1.
+  induction h.
   - (* case: correct head variable *)
-    induction k2; induction b.
-    (* TODO consider the three cases k2=b, k2<b, k2>b *)
-    + exists I, I; move_i_i; unfold exp, pair; code_simpl; auto.
-    + destruct IHb as [s [r [Ha Hi]]]; code_simpl in Hi.
-      exists (s o raise), (lower o r); split.
-        apply A_move_compose; [assumption | apply A_move_raise_lower].
-      simpl; unfold raise, lower; code_simpl.
-      eta_expand as f; simpl; unfold raise, lower; code_simpl.
+    simpl.
+    set (kb := lt_eq_lt_dec k b); destruct kb as [[Hlt | Heq] | Hgt].
+    + (* case: too many arguments *)
+      apply lt_add in Hlt; destruct Hlt as [d Ed]; subst; simpl.
+      exists (raise^(1+d) o pull), (push o lower^(1+d));
+      code_simpl.
       admit.
-    + destruct IHk2 as [s [r [Ha Hi]]]; code_simpl in Hi.
+    + (* case: correct number of arguments *)
+      subst.
+      exists (raise^b), (lower^b); split; code_simpl; auto with A_moves.
+      rewrite raise_c_i_bot; code_simpl.
+      rewrite lower_k; reflexivity.
+    + (* case: too few arguments *)
+      apply lt_add in Hgt; destruct Hgt as [d Ed]; subst; simpl.
+      setoid_rewrite beta_i.
+      exists (pull o raise^(1+d)), (lower^(1+d) o push);
+      split; code_simpl; auto with A_moves.
+      (* wrong witness:
+      exists (raise^(1+b+d)), (lower^(1+b+d));
+      split; code_simpl; auto with A_moves.
+      rewrite <- (@power_1' _ K) at 1.
+      setoid_rewrite <- code_eq_b_assoc at 2.
+      rewrite <- power_add.
+      rewrite plus_assoc.
+      setoid_rewrite <- code_eq_b_assoc at 1.
+      rewrite lower_k; code_simpl.
+      rewrite <- plus_assoc, plus_comm, <- plus_assoc, power_add.
+      setoid_rewrite <- code_eq_b_assoc.
+      rewrite raise_c_i_bot; code_simpl.
+      rewrite power_add.
+      repeat rewrite power_add; code_simpl.
+      *)
       admit.
-    + admit.
   - (* case: incorrect head variable *)
     simpl.
-    exists raise, lower; split; [apply A_move_raise_lower|].
+    (* TODO
+    exists ?, ?;
+    split; code_simpl; auto with A_moves.
     code_simpl.
+    *)
     admit.
 Qed.
 

@@ -15,6 +15,12 @@ Open Scope code_scope.
 (* ------------------------------------------------------------------------ *)
 (** ** An implicit definition of [A] *)
 
+Definition is_pair {Var : Set} (x : Code Var) := x == <<x * K, x * (K * I)>>.
+Lemma pair_is_pair (Var : Set) (x y : Code Var) : is_pair <<x, y>>.
+Proof.
+  hnf; unfold pair; beta_reduce; auto.
+Qed.
+
 Definition sub_pair {Var : Set} (x : Code Var) := x [= <<TOP, TOP>>.
 
 Instance sub_pair_eq (Var : Set) :
