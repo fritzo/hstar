@@ -32,7 +32,11 @@ Require Export Compile.
     We also add an identifiable top term [TOP] with
     a reduction rule [TOP x -beta-> TOP],
     and an approximation rule [TOP -pi-> x].
-    (This last rule [TOP -pi-> x] is hard to motivate; should it be dropped?)
+
+    Question:
+    This last rule [TOP x -pi-> x] is hard to motivate; should it be dropped?
+    Bohm trees w/o [TOP] are still dense,
+    so we might instead drop the rule [TOP x -beta-> TOP].
     *)
 
 Inductive normal {Var : Set} : Term Var -> Prop :=
@@ -67,7 +71,7 @@ Hint Resolve normal_protect inert_protect.
 
 Fixpoint is_normal {Var : Set} (w : Term Var) {struct w} : bool :=
   match w with
-  | TOP => true
+  | TOP => true  (* [TOP] could be omitted from normal forms *)
   | BOT => true
   | x || y => andb (is_normal x) (is_normal y)
   | x (+) y => andb (is_normal x) (is_normal y)
@@ -499,9 +503,18 @@ Defined.
 (** The [normal_dense] theorem motivates where to allow [JOIN] and [RAND]
     in Bohm trees.
     Whereas \cite{obermeyer2009automated} restricts [JOIN] and [RAND] to
-    the argument of an [inert] variables,
+    the argument of an [inert] variable,
     we here allow them at the top level
     to allow finite joins of dyadic mixtures.
+
+    Question:
+    Should [JOIN] and [RAND] be restricted to be inside lambda abstractions
+    so as to force compatibility among proofs of repair and raise theorems?
+    Consider the example
+
+      \x y z. x <TOP> BOT (+) x BOT <TOP>
+
+    What are the proof terms?
     *)
 
 Theorem normal_dense {Var : Set} (x y : Term Var) :
