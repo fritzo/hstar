@@ -188,10 +188,19 @@ Proof.
     apply A_move_raise_lower.
 Qed.
 
+Lemma A_move_pull_push_n (Var : Set) (n : nat) :
+  <<pull^n, push^n>> [= (A : Code Var).
+Proof.
+  induction n; simpl.
+  - apply A_move_i_i.
+  - rewrite power_commute_1; apply A_move_compose; auto.
+    apply A_move_pull_push.
+Qed.
+
 Hint Resolve 
   A_move_i_i A_move_raise_lower A_move_pull_push
   A_move_compose A_move_conjugate
-  A_move_raise_lower_n
+  A_move_raise_lower_n A_move_pull_push_n
   : A_moves.
 
 (* TODO use BohmTrees lemmas instead of this *)
@@ -236,7 +245,7 @@ Proof.
   intro H; apply conv_nle_bot in H.
   apply conv_bt_witness in H; destruct H as [h [k [b H]]].
   setoid_rewrite <- H; clear H i.
-  induction h.
+  destruct h.
   - (* case: correct head variable *)
     simpl.
     set (kb := lt_eq_lt_dec k b); destruct kb as [[Hlt | Heq] | Hgt].
@@ -273,11 +282,9 @@ Proof.
       admit.
   - (* case: incorrect head variable *)
     simpl.
-    (* TODO
-    exists ?, ?;
+    (* TODO is this right? *)
+    exists (raise^(1+h) o pull), (push o lower^(1+h));
     split; code_simpl; auto with A_moves.
-    code_simpl.
-    *)
     admit.
 Qed.
 
