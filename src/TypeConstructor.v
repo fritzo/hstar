@@ -221,6 +221,12 @@ Proof.
   rewrite IHn; unfold lower; code_simpl; auto.
 Qed.
 
+Lemma push_top (n : nat) : push^n * TOP == (TOP : ClosedCode).
+Proof.
+  induction n; simpl; code_simpl; auto.
+  rewrite IHn; unfold push; code_simpl; auto.
+Qed.
+
 Lemma lower_k (n : nat) (x : ClosedCode) : lower^n * (K^n * x) == x.
 Proof.
   revert x; induction n; intro x; simpl; code_simpl; auto.
@@ -291,10 +297,13 @@ Lemma bohm_out_wrong_head (h k b : nat) :
   exists s r : ClosedCode, <<s, r>> [= A /\
   TOP [= r o (K ^ (1 + h) * K ^ k o (C * I * BOT) ^ b) o s.
 Proof.
-  exists (raise^(1+k+h)), (lower^(1+k+h)); bohm_out.
+  exists (raise^(k+1+h)), (lower^(k+1+h)); bohm_out.
   setoid_rewrite power_add at 1; simpl; code_simpl.
   rewrite lower_k.
-  admit.
+  setoid_rewrite power_add; simpl; code_simpl.
+  unfold lower at 2; code_simpl.
+  rewrite lower_k.
+  apply push_top.
 Qed.
 
 (* ------------------------------------------------------------------------ *)
