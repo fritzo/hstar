@@ -30,17 +30,10 @@ Require Export Compile.
     [JOIN x y -pi-> x], and
     [JOIN x y -pi-> y].
     We also add an identifiable top term [TOP] with
-    a reduction rule [TOP x -beta-> TOP],
-    and an approximation rule [TOP -pi-> x].
-
-    Question:
-    This last rule [TOP x -pi-> x] is hard to motivate; should it be dropped?
-    Bohm trees w/o [TOP] are still dense,
-    so we might instead drop the rule [TOP x -beta-> TOP].
+    an approximation rule [TOP -pi-> x].
     *)
 
 Inductive normal {Var : Set} : Term Var -> Prop :=
-  | normal_top : normal TOP
   | normal_bot : normal BOT
   | normal_join x y : normal x -> normal y -> normal (x || y)
   | normal_rand x y : normal x -> normal y -> normal (x (+) y)
@@ -71,13 +64,13 @@ Hint Resolve normal_protect inert_protect.
 
 Fixpoint is_normal {Var : Set} (w : Term Var) {struct w} : bool :=
   match w with
-  | TOP => true  (* [TOP] could be omitted from normal forms *)
   | BOT => true
   | x || y => andb (is_normal x) (is_normal y)
   | x (+) y => andb (is_normal x) (is_normal y)
   | x * y => andb (is_inert x) (is_normal y)
   | term_var v => true
   | term_lambda x => is_normal x
+  | _ => false
   end
 with is_inert {Var : Set} (w : Term Var) {struct w} : bool :=
   match w with
@@ -102,6 +95,7 @@ Proof.
     + rewrite IHnormal; simpl; auto.
       admit.
   - dependent induction x; simpl; intros; eauto.
+    + inversion H.
     + revert H;
       (* FIXME need to simultaneously do induction on inert and normal
       case_eq (is_inert x1); case_eq (is_normal x2); simpl;
@@ -196,7 +190,6 @@ Inductive reduce {Var : Set} : relation (Term Var) :=
   | reduce_app_right x y y' : reduce y y' -> reduce (x * y) (x * y')
   | reduce_lambda x x' :
       @reduce (option Var) x x' -> reduce (LAMBDA x) (LAMBDA x') 
-  | reduce_top y : reduce (TOP * y) TOP
   | reduce_bot y : reduce (BOT * y) BOT
   | reduce_join_app x y z : reduce ((x || y) * z) (x * z || y * z)
   | reduce_rand_app x y z : reduce ((x (+) y) * z) (x * z (+) y * z)
@@ -204,7 +197,7 @@ Inductive reduce {Var : Set} : relation (Term Var) :=
 Hint Constructors reduce.
 
 Hint Rewrite
-  @reduce_top @reduce_bot @reduce_join_app @reduce_rand_app @reduce_lambda_app
+  @reduce_bot @reduce_join_app @reduce_rand_app @reduce_lambda_app
   : term_simpl.
 
 Ltac term_simpl := autorewrite with term_simpl using simpl.
@@ -245,13 +238,12 @@ Proof.
   - transitivity (compile y); assumption.
   - rewrite IHxy; auto.
   - code_simpl; auto.
-  - code_simpl; auto.
   - rewrite compile_lambda_app; auto.
 Qed.
 
 Fixpoint try_reduce_step {Var : Set} (x : Term Var) : option (Term Var) :=
   match x with
-  | TOP * y => Some TOP
+  | TOP => Some TOP
   | BOT * y => Some BOT
   | (x1 || x2) * y => Some (x1 * y || x2 * y)
   | (x1 (+) x2) * y => Some (x1 * y (+) x2 * y)
@@ -311,6 +303,8 @@ Section try_reduce_step_reduce.
       case_eq x1; intros; simpl; auto.
       + rewrite <- H; rewrite IHx1; reflexivity.
       + rewrite <- H; rewrite IHx1; reflexivity.
+      + rewrite <- H; rewrite IHx1; reflexivity.
+      + case_reduce x2 IHx2.
       + case_reduce x2 IHx2.
       + case_reduce x2 IHx2.
     - case_reduce x IHx.
@@ -319,7 +313,7 @@ End try_reduce_step_reduce.
 
 Fixpoint is_irreducible {Var : Set} (x : Term Var) : bool :=
   match x with
-  | TOP * _ => false
+  | TOP => false
   | BOT * _ => false
   | (_ || _) * _ => false
   | (_ (+) _) * _ => false
