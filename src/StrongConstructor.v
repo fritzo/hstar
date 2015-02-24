@@ -102,12 +102,12 @@ Hint Resolve A_I_I.
 
 Lemma A_raise_lower (Var : Set) : (@A_prop Var) <<raise, lower>>.
 Proof.
-  A_prop_pair; apply lower_raise.
+  A_prop_pair; eta_expand; beta_simpl; apply lower_raise.
 Qed.
 
 Lemma A_pull_push (Var : Set) : (@A_prop Var) <<pull, push>>.
 Proof.
-  A_prop_pair; apply push_pull.
+  A_prop_pair; eta_expand; beta_simpl; apply push_pull.
 Qed.
 Hint Resolve A_raise_lower.
 Hint Resolve A_pull_push.

@@ -42,19 +42,32 @@ Proof.
   simpl; beta_eta.
 Qed.
 
-Hint Rewrite power_0' power_1' : code_simpl.
+Hint Rewrite power_0 power_1 power_0' power_1' : code_simpl.
 
-Lemma power_commute_1 (Var : Set) (f : Code Var) (n : nat) :
+Lemma power_commute_1 (Var : Set) (f x : Code Var) (n : nat) :
+  f * (f^n * x) == f^n * (f * x).
+Proof.
+  induction n; simpl; code_simpl; auto.
+Qed.
+
+Lemma power_commute_1' (Var : Set) (f : Code Var) (n : nat) :
   f o f^n == f^n o f.
 Proof.
   induction n; simpl; code_simpl; auto.
 Qed.
 
-Lemma power_add (Var : Set) (f : Code Var) (m n : nat) :
-  f^(m + n) == f^m o f^n.
+Lemma power_add (Var : Set) (f x : Code Var) (m n : nat) :
+  f^(m + n) * x == f^m * (f^n * x).
 Proof.
   induction m; induction n; simpl; code_simpl; auto.
-  rewrite IHm; simpl; code_simpl; auto.
+  - replace (m + 0) with m; auto.
+  - rewrite IHm; simpl; code_simpl; auto.
+Qed.
+
+Lemma power_add' (Var : Set) (f : Code Var) (m n : nat) :
+  f^(m + n) == f^m o f^n.
+Proof.
+  eta_expand as x; beta_simpl; apply power_add.
 Qed.
 
 Definition limit_le_code {Var : Set} (f : nat -> Code Var) (x : Code Var) :=

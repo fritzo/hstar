@@ -39,27 +39,37 @@ Qed.
 
 Section raise.
   Context {Var : Set}.
-  Let x := make_var Var 3.
-  Let y := make_var Var 4.
+  Let x := make_var Var 0.
+  Let y := make_var Var 1.
 
   Definition raise := Eval compute in close_var (\x, \y, x).
   Definition lower := Eval compute in close_var (\x, x * TOP).
 
-  Definition pull := Eval compute in close_var (\x, \y, x || div * y).
+  Definition pull' := Eval compute in close_var (\x, \y, x || div * y).
+  Definition pull : Code Var := K || K * div.
   Definition push := Eval compute in close_var (\x, x * BOT).
 
-  Lemma lower_raise : lower o raise == I.
+  Lemma pull_pull' : pull == pull'.
   Proof.
-    unfold lower, raise; beta_eta.
-  Qed.
-
-  Lemma push_pull : push o pull == I.
-  Proof.
-    unfold push, pull; fold (@div Var); eta_expand as z; beta_simpl.
-    symmetry; apply code_le_eq_j.
-    rewrite div_bot; auto.
+    unfold pull, pull'; fold (@div Var); beta_eta.
   Qed.
 End raise.
+
+Lemma lower_raise (Var : Set) (x : Code Var) : lower * (raise * x) == x.
+Proof.
+  unfold lower, raise; beta_simpl; reflexivity.
+Qed.
+
+Lemma push_pull (Var : Set) (x : Code Var) : push * (pull * x) == x.
+Proof.
+  unfold push, pull; code_simpl; reflexivity.
+Qed.
+
+Lemma lower_pull (Var : Set) (x : Code Var) : lower * (pull * x) == TOP.
+Proof.
+  unfold lower, pull; code_simpl;
+  rewrite code_eq_div; code_simpl; reflexivity.
+Qed.
 
 Section exp.
   Context {Var : Set}.
@@ -93,14 +103,14 @@ End compose.
 Lemma compose_pair_le (Var : Set) (s1 r1 s2 r2 : Code Var) :
   <<s1 o s2, r2 o r1>> [= compose * (<<s1, r1>> || <<s2, r2>>).
 Proof.
-  unfold compose; beta_reduce; unfold pair; beta_simpl.
+  unfold compose, pair; beta_reduce.
   rewrite pi_j_left, pi_j_right; reflexivity.
 Qed.
 
 Lemma conjugate_pair_le (Var : Set) (s1 r1 s2 r2 : Code Var) :
   <<r1 --> s2, s1 --> r2>> [= conjugate * (<<s1, r1>> || <<s2, r2>>).
 Proof.
-  unfold conjugate; beta_reduce; unfold pair; beta_simpl.
+  unfold conjugate, pair; beta_reduce.
   rewrite pi_j_left, pi_j_right.
   unfold exp; code_simpl; reflexivity.
 Qed.
@@ -138,7 +148,8 @@ Proof.
   eta_expand as x; beta_simpl; auto.
 Qed.
 
-(** We define some moves for Bohm-out arguments below. *)
+(* ------------------------------------------------------------------------ *)
+(** ** Using the Bohm-out method through [A] *)
 
 Lemma A_move_i_i (Var : Set) : <<I, I>> [= (A : Code Var).
 Proof.
@@ -185,7 +196,7 @@ Lemma A_move_raise_lower_n (Var : Set) (n : nat) :
 Proof.
   induction n; simpl.
   - apply A_move_i_i.
-  - rewrite power_commute_1; apply A_move_compose; auto.
+  - rewrite power_commute_1'; apply A_move_compose; auto.
     apply A_move_raise_lower.
 Qed.
 
@@ -194,7 +205,7 @@ Lemma A_move_pull_push_n (Var : Set) (n : nat) :
 Proof.
   induction n; simpl.
   - apply A_move_i_i.
-  - rewrite power_commute_1; apply A_move_compose; auto.
+  - rewrite power_commute_1'; apply A_move_compose; auto.
     apply A_move_pull_push.
 Qed.
 
@@ -204,85 +215,96 @@ Hint Resolve
   A_move_raise_lower_n A_move_pull_push_n
   : A_moves.
 
-Ltac A_moves := auto with A_moves.
+Lemma lower_top (n : nat) : lower^n * TOP == (TOP : ClosedCode).
+Proof.
+  induction n; simpl; code_simpl; auto.
+  rewrite IHn; unfold lower; code_simpl; auto.
+Qed.
+
+Lemma lower_k (n : nat) (x : ClosedCode) : lower^n * (K^n * x) == x.
+Proof.
+  revert x; induction n; intro x; simpl; code_simpl; auto.
+  setoid_rewrite power_commute_1 at 2.
+  rewrite IHn; unfold lower; beta_simpl; reflexivity.
+Qed.
+
+Lemma push_k (n : nat) (x : ClosedCode) : push^n * (K^n * x) == x.
+Proof.
+  revert x; induction n; intro x; simpl; code_simpl; auto.
+  setoid_rewrite power_commute_1 at 2.
+  rewrite IHn; unfold push; beta_simpl; reflexivity.
+Qed.
+
+Lemma raise_c_i_bot (n : nat) (x : ClosedCode) :
+  (C * I * BOT)^n * (raise^n * x) == x.
+Proof.
+  revert x; induction n; intro x; simpl; code_simpl; auto.
+  rewrite power_commute_1, IHn; unfold raise; beta_simpl; reflexivity.
+Qed.
+
+Lemma pull_c_i_bot (n : nat) (x : ClosedCode) :
+  (C * I * BOT)^n * (pull^n * x) == x.
+Proof.
+  revert x; induction n; intro x; simpl; code_simpl; auto.
+  rewrite power_commute_1, IHn; unfold pull; code_simpl; reflexivity.
+Qed.
+
+
+Ltac bohm_out :=
+  split; code_simpl; auto with A_moves;
+  eta_expand; code_simpl.
+
+Lemma bohm_out_repair (b : nat) :
+  exists s r : ClosedCode, <<s, r>> [= A /\
+  I [= r o K ^ b o (C * I * BOT) ^ b o s.
+Proof.
+  exists (raise^b), (lower^b); bohm_out.
+  rewrite raise_c_i_bot, lower_k; reflexivity.
+Qed.
+
+Lemma bohm_out_too_many_args (k d : nat) :
+  exists s r : ClosedCode, <<s, r>> [= A /\
+  TOP [= r o K ^ k o (C * I * BOT) ^ (1 + k + d) o s.
+Proof.
+  exists (raise^(1+d+k) o pull), (push o lower^(1+d+k)); bohm_out.
+  replace (1 + k + d) with (1 + d + k) by omega.
+  rewrite power_add, raise_c_i_bot, lower_k.
+  replace (1 + d) with (d + 1) by omega.
+  rewrite power_add; code_simpl.
+  rewrite lower_pull, lower_top.
+  unfold push; code_simpl; auto.
+Qed.
+
+Lemma bohm_out_too_few_args (b d : nat) :
+  exists s r : ClosedCode, <<s, r>> [= A /\
+  TOP [= r o K ^ (1 + d + b) o (C * I * BOT) ^ b o s.
+Proof.
+  exists (pull^(1+d+b) o raise), (lower o push^(1+d+b)); bohm_out.
+  rewrite push_k; code_simpl.
+  replace (1 + d + b) with (b + (1 + d)) by omega.
+  rewrite power_add; code_simpl.
+  rewrite pull_c_i_bot, power_add; simpl; beta_simpl.
+  rewrite lower_pull; reflexivity.
+Qed.
+
+Lemma bohm_out_wrong_head (h k b : nat) :
+  exists s r : ClosedCode, <<s, r>> [= A /\
+  TOP [= r o (K ^ (1 + h) * K ^ k o (C * I * BOT) ^ b) o s.
+Proof.
+  exists (raise^(1+k+h)), (lower^(1+k+h)); bohm_out.
+  setoid_rewrite power_add at 1; simpl; code_simpl.
+  rewrite lower_k.
+  admit.
+Qed.
+
+(* ------------------------------------------------------------------------ *)
+(** ** Construction of Bohm tree witnesses *)
 
 Lemma lt_add (p q : nat) : p <= q -> exists r, q = p + r.
 Proof.
   intro H; induction H; eauto.
   destruct IHle as [r IH].
   exists (Succ r); rewrite IH; auto.
-Qed.
-
-Lemma lower_k (n : nat) : lower^n o K^n == (I : ClosedCode).
-Proof.
-  induction n; simpl; code_simpl; auto.
-  rewrite power_commute_1.
-  setoid_rewrite <- code_eq_b_assoc at 2.
-  rewrite IHn; unfold lower; beta_eta.
-Qed.
-
-Lemma raise_c_i_bot (n : nat) : (C * I * BOT)^n o raise^n == (I : ClosedCode).
-Proof.
-  induction n; simpl; code_simpl; auto.
-  rewrite power_commute_1.
-  setoid_rewrite <- code_eq_b_assoc at 2.
-  rewrite IHn; unfold raise; beta_eta.
-Qed.
-
-Lemma bohm_out_repair (b : nat) :
-  exists s r : ClosedCode,
-  <<s, r>> [= A /\ I [= r o K ^ b o (C * I * BOT) ^ b o s.
-Proof.
-  exists (raise^b), (lower^b); split; code_simpl; auto with A_moves.
-  rewrite raise_c_i_bot; code_simpl.
-  rewrite lower_k; reflexivity.
-Qed.
-
-Lemma bohm_out_too_many_args (k d : nat) :
-  exists s r : ClosedCode,
-  <<s, r>> [= A /\ TOP [= r o K ^ k o (C * I * BOT) ^ (1 + k + d) o s.
-Proof.
-  exists (raise^(1+d) o pull), (push o lower^(1+d)); split; [A_moves|].
-  replace (1 + k + d) with (k + (1 + d)); [|omega].
-  setoid_rewrite power_add at 2.
-  repeat rewrite code_eq_b_assoc.
-  setoid_rewrite <- code_eq_b_assoc at 5.
-  rewrite raise_c_i_bot; code_simpl.
-  admit.
-Qed.
-
-Lemma bohm_out_too_few_args (b d : nat) :
-  exists s r : ClosedCode,
-  <<s, r>> [= A /\ TOP [= r o (K ^ (1 + d + b)) o (C * I * BOT) ^ b o s.
-Proof.
-  exists (pull o raise^(1+d)), (lower^(1+d) o push);
-  split; code_simpl; auto with A_moves.
-  (* wrong witness:
-  exists (raise^(1+b+d)), (lower^(1+b+d));
-  split; code_simpl; auto with A_moves.
-  rewrite <- (@power_1' _ K) at 1.
-  setoid_rewrite <- code_eq_b_assoc at 2.
-  rewrite <- power_add.
-  rewrite plus_assoc.
-  setoid_rewrite <- code_eq_b_assoc at 1.
-  rewrite lower_k; code_simpl.
-  rewrite <- plus_assoc, plus_comm, <- plus_assoc, power_add.
-  setoid_rewrite <- code_eq_b_assoc.
-  rewrite raise_c_i_bot; code_simpl.
-  rewrite power_add.
-  repeat rewrite power_add; code_simpl.
-  *)
-  admit.
-Qed.
-
-Lemma bohm_out_wrong_head (h k b : nat) :
-  exists s r : ClosedCode,
-  <<s, r>> [= A /\ TOP [= r o (K ^ (1 + h) * K ^ k o (C * I * BOT) ^ b) o s.
-Proof.
-  (* TODO is this right? *)
-  exists (raise^(1+h) o pull), (push o lower^(1+h));
-  split; code_simpl; auto with A_moves.
-  admit.
 Qed.
 
 (* TODO use BohmTrees lemmas instead of this *)
@@ -310,7 +332,7 @@ Proof.
     set (kb := lt_eq_lt_dec k b); destruct kb as [[Hlt | Heq] | Hgt].
     + (* case: too many arguments *)
       apply lt_add in Hlt; destruct Hlt as [d Ed]; subst.
-      replace (Datatypes.S k) with (1 + k); [|omega].
+      replace (Datatypes.S k) with (1 + k) by omega.
       setoid_rewrite (@code_le_top _ I) at 1.
       apply bohm_out_too_many_args.
     + (* case: correct number of arguments *)
@@ -318,11 +340,11 @@ Proof.
       apply bohm_out_repair.
     + (* case: too few arguments *)
       apply lt_add in Hgt; destruct Hgt as [d Ed]; subst.
-      replace (Datatypes.S b + d) with (1 + d + b); [|omega].
+      replace (Datatypes.S b + d) with (1 + d + b) by omega.
       setoid_rewrite (@code_le_top _ I) at 1.
       eapply bohm_out_too_few_args.
   - (* case: incorrect head variable *)
-    replace (Datatypes.S h) with (1 + h); [|omega].
+    replace (Datatypes.S h) with (1 + h) by omega.
     setoid_rewrite (@code_le_top _ I) at 1.
     apply bohm_out_wrong_head.
 Qed.
