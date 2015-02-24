@@ -316,7 +316,6 @@ Proof.
   exists (Succ r); rewrite IH; auto.
 Qed.
 
-(* TODO use BohmTrees lemmas instead of this *)
 Lemma nle_bot_witness (x : ClosedCode) :
   ~x [= BOT -> exists h k b, K ^ h * K ^ k o (C * I * BOT) ^ b [= x.
 Proof.
@@ -358,7 +357,7 @@ Proof.
     apply bohm_out_wrong_head.
 Qed.
 
-Corollary A_repairs' (i : ClosedCode) : ~ i [= BOT -> I [= A * exp * i.
+Corollary A_repairs (i : ClosedCode) : ~ i [= BOT -> I [= A * exp * i.
 Proof.
   intro H; apply A_repairs_pair in H; destruct H as [s [r [Ha Hi]]].
   rewrite <- Ha; unfold pair, exp; code_simpl.
@@ -375,7 +374,7 @@ Proof.
   admit.
 Qed.
 
-Corollary A_raises' (i : ClosedCode) : ~ i [= I -> TOP [= A * exp * i.
+Corollary A_raises (i : ClosedCode) : ~ i [= I -> TOP [= A * exp * i.
 Proof.
   intro H; apply A_raises_pair in H; destruct H as [s [r [Ha Hi]]].
   rewrite <- Ha; unfold pair, exp; code_simpl.
@@ -385,7 +384,7 @@ Qed.
 (* TODO the following two theorems need stronger induction hypotheses,
    of higher type *)
 
-Theorem A_repairs (i : ClosedCode) : ~ i [= BOT -> I [= A * exp * i.
+Theorem A_repairs' (i : ClosedCode) : ~ i [= BOT -> I [= A * exp * i.
 Proof.
   repeat rewrite <- decompile_le.
   do 2 rewrite decompile_app; freeze A in freeze exp in simpl.
@@ -405,7 +404,7 @@ Proof.
   - admit.
 Qed.
 
-Theorem A_raises (i : ClosedCode) : ~ i [= I -> TOP [= A * exp * i.
+Theorem A_raises' (i : ClosedCode) : ~ i [= I -> TOP [= A * exp * i.
 Proof.
   repeat rewrite <- decompile_le.
   do 2 rewrite decompile_app; freeze A in freeze exp in simpl.
