@@ -25,10 +25,10 @@ Section pair.
   Let f := make_var Var 2.
   Definition pair := Eval compute in close_var (\x,\y,\f, f * x * y).
 End pair.
-Notation "<< x , y >>" := (pair * x * y)%code : code_scope.
+Notation "[ x , y ]" := (pair * x * y)%code : code_scope.
 
 Lemma pair_extensionality (Var : Set) (x y x' y' : Code Var) :
-  <<x, y>> [= <<x', y'>> <-> x [= x' /\ y [= y'.
+  [x, y] [= [x', y'] <-> x [= x' /\ y [= y'.
 Proof.
   unfold pair; beta_simpl; split.
     intro H; split.
@@ -94,21 +94,21 @@ Section compose.
   Let b' := make_var Var 4.
 
   Definition compose := Eval compute in close_var
-    (\s, s*\a,\a', s*\b,\b', <<a o b, b' o a'>>).
+    (\s, s*\a,\a', s*\b,\b', [a o b, b' o a']).
 
   Definition conjugate := Eval compute in close_var
-    (\s, s*\a,\a', s*\b,\b', <<a' --> b, a --> b'>>).
+    (\s, s*\a,\a', s*\b,\b', [a' --> b, a --> b']).
 End compose.
 
 Lemma compose_pair_le (Var : Set) (s1 r1 s2 r2 : Code Var) :
-  <<s1 o s2, r2 o r1>> [= compose * (<<s1, r1>> || <<s2, r2>>).
+  [s1 o s2, r2 o r1] [= compose * ([s1, r1] || [s2, r2]).
 Proof.
   unfold compose, pair; beta_reduce.
   rewrite pi_j_left, pi_j_right; reflexivity.
 Qed.
 
 Lemma conjugate_pair_le (Var : Set) (s1 r1 s2 r2 : Code Var) :
-  <<r1 --> s2, s1 --> r2>> [= conjugate * (<<s1, r1>> || <<s2, r2>>).
+  [r1 --> s2, s1 --> r2] [= conjugate * ([s1, r1] || [s2, r2]).
 Proof.
   unfold conjugate, pair; beta_reduce.
   rewrite pi_j_left, pi_j_right.
@@ -119,7 +119,7 @@ Qed.
 (** ** A constructive definition of [A] *)
 
 Definition A_step {Var : Set} : Code Var
-  := K * (<<I, I>> || <<raise, lower>> || <<pull, push>>)
+  := K * ([I, I] || [raise, lower] || [pull, push])
     || (compose || conjugate).
 
 Definition A {Var : Set} : Code Var := Eval compute in Y * A_step.
@@ -151,48 +151,48 @@ Qed.
 (* ------------------------------------------------------------------------ *)
 (** ** Using the Bohm-out method through [A] *)
 
-Lemma A_move_i_i (Var : Set) : <<I, I>> [= (A : Code Var).
+Lemma A_move_i_i (Var : Set) : [I, I] [= (A : Code Var).
 Proof.
   A_simpl;
   rewrite code_eq_y, pi_j_left, beta_k, pi_j_left, pi_j_left;
   reflexivity.
 Qed.
 
-Lemma A_move_raise_lower (Var : Set) : <<raise, lower>> [= (A : Code Var).
+Lemma A_move_raise_lower (Var : Set) : [raise, lower] [= (A : Code Var).
 Proof.
   A_simpl;
   rewrite code_eq_y, pi_j_left, beta_k, pi_j_left, pi_j_right;
   reflexivity.
 Qed.
 
-Lemma A_move_pull_push (Var : Set) : <<pull, push>> [= (A : Code Var).
+Lemma A_move_pull_push (Var : Set) : [pull, push] [= (A : Code Var).
 Proof.
   A_simpl; rewrite code_eq_y, pi_j_left, beta_k, pi_j_right;
   reflexivity.
 Qed.
 
 Lemma A_move_compose (Var : Set) (s1 r1 s2 r2 : Code Var) :
-  <<s1, r1>> [= A -> <<s2, r2>> [= A -> <<s1 o s2, r2 o r1>> [= A.
+  [s1, r1] [= A -> [s2, r2] [= A -> [s1 o s2, r2 o r1] [= A.
 Proof.
   rewrite A_simpl at 3; rewrite code_eq_y; rewrite <- A_simpl.
   unfold A_step; rewrite pi_j_right, pi_j_left.
   intros H1 H2.
-  assert (<<s1, r1>> || <<s2, r2>> [= A) as H; auto; rewrite <- H.
+  assert ([s1, r1] || [s2, r2] [= A) as H; auto; rewrite <- H.
   apply compose_pair_le.
 Qed.
 
 Lemma A_move_conjugate (Var : Set) (s1 r1 s2 r2 : Code Var) :
-  <<s1, r1>> [= A -> <<s2, r2>> [= A -> <<r1 --> s2, s1 --> r2>> [= A.
+  [s1, r1] [= A -> [s2, r2] [= A -> [r1 --> s2, s1 --> r2] [= A.
 Proof.
   rewrite A_simpl at 3; rewrite code_eq_y; rewrite <- A_simpl.
   unfold A_step; rewrite pi_j_right, pi_j_right.
   intros H1 H2.
-  assert (<<s1, r1>> || <<s2, r2>> [= A) as H; auto; rewrite <- H.
+  assert ([s1, r1] || [s2, r2] [= A) as H; auto; rewrite <- H.
   apply conjugate_pair_le.
 Qed.
 
 Lemma A_move_raise_lower_n (Var : Set) (n : nat) :
-  <<raise^n, lower^n>> [= (A : Code Var).
+  [raise^n, lower^n] [= (A : Code Var).
 Proof.
   induction n; simpl.
   - apply A_move_i_i.
@@ -201,7 +201,7 @@ Proof.
 Qed.
 
 Lemma A_move_pull_push_n (Var : Set) (n : nat) :
-  <<pull^n, push^n>> [= (A : Code Var).
+  [pull^n, push^n] [= (A : Code Var).
 Proof.
   induction n; simpl.
   - apply A_move_i_i.
@@ -261,7 +261,7 @@ Ltac bohm_out :=
   eta_expand; code_simpl.
 
 Lemma bohm_out_repair (b : nat) :
-  exists s r : ClosedCode, <<s, r>> [= A /\
+  exists s r : ClosedCode, [s, r] [= A /\
   I [= r o K ^ b o (C * I * BOT) ^ b o s.
 Proof.
   exists (raise^b), (lower^b); bohm_out.
@@ -269,7 +269,7 @@ Proof.
 Qed.
 
 Lemma bohm_out_too_many_args (k d : nat) :
-  exists s r : ClosedCode, <<s, r>> [= A /\
+  exists s r : ClosedCode, [s, r] [= A /\
   TOP [= r o K ^ k o (C * I * BOT) ^ (1 + k + d) o s.
 Proof.
   exists (raise^(1+d+k) o pull), (push o lower^(1+d+k)); bohm_out.
@@ -282,7 +282,7 @@ Proof.
 Qed.
 
 Lemma bohm_out_too_few_args (b d : nat) :
-  exists s r : ClosedCode, <<s, r>> [= A /\
+  exists s r : ClosedCode, [s, r] [= A /\
   TOP [= r o K ^ (1 + d + b) o (C * I * BOT) ^ b o s.
 Proof.
   exists (pull^(1+d+b) o raise), (lower o push^(1+d+b)); bohm_out.
@@ -294,7 +294,7 @@ Proof.
 Qed.
 
 Lemma bohm_out_wrong_head (h k b : nat) :
-  exists s r : ClosedCode, <<s, r>> [= A /\
+  exists s r : ClosedCode, [s, r] [= A /\
   TOP [= r o (K ^ (1 + h) * K ^ k o (C * I * BOT) ^ b) o s.
 Proof.
   exists (raise^(k+1+h)), (lower^(k+1+h)); bohm_out.
@@ -330,7 +330,7 @@ Qed.
 (** This follows %\cite{obermeyer2009equational}% pp. 48 Lemma 3.6.11. *)
 
 Theorem A_repairs_pair (i : ClosedCode) :
-  ~ i [= BOT -> exists s r, <<s, r>> [= A /\ I [= r o i o s.
+  ~ i [= BOT -> exists s r, [s, r] [= A /\ I [= r o i o s.
 Proof.
   intro H; apply nle_bot_witness in H; destruct H as [h [k [b H]]].
   setoid_rewrite <- H; clear H i.
@@ -365,11 +365,17 @@ Proof.
 Qed.
 
 (* TODO state and prove a [nle_i_witness] lemma
+Inductive Increasing : ClosedCode -> Prop :=
+  | Increasing_head (h k b : nat) :
+      Increasing (K ^ (1 + h) * K ^ k o (C * I * BOT) ^ b)
+  | Increasing_arg : ???
+.
+
 Lemma nle_i_witness (x : ClosedCode) : ~x [= I -> ???.
 *)
 
 Theorem A_raises_pair (i : ClosedCode) :
-  ~ i [= I -> exists s r, <<s, r>> [= A /\ TOP [= r o i o s.
+  ~ i [= I -> exists s r, [s, r] [= A /\ TOP [= r o i o s.
 Proof.
   admit.
 Qed.

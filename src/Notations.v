@@ -34,5 +34,6 @@ Reserved Notation "x == y" (at level 60, no associativity).
 Reserved Notation "x ->> y" (at level 60, no associativity).
 
 Reserved Notation "[ x ]".
+Reserved Notation "[ x , y ]".
 
 (* end hide *)

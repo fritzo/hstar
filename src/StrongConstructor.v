@@ -15,13 +15,13 @@ Open Scope code_scope.
 (* ------------------------------------------------------------------------ *)
 (** ** An implicit definition of [A] *)
 
-Definition is_pair {Var : Set} (x : Code Var) := x == <<x * K, x * (K * I)>>.
-Lemma pair_is_pair (Var : Set) (x y : Code Var) : is_pair <<x, y>>.
+Definition is_pair {Var : Set} (x : Code Var) := x == [x * K, x * (K * I)].
+Lemma pair_is_pair (Var : Set) (x y : Code Var) : is_pair [x, y].
 Proof.
   hnf; unfold pair; beta_reduce; auto.
 Qed.
 
-Definition sub_pair {Var : Set} (x : Code Var) := x [= <<TOP, TOP>>.
+Definition sub_pair {Var : Set} (x : Code Var) := x [= [TOP, TOP].
 
 Instance sub_pair_eq (Var : Set) :
   Proper (code_eq ==> iff) (@sub_pair Var).
@@ -35,7 +35,7 @@ Proof.
   unfold sub_pair; intros x x' xx' H. rewrite <- xx'; auto.
 Qed.
 
-Lemma sub_pair_pair (Var : Set) (x y : Code Var) : sub_pair <<x, y>>.
+Lemma sub_pair_pair (Var : Set) (x y : Code Var) : sub_pair [x, y].
 Proof.
   unfold sub_pair, pair; eta_expand as f; beta_reduce.
   monotonicity; auto.
@@ -43,7 +43,7 @@ Qed.
 
 (* FIXME is this true? *)
 Lemma sub_pair_elim_intro (Var : Set) (x : Code Var) :
-  sub_pair x -> x [= <<x*K, x*(K*I)>>.
+  sub_pair x -> x [= [x*K, x*(K*I)].
 Proof.
   unfold sub_pair, pair; simpl.
   intros H. (* eta_expand in H. FIXME eta_expand is borken *)
@@ -51,24 +51,24 @@ Proof.
 Admitted.
 
 Definition pairish {Var : Set} (x : Code Var) :=
-  <<BOT, BOT>> [= x /\ x [= <<TOP, TOP>>.
+  [BOT, BOT] [= x /\ x [= [TOP, TOP].
 
 (* FIXME is this true? what about for stochastic terms? *)
 Lemma pairish_elim (Var : Set) (x f y : Code Var) :
   pairish x ->
-  (forall s r, <<s, r>> [= x -> f * s * r [= y) ->
+  (forall s r, [s, r] [= x -> f * s * r [= y) ->
   x * f [= y.
 Proof.
 Admitted.
 
 (* should we work only in the lattice inverval [[<BOT,BOT>, <TOP, TOP>]]? *)
 Definition A_prop' {Var : Set} (a : Code Var) :=
-  <<BOT, BOT>> [= a /\
-  a [= <<TOP, TOP>> /\
-  forall s r, <<s, r>> [= a -> r o s [= I.
+  [BOT, BOT] [= a /\
+  a [= [TOP, TOP] /\
+  forall s r, [s, r] [= a -> r o s [= I.
 
 Definition A_prop {Var : Set} (a : Code Var) :=
-  sub_pair a /\ forall s r, <<s, r>> [= a -> r o s [= I.
+  sub_pair a /\ forall s r, [s, r] [= a -> r o s [= I.
 
 Instance A_prop_le (Var : Set) : Proper (code_le --> impl) (@A_prop Var).
 Proof.
@@ -94,18 +94,18 @@ Ltac A_prop_pair :=
 (* ------------------------------------------------------------------------ *)
 (** ** An inductive definition of [A] *)
 
-Lemma A_I_I (Var : Set) : A_prop (<<I, I>> : Code Var).
+Lemma A_I_I (Var : Set) : A_prop ([I, I] : Code Var).
 Proof.
   A_prop_pair; beta_eta.
 Qed.
 Hint Resolve A_I_I.
 
-Lemma A_raise_lower (Var : Set) : (@A_prop Var) <<raise, lower>>.
+Lemma A_raise_lower (Var : Set) : (@A_prop Var) [raise, lower].
 Proof.
   A_prop_pair; eta_expand; beta_simpl; apply lower_raise.
 Qed.
 
-Lemma A_pull_push (Var : Set) : (@A_prop Var) <<pull, push>>.
+Lemma A_pull_push (Var : Set) : (@A_prop Var) [pull, push].
 Proof.
   A_prop_pair; eta_expand; beta_simpl; apply push_pull.
 Qed.
@@ -155,9 +155,9 @@ Qed.
 
 Inductive A_above {Var : Set} : Code Var -> Prop :=
   | A_above_below x y : x [= y -> A_above y -> A_above x
-  | A_above_i_i : A_above <<I, I>>
-  | A_above_raise_lower : A_above <<raise, lower>>
-  | A_above_pull_push : A_above <<pull, push>>
+  | A_above_i_i : A_above [I, I]
+  | A_above_raise_lower : A_above [raise, lower]
+  | A_above_pull_push : A_above [pull, push]
   | A_above_compose a : A_above a -> A_above (compose * a)
   | A_above_conjugate a : A_above a -> A_above (conjugate * a).
 Hint Constructors A_above.
@@ -203,7 +203,7 @@ Proof.
     rewrite pi_j_right, pi_j_right, IHA_above; auto.
 Qed.
 
-Lemma A_sound (Var : Set) (s r : Code Var) : <<s, r>> [= A -> A_prop <<s, r>>.
+Lemma A_sound (Var : Set) (s r : Code Var) : [s, r] [= A -> A_prop [s, r].
 Proof.
   A_simpl.
   intros H; apply A_above_sound.

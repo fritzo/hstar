@@ -703,7 +703,7 @@ Proof.
   - rewrite A_simpl at 3; rewrite code_eq_y; rewrite <- A_simpl.
     unfold A_step; code_simpl.
     rewrite pi_j_right; rewrite pi_j_left.
-    (* TODO argue pairwise <<s o s', r' o r>> *)
+    (* TODO argue pairwise [s o s', r' o r] *)
     admit.
   - rewrite A_simpl at 2; rewrite code_eq_y; rewrite <- A_simpl.
     unfold A_step; code_simpl.
@@ -1121,7 +1121,7 @@ Section Prod.
   Let v := make_var Var 1.
 
   Let disambiguate := (\u, u * pair).
-  Let repair := (\u, <<BOT, BOT>>).
+  Let repair := (\u, [BOT, BOT]).
 
   Definition Prod : Code Var := Eval compute in close_var
     (\u, \v, V * (FuzzyProd * u * v || disambiguate || repair)).
@@ -1190,7 +1190,7 @@ End FuzzyChurchNat.
 Section ChurchNat.
   Context {Var : Set}.
 
-  Let disambiguate : Code Var := <<succ, zero>>.  (* does this work? *)
+  Let disambiguate : Code Var := [succ, zero].  (* does this work? *)
   Definition ChurchNat : Code Var := P * FuzzyChurchNat * disambiguate.
 End ChurchNat.
 
