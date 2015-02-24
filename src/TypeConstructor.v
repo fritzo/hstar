@@ -26,6 +26,7 @@ Section pair.
   Definition pair := Eval compute in close_var (\x,\y,\f, f * x * y).
 End pair.
 Notation "[ x , y ]" := (pair * x * y)%code : code_scope.
+Notation "[ x ]" := (C * I * x)%code : code_scope.
 
 Lemma pair_extensionality (Var : Set) (x y x' y' : Code Var) :
   [x, y] [= [x', y'] <-> x [= x' /\ y [= y'.
@@ -39,20 +40,12 @@ Qed.
 
 Section raise.
   Context {Var : Set}.
-  Let x := make_var Var 0.
-  Let y := make_var Var 1.
 
-  Definition raise := Eval compute in close_var (\x, \y, x).
-  Definition lower := Eval compute in close_var (\x, x * TOP).
+  Definition raise : Code Var := K.
+  Definition lower : Code Var := [TOP].
 
-  Definition pull' := Eval compute in close_var (\x, \y, x || div * y).
   Definition pull : Code Var := K || K * div.
-  Definition push := Eval compute in close_var (\x, x * BOT).
-
-  Lemma pull_pull' : pull == pull'.
-  Proof.
-    unfold pull, pull'; fold (@div Var); beta_eta.
-  Qed.
+  Definition push : Code Var := [BOT].
 End raise.
 
 Lemma lower_raise (Var : Set) (x : Code Var) : lower * (raise * x) == x.
@@ -242,14 +235,14 @@ Proof.
 Qed.
 
 Lemma raise_c_i_bot (n : nat) (x : ClosedCode) :
-  (C * I * BOT)^n * (raise^n * x) == x.
+  [BOT]^n * (raise^n * x) == x.
 Proof.
   revert x; induction n; intro x; simpl; code_simpl; auto.
   rewrite power_commute_1, IHn; unfold raise; beta_simpl; reflexivity.
 Qed.
 
 Lemma pull_c_i_bot (n : nat) (x : ClosedCode) :
-  (C * I * BOT)^n * (pull^n * x) == x.
+  [BOT]^n * (pull^n * x) == x.
 Proof.
   revert x; induction n; intro x; simpl; code_simpl; auto.
   rewrite power_commute_1, IHn; unfold pull; code_simpl; reflexivity.
@@ -261,8 +254,7 @@ Ltac bohm_out :=
   eta_expand; code_simpl.
 
 Lemma bohm_out_repair (b : nat) :
-  exists s r : ClosedCode, [s, r] [= A /\
-  I [= r o K ^ b o (C * I * BOT) ^ b o s.
+  exists s r : ClosedCode, [s, r] [= A /\ I [= r o K ^ b o [BOT] ^ b o s.
 Proof.
   exists (raise^b), (lower^b); bohm_out.
   rewrite raise_c_i_bot, lower_k; reflexivity.
@@ -270,7 +262,7 @@ Qed.
 
 Lemma bohm_out_too_many_args (k d : nat) :
   exists s r : ClosedCode, [s, r] [= A /\
-  TOP [= r o K ^ k o (C * I * BOT) ^ (1 + k + d) o s.
+  TOP [= r o K ^ k o [BOT] ^ (1 + k + d) o s.
 Proof.
   exists (raise^(1+d+k) o pull), (push o lower^(1+d+k)); bohm_out.
   replace (1 + k + d) with (1 + d + k) by omega.
@@ -283,7 +275,7 @@ Qed.
 
 Lemma bohm_out_too_few_args (b d : nat) :
   exists s r : ClosedCode, [s, r] [= A /\
-  TOP [= r o K ^ (1 + d + b) o (C * I * BOT) ^ b o s.
+  TOP [= r o K ^ (1 + d + b) o [BOT] ^ b o s.
 Proof.
   exists (pull^(1+d+b) o raise), (lower o push^(1+d+b)); bohm_out.
   rewrite push_k; code_simpl.
@@ -295,7 +287,7 @@ Qed.
 
 Lemma bohm_out_wrong_head (h k b : nat) :
   exists s r : ClosedCode, [s, r] [= A /\
-  TOP [= r o (K ^ (1 + h) * K ^ k o (C * I * BOT) ^ b) o s.
+  TOP [= r o (K ^ (1 + h) * K ^ k o [BOT] ^ b) o s.
 Proof.
   exists (raise^(k+1+h)), (lower^(k+1+h)); bohm_out.
   setoid_rewrite power_add at 1; simpl; code_simpl.
@@ -317,7 +309,7 @@ Proof.
 Qed.
 
 Lemma nle_bot_witness (x : ClosedCode) :
-  ~x [= BOT -> exists h k b, K ^ h * K ^ k o (C * I * BOT) ^ b [= x.
+  ~x [= BOT -> exists h k b, K ^ h * K ^ k o [BOT] ^ b [= x.
 Proof.
   intro H; apply conv_nle_bot in H.
   rewrite conv_closed in H; destruct H as [y [xy yt]].
@@ -367,7 +359,7 @@ Qed.
 (* TODO state and prove a [nle_i_witness] lemma
 Inductive Increasing : ClosedCode -> Prop :=
   | Increasing_head (h k b : nat) :
-      Increasing (K ^ (1 + h) * K ^ k o (C * I * BOT) ^ b)
+      Increasing (K ^ (1 + h) * K ^ k o [BOT] ^ b)
   | Increasing_arg : ???
 .
 
