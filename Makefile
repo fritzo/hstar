@@ -12,6 +12,8 @@ src: FORCE
 sandbox: FORCE
 	cd sandbox ; ./make.sh
 	$(MAKE) -C sandbox
+	pep8 sandbox/*.py
+	pyflakes sandbox/*.py
 
 doc: FORCE
 	$(MAKE) -C doc

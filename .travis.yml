@@ -8,6 +8,7 @@ before_install:
     - coq_makefile -h || echo debug
     - export COQPATH=$COQPATH:.
     - # export OTHERFLAGS=-verbose  # for coqc via coq_makefile
+    - pip install pep8 pyflakes
 env:
     - TARGET=src
     - TARGET=sandbox
