@@ -11,7 +11,7 @@ before_install:
     - coq_makefile -h || echo debug
     - export COQPATH=$COQPATH:.
     - # export OTHERFLAGS=-verbose  # for coqc via coq_makefile
-    - pip install -r requirements.text
+    - pip install -r requirements.txt
 env:
     - TARGET=src
     - TARGET=sandbox
