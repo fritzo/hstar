@@ -150,9 +150,9 @@ Proof.
   set (is_normal_x := is_normal x).
   case_eq is_normal_x; intro Hn.
   - apply inleft.
-    apply normal_is_normal in Hn.
+    apply normal_is_normal_true in Hn.
     (* TODO apply semi_ind *)
     admit.
   - apply inright; intro Hn'.
-    subst; apply normal_is_normal in Hn'; rewrite Hn' in Hn; inversion Hn.
+    subst; apply normal_is_normal_true in Hn'; rewrite Hn' in Hn; inversion Hn.
 Qed.

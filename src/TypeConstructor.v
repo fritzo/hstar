@@ -399,7 +399,6 @@ Proof.
   (* the last three cases require shifting down and up type. *)
   - admit.  (* TODO prove a lemma about [inert] terms *)
   - admit.
-  - admit.
 Qed.
 
 Theorem A_raises' (i : ClosedCode) : ~ i [= I -> TOP [= A * exp * i.
@@ -419,7 +418,6 @@ Proof.
   - admit.  (* TODO use [pconv] instead of [conv] *)
   (* the last three cases require shifting down and up type. *)
   - admit.  (* TODO prove a lemma about [inert] terms *)
-  - admit.
   - admit.
 Qed.
 

@@ -37,10 +37,9 @@ Inductive normal {Var : Set} : Term Var -> Prop :=
   | normal_bot : normal BOT
   | normal_join x y : normal x -> normal y -> normal (x || y)
   | normal_rand x y : normal x -> normal y -> normal (x (+) y)
-  | normal_app x y : inert x -> normal y -> normal (x * y)
   | normal_lambda x : @normal (option Var) x -> normal (LAMBDA x)
-  | normal_var v : normal (VAR v)
-with inert {Var : Set} : Term Var -> Set :=
+  | normal_inert x : inert x -> normal x
+with inert {Var : Set} : Term Var -> Prop :=
   | inert_var v : inert (VAR v)
   | inert_app x y : inert x -> normal y -> inert (x * y).
 Hint Constructors normal inert.
@@ -85,54 +84,73 @@ Proof.
   induction x; simpl; auto; intro H; inversion H.
 Qed.
 
-Lemma normal_is_normal {Var : Set} (x : Term Var) :
- normal x <-> is_normal x = true.
+Fixpoint normal_is_normal {Var : Set} (x : Term Var) :
+  normal x -> is_normal x = true
+with inert_is_inert {Var : Set} (x : Term Var) :
+  inert x -> is_inert x = true.
 Proof.
-  split.
-  - intro H; induction H; simpl; auto.
-    + rewrite IHnormal1; rewrite IHnormal2; simpl; auto.
-    + rewrite IHnormal1; rewrite IHnormal2; simpl; auto.
-    + rewrite IHnormal; simpl; auto.
-      admit.
-  - dependent induction x; simpl; intros; eauto.
-    + inversion H.
-    + revert H;
-      (* FIXME need to simultaneously do induction on inert and normal
-      case_eq (is_inert x1); case_eq (is_normal x2); simpl;
-      intros Ex2 Ex1 H; destruct H; auto.
-      apply is_inert_is_normal in Ex1.
-      rewrite Ex1 in IHx1; rewrite Ex2 in IHx2; simpl.
-      *)
-      admit.
-    + admit.
-    + admit.
+  - clear normal_is_normal.
+    intro H; induction H; simpl; auto.
+    + rewrite IHnormal1, IHnormal2; simpl; auto.
+    + rewrite IHnormal1, IHnormal2; simpl; auto.
+    + apply is_inert_is_normal; apply inert_is_inert; auto.
+  - clear inert_is_inert.
+    intro H; induction H; simpl; auto.
+    rewrite IHinert; simpl.
+    auto using normal_is_normal.
+Admitted.
+
+Fixpoint normal_is_normal' {Var : Set} (x : Term Var) :
+  is_normal x = true -> normal x
+with inert_is_inert' {Var : Set} (x : Term Var) :
+  is_inert x = true -> inert x.
+Proof.
+  - clear normal_is_normal'.
+    dependent induction x; simpl; intros; eauto.
+    + case_eq (is_normal x1); intro H1; rewrite H1 in H; simpl in H.
+      apply normal_join; [apply IHx1 | apply IHx2]; auto.
+      inversion H.
+    + case_eq (is_normal x1); intro H1; rewrite H1 in H; simpl in H.
+      apply normal_rand; [apply IHx1 | apply IHx2]; auto.
+      inversion H.
+  - clear inert_is_inert'.
+    dependent induction x; simpl; intros; eauto; try inversion H.
+    case_eq (is_inert x1); intro H2; rewrite H2 in H; simpl in H.
+    apply inert_app; [apply IHx1 | try apply normal_is_normal']; auto.
+    inversion H.
+Admitted.
+
+Lemma normal_is_normal_true {Var : Set} (x : Term Var) :
+  normal x <-> is_normal x = true.
+Proof.
+  split; [apply normal_is_normal | apply normal_is_normal'].
 Qed.
 
-Lemma normal_is_normal' {Var : Set} (x : Term Var) :
+Lemma normal_is_normal_false {Var : Set} (x : Term Var) :
  ~ normal x <-> is_normal x = false.
 Proof.
   case_eq (is_normal x); intros H; split; intro H'; auto.
-  - rewrite normal_is_normal in H'; contradiction.
+  - rewrite normal_is_normal_true in H'; contradiction.
   - inversion H'.
-  - rewrite normal_is_normal, H; auto.
+  - rewrite normal_is_normal_true, H; auto.
 Qed.
 
 Ltac case_normal x :=
   let Hnx := fresh "Hn" x in
   case_eq (is_normal x);
   intro Hnx;
-  [ rewrite <- normal_is_normal in Hnx
-  | rewrite <- normal_is_normal' in Hnx].
+  [ rewrite <- normal_is_normal_true in Hnx
+  | rewrite <- normal_is_normal_false in Hnx].
 
 Lemma normal_decidable {Var : Set} (x : Term Var) : decidable (normal x).
 Proof.
-  unfold decidable; rewrite normal_is_normal; decide equality.
+  unfold decidable; rewrite normal_is_normal_true; decide equality.
 Qed.
 Hint Resolve normal_decidable.
 
 Ltac solve_normal :=
   match goal with
-  | _ : _ |- normal _ => apply normal_is_normal; simpl; auto
+  | _ : _ |- normal _ => apply normal_is_normal_true; simpl; auto
   end.
 
 Lemma normal_i (Var : Set) : normal (DeBruijn.I : Term Var).
