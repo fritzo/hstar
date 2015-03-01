@@ -5,6 +5,9 @@ Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Morphisms.
 Require Import Coq.Logic.Decidable.
 Require Import Coq.Bool.Bool.
+Require Export BohmTrees.
+
+(* for reference only:
 
 Inductive Term {Vs : Set} : Set :=
   | term_top : Term
@@ -16,8 +19,6 @@ Inductive Term {Vs : Set} : Set :=
 Arguments Term : default implicits.
 Hint Constructors Term.
 
-Definition term_le {Vs : Set} : relation (Term Vs). Admitted.
-
 Inductive normal {Vs : Set} : Term Vs -> Prop :=
   | normal_bot : normal term_bot
   | normal_join x y : normal x -> normal y -> normal (term_join x y)
@@ -28,9 +29,12 @@ with inert {Vs : Set} : Term Vs -> Set :=
   | inert_app x y : inert x -> normal y -> inert (term_app x y).
 Hint Constructors normal inert.
 
+*)
+
 Inductive Normal {Vs : Set} : Set :=
   | Normal_bot : Normal
   | Normal_join : Normal -> Normal -> Normal
+  | Normal_rand : Normal -> Normal -> Normal
   | Normal_lambda : @Normal (option Vs) -> Normal
   | Normal_inert : Inert -> Normal
 with Inert {Vs : Set} : Set :=
@@ -44,6 +48,7 @@ Fixpoint eval_normal {Vs : Set} (x : Normal Vs) : Term Vs :=
   match x with
   | Normal_bot => term_bot
   | Normal_join x1 x2 => term_join (eval_normal x1) (eval_normal x2)
+  | Normal_rand x1 x2 => term_rand (eval_normal x1) (eval_normal x2)
   | Normal_inert i => eval_inert i
   | Normal_lambda x1 => term_lambda (eval_normal x1)
   end
@@ -70,8 +75,6 @@ Inductive Tp {Vs : Set} : Set :=
 Hint Constructors Tp.
 Arguments Tp : default implicits.
 
-Definition A {Vs : Set} : Term Vs. Admitted.
-
 Fixpoint eval_type {Ts Vs : Set} (a : Tp Ts) : Term Vs :=
   match a with
   | Tp_var v => (* TODO *) term_bot
@@ -82,6 +85,7 @@ Fixpoint eval_type {Ts Vs : Set} (a : Tp Ts) : Term Vs :=
 Inductive TNormal {Vs Ts : Set} : Set :=
   | TNormal_bot : TNormal
   | TNormal_join : TNormal -> TNormal -> TNormal
+  | TNormal_rand : TNormal -> TNormal -> TNormal
   | TNormal_inert : TInert -> TNormal
   | TNormal_lambda : @TNormal (option Vs) Ts -> TNormal
   | TNormal_ann : Tp Ts -> TNormal -> TNormal
@@ -97,6 +101,7 @@ Fixpoint eval_tnormal {Vs Ts : Set} (x : TNormal Vs Ts) : Term Vs :=
   match x with
   | TNormal_bot => term_bot
   | TNormal_join x1 x2 => term_join (eval_tnormal x1) (eval_tnormal x2)
+  | TNormal_rand x1 x2 => term_rand (eval_tnormal x1) (eval_tnormal x2)
   | TNormal_inert i => eval_tinert i
   | TNormal_lambda x1 => term_lambda (eval_tnormal x1)
   | TNormal_ann a x1 => term_app (eval_type a) (eval_tnormal x1)
@@ -108,23 +113,69 @@ with eval_tinert {Vs Ts : Set} (x : TInert Vs Ts) : Term Vs :=
   | TInert_ann a1 x1 => term_app (eval_type a1) (eval_tinert x1)
   end.
 
-Fixpoint ann_lambda {Vs Ts : Set} (a : Tp Ts) (x : TNormal (option Vs) Ts) :
-  TNormal (option Vs) Ts :=
+Fixpoint tnormal_map {Vs Vs' Ts : Set} (f : Vs -> Vs') (x : TNormal Vs Ts) :
+  TNormal Vs' Ts :=
   match x with
   | TNormal_bot => TNormal_bot
-  | TNormal_join x1 x2 => TNormal_join (ann_lambda a x1) (ann_lambda a x2)
-  | TNormal_inert i => TNormal_inert (ann_lambda' a i)
-  | TNormal_lambda x1 => (* TODO use option_map *) TNormal_bot
-  | TNormal_ann a1 x1 => TNormal_ann a1 (ann_lambda a x1)
+  | TNormal_join x1 x2 => TNormal_join (tnormal_map f x1) (tnormal_map f x2)
+  | TNormal_rand x1 x2 => TNormal_rand (tnormal_map f x1) (tnormal_map f x2)
+  | TNormal_inert i => TNormal_inert (tinert_map f i)
+  | TNormal_lambda x1 => TNormal_lambda (tnormal_map (option_map f) x1)
+  | TNormal_ann a x1 => TNormal_ann a (tnormal_map f x1)
   end
-with ann_lambda' {Vs Ts : Set} (a : Tp Ts) (x : TInert (option Vs) Ts) :
- TInert (option Vs) Ts :=
+with tinert_map {Vs Vs' Ts : Set}  (f : Vs -> Vs') (x : TInert Vs Ts) :
+  TInert Vs' Ts :=
   match x with
-  | TInert_app x1 x2 => TInert_app (ann_lambda' a x1) (ann_lambda a x2)
-  | TInert_var None => TInert_ann a (TInert_var None)
-  | TInert_var (Some v) => TInert_var (Some v)
-  | TInert_ann a1 x1 => TInert_ann a1 (ann_lambda' a x1)
+  | TInert_app x1 x2 => TInert_app (tinert_map f x1) (tnormal_map f x2)
+  | TInert_var v => TInert_var (f v)
+  | TInert_ann a1 x1 => TInert_ann a1 (tinert_map f x1)
   end.
+
+Definition tnormal_some_sub
+  {Vs Vs' Ts : Set} (f : Vs -> TInert Vs' Ts) (v : option Vs) :
+  TInert (option Vs') Ts :=
+  match v with
+  | None => TInert_var None
+  | Some v' => tinert_map (@Some Vs') (f v')
+  end.
+
+Fixpoint
+  tnormal_sub {Vs Vs' Ts : Set} (f : Vs -> TInert Vs' Ts) (x : TNormal Vs Ts) :
+  TNormal Vs' Ts :=
+  match x with
+  | TNormal_bot => TNormal_bot
+  | TNormal_join x1 x2 => TNormal_join (tnormal_sub f x1) (tnormal_sub f x2)
+  | TNormal_rand x1 x2 => TNormal_rand (tnormal_sub f x1) (tnormal_sub f x2)
+  | TNormal_inert i => TNormal_inert (tinert_sub f i)
+  | TNormal_lambda x1 => TNormal_lambda (tnormal_sub (tnormal_some_sub f) x1)
+  | TNormal_ann a x1 => TNormal_ann a (tnormal_sub f x1)
+  end
+with
+  tinert_sub {Vs Vs' Ts : Set}  (f : Vs -> TInert Vs' Ts) (x : TInert Vs Ts) :
+  TInert Vs' Ts :=
+  match x with
+  | TInert_app x1 x2 => TInert_app (tinert_sub f x1) (tnormal_sub f x2)
+  | TInert_var v => f v
+  | TInert_ann a1 x1 => TInert_ann a1 (tinert_sub f x1)
+  end.
+
+Definition ann_lambda {Vs Ts : Set} (a : Tp Ts) :
+  TNormal (option Vs) Ts -> TNormal (option Vs) Ts :=
+  tnormal_sub (
+    fun v =>
+    match v with
+    | None => TInert_ann a (TInert_var None)
+    | Some v => TInert_var (Some v)
+    end).
+
+Definition ann_lambda' {Vs Ts : Set} (a : Tp Ts) :
+  TInert (option Vs) Ts -> TInert (option Vs) Ts :=
+  tinert_sub (
+    fun v =>
+    match v with
+    | None => TInert_ann a (TInert_var None)
+    | Some v => TInert_var (Some v)
+    end).
 
 Inductive checks {Vs Ts : Set} : relation (TNormal Ts Vs) :=
   | checks_refl x : checks x x
@@ -135,10 +186,13 @@ Inductive checks {Vs Ts : Set} : relation (TNormal Ts Vs) :=
   (* ...app etc... *)
   | checks_expand_lambda a b x :
       checks (TNormal_ann (Tp_exp a b) (TNormal_lambda x))
-            (TNormal_lambda (TNormal_ann b (ann_lambda a x)))
+             (TNormal_lambda (TNormal_ann b (ann_lambda a x)))
   | checks_expand_join a x y :
       checks (TNormal_ann a (TNormal_join x y))
-            (TNormal_join (TNormal_ann a x) (TNormal_ann a y))
+             (TNormal_join (TNormal_ann a x) (TNormal_ann a y))
+  | checks_expand_rand a x y :
+      checks (TNormal_ann a (TNormal_rand x y))
+             (TNormal_rand (TNormal_ann a x) (TNormal_ann a y))
   (* TODO
   (* How to deal with covariance vs contravariance? *)
   | checks_eta_expand :
@@ -155,14 +209,11 @@ with checks' {Vs Ts : Set} : relation (TInert Ts Vs) :=
 Instance checks_sound (Vs Ts : Set) :
   Proper (checks --> term_le) (@eval_tnormal Vs Ts).
 Proof.
-  intros y x xy; induction xy; simpl; auto.
+  intros y x xy; induction xy; simpl; try (term_to_code; auto; reflexivity).
+  - transitivity (eval_tnormal y); auto.
+  - admit. (* TODO define [eval_type] *)
   - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
+    (* TODO show [eval_type a (x (+) y) [= eval_type a x (+) eval_type a y]. *)
 Qed.
 
 Fixpoint check_step {Vs Ts : Set} (x : TNormal Ts Vs) :
@@ -171,6 +222,7 @@ Fixpoint check_step {Vs Ts : Set} (x : TNormal Ts Vs) :
   (* TODO
   | TNormal_bot => term_bot
   | TNormal_join x1 x2 => term_join (eval_tnormal x1) (eval_tnormal x2)
+  | TNormal_rand x1 x2 => term_rand (eval_tnormal x1) (eval_tnormal x2)
   | TNormal_inert i => eval_tinert i
   | TNormal_lambda x1 => term_lambda (eval_tnormal x1)
   | TNormal_ann a x1 => term_app (eval_type a) (eval_tnormal x1)
