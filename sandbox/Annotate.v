@@ -76,78 +76,81 @@ Qed.
 
 Inductive Tp {Vs : Set} : Set :=
   | Tp_var : Vs -> Tp
-  | Tp_var' : Vs -> Tp
   | Tp_exp : Tp -> Tp -> Tp
+  | Tp_all : @Tp (option Vs) -> Tp
   (* TODO allow constants like [I] and [bool] *)
   (* TODO allow recursion via mu *)
 .
 Hint Constructors Tp.
 Arguments Tp : default implicits.
 
-Definition term_exp {Vs : Set} (a b : Term Vs) : Term Vs :=
-  let Vs' : Set := option (option Vs) in
-  let f : Term Vs' := term_var None in
-  let x : Term Vs' := term_var (Some None) in
-  let a' : Term Vs' := term_map (fun v => Some (Some v)) a in
-  let b' : Term Vs' := term_map (fun v => Some (Some v)) b in
-  term_lambda (term_lambda (b' * (f * (a' * x)))).
-
 Definition A {Vs : Set} : Term Vs. Admitted.
 
-Definition term_bind {Vs : Set} (x : Term (option (option Vs))) : Term Vs :=
-  A * LAMBDA (LAMBDA x).
+Section eval_type.
+  Definition flip_var {Ts Vs : Set} (v : Ts + Ts + Vs) : Ts + Ts + Vs :=
+    match v with
+    | inl (inl v') => inl (inr v')
+    | inl (inr v') => inl (inl v')
+    | inr v' => inr v'
+    end.
 
-Lemma option_option (n : nat) (Vs : Set) : 
-  option_ (Datatypes.S n + Datatypes.S n) Vs =
-  option (option (option_ (n + n) Vs)).
-Proof.
-  revert Vs; induction n; intro Vs; simpl; auto.
-  admit.
-Qed.
+  Definition term_exp {Vs : Set} (a b : Term Vs) : Term Vs :=
+    let Vs' : Set := option (option Vs) in
+    let f : Term Vs' := term_var None in
+    let x : Term Vs' := term_var (Some None) in
+    let a' : Term Vs' := term_map (fun v => Some (Some v)) a in
+    let b' : Term Vs' := term_map (fun v => Some (Some v)) b in
+    term_lambda (term_lambda (b' * (f * (a' * x)))).
 
-Definition bind_type_vars
-  {Vs : Set} (n : nat) (x : Term (option_ (n+n) Vs)) : Term Vs.
-Proof.
-  induction n.
-  - apply x.
-  - rewrite option_option in x.
-    apply IHn; apply term_bind; apply x.
-Defined.
+  Definition eval_var {Ts Vs : Set} (v : option Ts + option Ts + Vs) :
+    option (option (Ts + Ts + Vs)) :=
+    match v with
+    | inl (inl None) => None
+    | inl (inr None) => Some None
+    | inl (inl (Some v')) => Some (Some (inl (inl v')))
+    | inl (inr (Some v')) => Some (Some (inl (inr v')))
+    | inr v' => Some (Some (inr v'))
+    end.
 
-Definition eval_type_var
-  (n : nat) (v : option_ n Empty_set) {Vs : Set} : option_ (n+n) Vs.
-Admitted.
+  Definition bind_var {Vs : Set} (x : Term (option (option Vs))) : Term Vs :=
+    A * LAMBDA (LAMBDA x).
 
-Definition eval_type_var'
-  (n : nat) (v : option_ n Empty_set) {Vs : Set} : option_ (n+n) Vs.
-Admitted.
+  Fixpoint eval_type' {Ts Vs : Set} (a : Tp Ts) : Term (Ts + Ts + Vs) :=
+    match a with
+    | Tp_var v => term_var (inl (inl v))
+    | Tp_exp a b =>
+        let a' := eval_type' a in
+        let b' := eval_type' b in
+        term_exp (term_map flip_var a') b'
+    | Tp_all a =>
+        let a' := eval_type' a in
+        bind_var (term_map eval_var a')
+    end.
 
-Fixpoint eval_type_vars (n : nat) (a : Tp (option_ n Empty_set)) {Vs : Set} :
-  Term (option_ (n+n) Vs) :=
-  let Vs' := option (option Vs) in
-  match a with
-  | Tp_var v => term_var (eval_type_var n v)
-  | Tp_var' v => term_var (eval_type_var' n v)
-  | Tp_exp d c => term_exp (eval_type_vars n d) (eval_type_vars n c)
-  end.
+  Definition close_type {Vs : Set} :
+    Term (Empty_set + Empty_set + Vs) -> Term Vs :=
+    term_map (fun v =>
+    match v with
+    | inr v' => v'
+    | inl (inr v') => match v' : Empty_set with end
+    | inl (inl v') => match v' : Empty_set with end
+    end).
 
-Definition eval_type_nat
-  {n : nat} (a : Tp (option_ n Empty_set)) {Vs : Set} : Term Vs :=
-  bind_type_vars n (eval_type_vars n a).
-
-Definition eval_type {Vs Ts : Set} (a : Tp Ts) : Term Vs.  Admitted.
+  Definition eval_type {Vs : Set} (a : Tp Empty_set) : Term Vs :=
+    close_type (eval_type' a).
+End eval_type.
 
 (* ------------------------------------------------------------------------ *)
 (** Annotated normal forms *)
 
-Inductive TNormal {Vs Ts : Set} : Set :=
+Inductive TNormal {Ts Vs : Set} : Set :=
   | TNormal_bot : TNormal
   | TNormal_join : TNormal -> TNormal -> TNormal
   | TNormal_rand : TNormal -> TNormal -> TNormal
   | TNormal_inert : TInert -> TNormal
-  | TNormal_lambda : @TNormal (option Vs) Ts -> TNormal
+  | TNormal_lambda : @TNormal Ts (option Vs) -> TNormal
   | TNormal_ann : Tp Ts -> TNormal -> TNormal
-with TInert {Vs Ts : Set} : Set :=
+with TInert {Ts Vs : Set} : Set :=
   | TInert_var : Vs -> TInert
   | TInert_app : TInert -> TNormal -> TInert
   | TInert_ann : Tp Ts -> TInert -> TInert.
@@ -155,7 +158,7 @@ Hint Constructors TNormal TInert.
 Arguments TNormal : default implicits.
 Arguments TInert : default implicits.
 
-Fixpoint eval_tnormal {Vs Ts : Set} (x : TNormal Vs Ts) : Term Vs :=
+Fixpoint eval_tnormal {Vs : Set} (x : TNormal Empty_set Vs) : Term Vs :=
   match x with
   | TNormal_bot => term_bot
   | TNormal_join x1 x2 => term_join (eval_tnormal x1) (eval_tnormal x2)
@@ -164,15 +167,15 @@ Fixpoint eval_tnormal {Vs Ts : Set} (x : TNormal Vs Ts) : Term Vs :=
   | TNormal_lambda x1 => term_lambda (eval_tnormal x1)
   | TNormal_ann a x1 => term_app (eval_type a) (eval_tnormal x1)
   end
-with eval_tinert {Vs Ts : Set} (x : TInert Vs Ts) : Term Vs :=
+with eval_tinert {Vs : Set} (x : TInert Empty_set Vs) : Term Vs :=
   match x with
   | TInert_app x1 x2 => term_app (eval_tinert x1) (eval_tnormal x2)
   | TInert_var v => term_var v
   | TInert_ann a1 x1 => term_app (eval_type a1) (eval_tinert x1)
   end.
 
-Fixpoint tnormal_map {Vs Vs' Ts : Set} (f : Vs -> Vs') (x : TNormal Vs Ts) :
-  TNormal Vs' Ts :=
+Fixpoint tnormal_map {Vs Vs' Ts : Set} (f : Vs -> Vs') (x : TNormal Ts Vs) :
+  TNormal Ts Vs' :=
   match x with
   | TNormal_bot => TNormal_bot
   | TNormal_join x1 x2 => TNormal_join (tnormal_map f x1) (tnormal_map f x2)
@@ -181,8 +184,8 @@ Fixpoint tnormal_map {Vs Vs' Ts : Set} (f : Vs -> Vs') (x : TNormal Vs Ts) :
   | TNormal_lambda x1 => TNormal_lambda (tnormal_map (option_map f) x1)
   | TNormal_ann a x1 => TNormal_ann a (tnormal_map f x1)
   end
-with tinert_map {Vs Vs' Ts : Set}  (f : Vs -> Vs') (x : TInert Vs Ts) :
-  TInert Vs' Ts :=
+with tinert_map {Ts Vs Vs' : Set}  (f : Vs -> Vs') (x : TInert Ts Vs) :
+  TInert Ts Vs' :=
   match x with
   | TInert_app x1 x2 => TInert_app (tinert_map f x1) (tnormal_map f x2)
   | TInert_var v => TInert_var (f v)
@@ -190,16 +193,16 @@ with tinert_map {Vs Vs' Ts : Set}  (f : Vs -> Vs') (x : TInert Vs Ts) :
   end.
 
 Definition tnormal_some_sub
-  {Vs Vs' Ts : Set} (f : Vs -> TInert Vs' Ts) (v : option Vs) :
-  TInert (option Vs') Ts :=
+  {Ts Vs Vs' : Set} (f : Vs -> TInert Ts Vs') (v : option Vs) :
+  TInert Ts (option Vs') :=
   match v with
   | None => TInert_var None
   | Some v' => tinert_map (@Some Vs') (f v')
   end.
 
 Fixpoint
-  tnormal_sub {Vs Vs' Ts : Set} (f : Vs -> TInert Vs' Ts) (x : TNormal Vs Ts) :
-  TNormal Vs' Ts :=
+  tnormal_sub {Ts Vs Vs' : Set} (f : Vs -> TInert Ts Vs') (x : TNormal Ts Vs) :
+  TNormal Ts Vs' :=
   match x with
   | TNormal_bot => TNormal_bot
   | TNormal_join x1 x2 => TNormal_join (tnormal_sub f x1) (tnormal_sub f x2)
@@ -209,8 +212,8 @@ Fixpoint
   | TNormal_ann a x1 => TNormal_ann a (tnormal_sub f x1)
   end
 with
-  tinert_sub {Vs Vs' Ts : Set}  (f : Vs -> TInert Vs' Ts) (x : TInert Vs Ts) :
-  TInert Vs' Ts :=
+  tinert_sub {Ts Vs Vs' : Set}  (f : Vs -> TInert Ts Vs') (x : TInert Ts Vs) :
+  TInert Ts Vs' :=
   match x with
   | TInert_app x1 x2 => TInert_app (tinert_sub f x1) (tnormal_sub f x2)
   | TInert_var v => f v
@@ -220,8 +223,8 @@ with
 (* ------------------------------------------------------------------------ *)
 (** Type checking *)
 
-Definition ann_lambda {Vs Ts : Set} (a : Tp Ts) :
-  TNormal (option Vs) Ts -> TNormal (option Vs) Ts :=
+Definition ann_lambda {Ts Vs : Set} (a : Tp Ts) :
+  TNormal Ts (option Vs) -> TNormal Ts (option Vs) :=
   tnormal_sub (
     fun v =>
     match v with
@@ -229,8 +232,8 @@ Definition ann_lambda {Vs Ts : Set} (a : Tp Ts) :
     | Some v => TInert_var (Some v)
     end).
 
-Definition ann_lambda' {Vs Ts : Set} (a : Tp Ts) :
-  TInert (option Vs) Ts -> TInert (option Vs) Ts :=
+Definition ann_lambda' {Ts Vs : Set} (a : Tp Ts) :
+  TInert Ts (option Vs) -> TInert Ts (option Vs) :=
   tinert_sub (
     fun v =>
     match v with
@@ -238,7 +241,7 @@ Definition ann_lambda' {Vs Ts : Set} (a : Tp Ts) :
     | Some v => TInert_var (Some v)
     end).
 
-Inductive checks {Vs Ts : Set} : relation (TNormal Vs Ts) :=
+Inductive checks {Ts Vs : Set} : relation (TNormal Ts Vs) :=
   | checks_refl x : checks x x
   | checks_trans x y z : checks x y -> checks y z -> checks x z
   | checks_bot x : checks x TNormal_bot
@@ -264,12 +267,12 @@ Inductive checks {Vs Ts : Set} : relation (TNormal Vs Ts) :=
   | checks_clash_var_exp :
   | checks_clash_exp_var :
   *)
-with checks' {Vs Ts : Set} : relation (TInert Ts Vs) :=
+with checks' {Ts Vs : Set} : relation (TInert Ts Vs) :=
   (* TODO *)
 .
 
-Instance checks_sound (Vs Ts : Set) :
-  Proper (checks --> term_le) (@eval_tnormal Vs Ts).
+Instance checks_sound (Vs : Set) :
+  Proper (checks --> term_le) (@eval_tnormal Vs).
 Proof.
   intros y x xy; induction xy; simpl; try (term_to_code; auto; reflexivity).
   - transitivity (eval_tnormal y); auto.
@@ -279,7 +282,7 @@ Proof.
   - admit.
 Qed.
 
-Fixpoint check_step {Vs Ts : Set} (x : TNormal Ts Vs) :
+Fixpoint check_step {Ts Vs : Set} (x : TNormal Ts Vs) :
   option (TNormal Ts Vs) :=
   match x with
   (* TODO
@@ -292,8 +295,8 @@ Fixpoint check_step {Vs Ts : Set} (x : TNormal Ts Vs) :
   *)
   | _ => None
   end
-with check_step' {Vs Ts : Set} (x : TInert Vs Ts) :
-  option (TInert Vs Ts) :=
+with check_step' {Ts Vs : Set} (x : TInert Ts Vs) :
+  option (TInert Ts Vs) :=
   match x with
   (* TODO
   | TInert_app x1 x2 => term_app (eval_tinert x1) (eval_tnormal x2)
@@ -303,12 +306,12 @@ with check_step' {Vs Ts : Set} (x : TInert Vs Ts) :
   | _ => None
   end.
 
-Fixpoint check_step_checks (Vs Ts : Set) (x : TNormal Vs Ts) :
+Fixpoint check_step_checks (Ts Vs : Set) (x : TNormal Ts Vs) :
   match check_step x with
   | None => True
   | Some y => checks x y
   end
-with check_step_checks' (Vs Ts : Set) (x : TInert Vs Ts) :
+with check_step_checks' (Ts Vs : Set) (x : TInert Ts Vs) :
   match check_step' x with
   | None => True
   | Some y => checks' x y
@@ -318,7 +321,7 @@ Proof.
   - admit.
 Admitted.
 
-Fixpoint try_check {Vs Ts : Set} (n : nat) (x : TNormal Vs Ts) :
+Fixpoint try_check {Ts Vs : Set} (n : nat) (x : TNormal Ts Vs) :
   option bool :=
   match n with
   | 0%nat => None
@@ -330,10 +333,10 @@ Fixpoint try_check {Vs Ts : Set} (n : nat) (x : TNormal Vs Ts) :
   end.
 
 (* TODO
-Instance checks_complete (Vs Ts : Set) (x y : TNormal Vs Ts) : ???
+Instance checks_complete (Ts Vs : Set) (x y : TNormal Ts Vs) : ???
 *)
 
 (* FIXME
-Definition fixes {Vs Ts : Set} (a : Tp Ts) (x : TNormal Ts Vs) : Prop :=
+Definition fixes {Ts Vs : Set} (a : Tp Ts) (x : TNormal Ts Vs) : Prop :=
   checks (TNormal_ann a x) x.
 *)
