@@ -1,3 +1,4 @@
+Require Import Omega.
 Require Import Coq.Program.Basics.
 Require Import Coq.Program.Equality.
 Require Import Coq.Setoids.Setoid.
@@ -30,6 +31,9 @@ with inert {Vs : Set} : Term Vs -> Set :=
 Hint Constructors normal inert.
 
 *)
+
+(* ------------------------------------------------------------------------ *)
+(** Normal forms *)
 
 Inductive Normal {Vs : Set} : Set :=
   | Normal_bot : Normal
@@ -67,21 +71,75 @@ Proof.
   induction i; simpl; auto.
 Qed.
 
+(* ------------------------------------------------------------------------ *)
+(** Types *)
+
 Inductive Tp {Vs : Set} : Set :=
   | Tp_var : Vs -> Tp
+  | Tp_var' : Vs -> Tp
   | Tp_exp : Tp -> Tp -> Tp
   (* TODO allow constants like [I] and [bool] *)
+  (* TODO allow recursion via mu *)
 .
 Hint Constructors Tp.
 Arguments Tp : default implicits.
 
-Fixpoint eval_type {Ts Vs : Set} (a : Tp Ts) : Term Vs :=
+Definition term_exp {Vs : Set} (a b : Term Vs) : Term Vs :=
+  let Vs' : Set := option (option Vs) in
+  let f : Term Vs' := term_var None in
+  let x : Term Vs' := term_var (Some None) in
+  let a' : Term Vs' := term_map (fun v => Some (Some v)) a in
+  let b' : Term Vs' := term_map (fun v => Some (Some v)) b in
+  term_lambda (term_lambda (b' * (f * (a' * x)))).
+
+Definition A {Vs : Set} : Term Vs. Admitted.
+
+Definition term_bind {Vs : Set} (x : Term (option (option Vs))) : Term Vs :=
+  A * LAMBDA (LAMBDA x).
+
+Lemma option_option (n : nat) (Vs : Set) : 
+  option_ (Datatypes.S n + Datatypes.S n) Vs =
+  option (option (option_ (n + n) Vs)).
+Proof.
+  revert Vs; induction n; intro Vs; simpl; auto.
+  admit.
+Qed.
+
+Definition bind_type_vars
+  {Vs : Set} (n : nat) (x : Term (option_ (n+n) Vs)) : Term Vs.
+Proof.
+  induction n.
+  - apply x.
+  - rewrite option_option in x.
+    apply IHn; apply term_bind; apply x.
+Defined.
+
+Definition eval_type_var
+  (n : nat) (v : option_ n Empty_set) {Vs : Set} : option_ (n+n) Vs.
+Admitted.
+
+Definition eval_type_var'
+  (n : nat) (v : option_ n Empty_set) {Vs : Set} : option_ (n+n) Vs.
+Admitted.
+
+Fixpoint eval_type_vars (n : nat) (a : Tp (option_ n Empty_set)) {Vs : Set} :
+  Term (option_ (n+n) Vs) :=
+  let Vs' := option (option Vs) in
   match a with
-  | Tp_var v => (* TODO *) term_bot
-  | Tp_exp a b => (* TODO *) term_bot
+  | Tp_var v => term_var (eval_type_var n v)
+  | Tp_var' v => term_var (eval_type_var' n v)
+  | Tp_exp d c => term_exp (eval_type_vars n d) (eval_type_vars n c)
   end.
 
-(* annotated normal forms *)
+Definition eval_type_nat
+  {n : nat} (a : Tp (option_ n Empty_set)) {Vs : Set} : Term Vs :=
+  bind_type_vars n (eval_type_vars n a).
+
+Definition eval_type {Vs Ts : Set} (a : Tp Ts) : Term Vs.  Admitted.
+
+(* ------------------------------------------------------------------------ *)
+(** Annotated normal forms *)
+
 Inductive TNormal {Vs Ts : Set} : Set :=
   | TNormal_bot : TNormal
   | TNormal_join : TNormal -> TNormal -> TNormal
@@ -159,6 +217,9 @@ with
   | TInert_ann a1 x1 => TInert_ann a1 (tinert_sub f x1)
   end.
 
+(* ------------------------------------------------------------------------ *)
+(** Type checking *)
+
 Definition ann_lambda {Vs Ts : Set} (a : Tp Ts) :
   TNormal (option Vs) Ts -> TNormal (option Vs) Ts :=
   tnormal_sub (
@@ -177,7 +238,7 @@ Definition ann_lambda' {Vs Ts : Set} (a : Tp Ts) :
     | Some v => TInert_var (Some v)
     end).
 
-Inductive checks {Vs Ts : Set} : relation (TNormal Ts Vs) :=
+Inductive checks {Vs Ts : Set} : relation (TNormal Vs Ts) :=
   | checks_refl x : checks x x
   | checks_trans x y z : checks x y -> checks y z -> checks x z
   | checks_bot x : checks x TNormal_bot
@@ -193,9 +254,10 @@ Inductive checks {Vs Ts : Set} : relation (TNormal Ts Vs) :=
   | checks_expand_rand a x y :
       checks (TNormal_ann a (TNormal_rand x y))
              (TNormal_rand (TNormal_ann a x) (TNormal_ann a y))
+  | checks_eta_expand x :
+      checks x (TNormal_lambda (tnormal_map (@Some Vs) x))
   (* TODO
   (* How to deal with covariance vs contravariance? *)
-  | checks_eta_expand :
   | checks_conjugate :
   | checks_identity :
   | checks_clash_var_var :
@@ -214,6 +276,7 @@ Proof.
   - admit. (* TODO define [eval_type] *)
   - admit.
     (* TODO show [eval_type a (x (+) y) [= eval_type a x (+) eval_type a y]. *)
+  - admit.
 Qed.
 
 Fixpoint check_step {Vs Ts : Set} (x : TNormal Ts Vs) :
