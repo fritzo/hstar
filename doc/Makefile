@@ -15,6 +15,7 @@ body.tex: FORCE
 	$(SRC)/DeBruijn.v \
 	$(SRC)/Compile.v \
 	$(SRC)/BohmTrees.v \
+	$(SRC)/Annotate.v \
 	$(SRC)/TypeConstructor.v \
 	$(SRC)/Types.v \
 	$(SRC)/StrongConstructor.v \
