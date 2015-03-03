@@ -1,4 +1,5 @@
-Require Import Omega.
+(** * Type assignment and type checking *)
+
 Require Import Coq.Program.Basics.
 Require Import Coq.Program.Equality.
 Require Import Coq.Setoids.Setoid.
@@ -9,7 +10,7 @@ Require Import Coq.Bool.Bool.
 Require Export BohmTrees.
 
 (* ------------------------------------------------------------------------ *)
-(** Normal forms *)
+(** ** Normal forms *)
 
 Inductive Normal {Vs : Set} : Set :=
   | Normal_bot : Normal
@@ -48,7 +49,7 @@ Proof.
 Qed.
 
 (* ------------------------------------------------------------------------ *)
-(** Types *)
+(** ** Types *)
 
 Inductive Tp {Vs : Set} : Set :=
   | Tp_var : Vs -> Tp
@@ -60,14 +61,13 @@ Hint Constructors Tp.
 Arguments Tp : default implicits.
 
 Notation "'VAR'" := Tp_var : tp_scope.
-Notation "'EXP'" := Tp_exp : tp_scope.
 Notation "'BIND'" := Tp_bind : tp_scope.
 
 Open Scope tp_scope.
 Delimit Scope tp_scope with tp.
 Bind Scope tp_scope with Tp.
 
-Notation "x --> y" := (EXP x y)%tp : tp_scope.
+Notation "x --> y" := (Tp_exp x y)%tp : tp_scope.
 
 Section tp_sub.
   Fixpoint tp_map {Vs Vs' : Set} (f : Vs -> Vs') (x : Tp Vs) : Tp Vs' :=
@@ -149,7 +149,7 @@ Section eval_type.
 End eval_type.
 
 (* ------------------------------------------------------------------------ *)
-(** Annotated normal forms *)
+(** ** Type-annotated normal forms *)
 
 Inductive TNormal {Ts Vs : Set} : Set :=
   | TNormal_bot : TNormal
@@ -167,48 +167,41 @@ Arguments TNormal : default implicits.
 Arguments TInert : default implicits.
 
 Notation "'BOT'" := TNormal_bot : tnormal_scope.
-Notation "'JOIN'" := TNormal_join : tnormal_scope.
-Notation "'RAND'" := TNormal_rand : tnormal_scope.
-Notation "'INERT'" := TNormal_inert : tnormal_scope.
 Notation "'LAMBDA'" := TNormal_lambda : tnormal_scope.
-Notation "'ANN'" := TNormal_ann : tnormal_scope.
-
 Notation "'VAR'" := TInert_var : tinert_scope.
-Notation "'APP'" := TInert_app : tinert_scope.
-Notation "'ANN'" := TInert_ann : tinert_scope.
 
 Open Scope tinert_scope.
 Open Scope tnormal_scope.
 Delimit Scope tnormal_scope with tnormal.
 Delimit Scope tinert_scope with tinert.
 Bind Scope tnormal_scope with TNormal.
-Bind Scope tnormal_scope with TInert.
+Bind Scope tinert_scope with TInert.
 
-Notation "[ x ]" := (INERT x)%tnormal : tnormal_scope.
-Notation "x * y" := (APP x y)%tinert : tinert_scope.
-Notation "x || y" := (JOIN x y)%tnormal : tnormal_scope.
-Notation "x (+) y" := (RAND x y)%tnormal : tnormal_scope.
+Notation "[ x ]" := (TNormal_inert x)%tnormal : tnormal_scope.
+Notation "x * y" := (TInert_app x y)%tinert : tinert_scope.
+Notation "x || y" := (TNormal_join x y)%tnormal : tnormal_scope.
+Notation "x (+) y" := (TNormal_rand x y)%tnormal : tnormal_scope.
 Reserved Notation "x $ y" (at level 56, right associativity).
-Notation "a $ x" := (ANN a x)%tnormal : tnormal_scope.
-Notation "a $ x" := (ANN a x)%tinert : tinert_scope.
+Notation "a $ x" := (TNormal_ann a x)%tnormal : tnormal_scope.
+Notation "a $ x" := (TInert_ann a x)%tinert : tinert_scope.
 
 Section tnormal_sub.
   Fixpoint tnormal_map {Vs Vs' Ts : Set} (f : Vs -> Vs') (x : TNormal Ts Vs) :
     TNormal Ts Vs' :=
     match x with
-    | TNormal_bot => TNormal_bot
-    | TNormal_join x1 x2 => TNormal_join (tnormal_map f x1) (tnormal_map f x2)
-    | TNormal_rand x1 x2 => TNormal_rand (tnormal_map f x1) (tnormal_map f x2)
-    | TNormal_inert i => TNormal_inert (tinert_map f i)
-    | TNormal_lambda x1 => TNormal_lambda (tnormal_map (option_map f) x1)
-    | TNormal_ann a x1 => TNormal_ann a (tnormal_map f x1)
+    | BOT => BOT
+    | x1 || x2 => tnormal_map f x1 || tnormal_map f x2
+    | x1 (+) x2 => tnormal_map f x1 (+) tnormal_map f x2
+    | [i] => [tinert_map f i]
+    | TNormal_lambda x1 => LAMBDA (tnormal_map (option_map f) x1)
+    | a $ x1 => a $ tnormal_map f x1
     end
   with tinert_map {Ts Vs Vs' : Set}  (f : Vs -> Vs') (x : TInert Ts Vs) :
     TInert Ts Vs' :=
     match x with
-    | TInert_app x1 x2 => TInert_app (tinert_map f x1) (tnormal_map f x2)
+    | x1 * x2 => tinert_map f x1 * tnormal_map f x2
     | TInert_var v => TInert_var (f v)
-    | TInert_ann a1 x1 => TInert_ann a1 (tinert_map f x1)
+    | (a1 $ x1)%tinert => (a1 $ tinert_map f x1)%tinert
     end.
 
   Definition tnormal_some_sub
@@ -223,42 +216,63 @@ Section tnormal_sub.
     {Ts Vs Vs' : Set} (f : Vs -> TInert Ts Vs') (x : TNormal Ts Vs) :
     TNormal Ts Vs' :=
     match x with
-    | TNormal_bot => TNormal_bot
-    | TNormal_join x1 x2 => TNormal_join (tnormal_sub f x1) (tnormal_sub f x2)
-    | TNormal_rand x1 x2 => TNormal_rand (tnormal_sub f x1) (tnormal_sub f x2)
-    | TNormal_inert i => TNormal_inert (tinert_sub f i)
-    | TNormal_lambda x1 => TNormal_lambda (tnormal_sub (tnormal_some_sub f) x1)
-    | TNormal_ann a x1 => TNormal_ann a (tnormal_sub f x1)
+    | BOT => BOT
+    | x1 || x2 => tnormal_sub f x1 || tnormal_sub f x2
+    | x1 (+) x2 => tnormal_sub f x1 (+) tnormal_sub f x2
+    | [i] => [tinert_sub f i]
+    | TNormal_lambda x1 => LAMBDA (tnormal_sub (tnormal_some_sub f) x1)
+    | a $ x1 => a $ tnormal_sub f x1
     end
   with
     tinert_sub
     {Ts Vs Vs' : Set}  (f : Vs -> TInert Ts Vs') (x : TInert Ts Vs) :
     TInert Ts Vs' :=
     match x with
-    | TInert_app x1 x2 => TInert_app (tinert_sub f x1) (tnormal_sub f x2)
+    | x1 * x2 => tinert_sub f x1 * tnormal_sub f x2
     | TInert_var v => f v
-    | TInert_ann a1 x1 => TInert_ann a1 (tinert_sub f x1)
+    | (a1 $ x1)%tinert => (a1 $ tinert_sub f x1)%tinert
+    end.
+
+  Fixpoint tnormal_tp_sub
+    {Ts Ts' Vs : Set} (f : Ts -> Tp Ts') (x : TNormal Ts Vs) :
+    TNormal Ts' Vs :=
+    match x with
+    | BOT => BOT
+    | x1 || x2 => tnormal_tp_sub f x1 || tnormal_tp_sub f x2
+    | x1 (+) x2 => tnormal_tp_sub f x1 (+) tnormal_tp_sub f x2
+    | [i] => [tinert_tp_sub f i]
+    | TNormal_lambda x1 => LAMBDA (tnormal_tp_sub f x1)
+    | a $ x1 => tp_sub f a $ tnormal_tp_sub f x1
+    end
+  with
+    tinert_tp_sub
+    {Ts Ts' Vs : Set}  (f : Ts -> Tp Ts') (x : TInert Ts Vs) :
+    TInert Ts' Vs :=
+    match x with
+    | x1 * x2 => tinert_tp_sub f x1 * tnormal_tp_sub f x2
+    | TInert_var v => TInert_var v
+    | (a $ x1)%tinert => (tp_sub f a $ tinert_tp_sub f x1)%tinert
     end.
 End tnormal_sub.
 
 Fixpoint eval_tnormal {Vs : Set} (x : TNormal Empty_set Vs) : Term Vs :=
   match x with
-  | TNormal_bot => term_bot
-  | TNormal_join x1 x2 => term_join (eval_tnormal x1) (eval_tnormal x2)
-  | TNormal_rand x1 x2 => term_rand (eval_tnormal x1) (eval_tnormal x2)
-  | TNormal_inert i => eval_tinert i
+  | BOT => term_bot
+  | x1 || x2 => (eval_tnormal x1 || eval_tnormal x2)%term
+  | x1 (+) x2 => (eval_tnormal x1 (+) eval_tnormal x2)%term
+  | [i] => eval_tinert i
   | TNormal_lambda x1 => term_lambda (eval_tnormal x1)
-  | TNormal_ann a x1 => term_app (eval_type a) (eval_tnormal x1)
+  | a $ x1 => (eval_type a * eval_tnormal x1)%term
   end
 with eval_tinert {Vs : Set} (x : TInert Empty_set Vs) : Term Vs :=
   match x with
-  | TInert_app x1 x2 => term_app (eval_tinert x1) (eval_tnormal x2)
+  | x1 * x2 => (eval_tinert x1 * eval_tnormal x2)%term
   | TInert_var v => term_var v
-  | TInert_ann a1 x1 => term_app (eval_type a1) (eval_tinert x1)
+  | (a1 $ x1)%tinert => (eval_type a1 * eval_tinert x1)%term
   end.
 
 (* ------------------------------------------------------------------------ *)
-(** Type checking *)
+(** ** Type checking *)
 
 Definition ann_sub {Ts Vs : Set} (a : Tp Ts) :
   TNormal Ts (option Vs) -> TNormal Ts (option Vs) :=
@@ -278,6 +292,14 @@ Definition exp_sub {Ts : Set} : Tp (option Ts) -> Tp (option (option Ts)) :=
     | None => VAR None --> VAR (Some None)
     | Some v' => (VAR (Some (Some v')))%tp
     end).
+
+Inductive refines {Ts : Set} : relation (Tp Ts) :=
+  | refines_refl a : refines a a
+  | refines_trans a b c : refines a b -> refines b c -> refines a c
+  | refines_exp_left a a' b : refines a a' -> refines (a --> b) (a' --> b)
+  | refines_exp_right a b b' : refines b b' -> refines (a --> b) (a --> b')
+  | refines_bind a b : @refines (option Ts) a b -> refines (BIND a) (BIND b)
+  | refines_conjugate a : refines (BIND a) (BIND (BIND (exp_sub a))).
 
 Inductive checks {Ts Vs : Set} : relation (TNormal Ts Vs) :=
   (* kleene algebra *)
@@ -303,10 +325,10 @@ Inductive checks {Ts Vs : Set} : relation (TNormal Ts Vs) :=
       checks (a --> b $ LAMBDA x) (LAMBDA (b $ ann_sub a x))
   | checks_expand_inert a x : checks (a $ [x]) [(a $ x)%tinert]
   | checks_expand_normal a x : checks [(a $ x)%tinert] (a $ [x])
+  (* unification *)
+  | checks_refines a a' x : refines a a' -> checks (a $ x) (a' $ x)
   (* TODO
   (* How to deal with covariance vs contravariance? *)
-  (* How to deal with type binders? *)
-  | checks_conjugate :
   | checks_identity :
   | checks_clash_var_var :
   | checks_clash_var_exp :
@@ -343,24 +365,13 @@ Qed.
 Fixpoint check_step {Ts Vs : Set} (x : TNormal Ts Vs) :
   option (TNormal Ts Vs) :=
   match x with
-  (* TODO
-  | TNormal_bot => term_bot
-  | TNormal_join x1 x2 => term_join (eval_tnormal x1) (eval_tnormal x2)
-  | TNormal_rand x1 x2 => term_rand (eval_tnormal x1) (eval_tnormal x2)
-  | TNormal_inert i => eval_tinert i
-  | TNormal_lambda x1 => term_lambda (eval_tnormal x1)
-  | TNormal_ann a x1 => term_app (eval_type a) (eval_tnormal x1)
-  *)
+  (* TODO *)
   | _ => None
   end
 with check_step' {Ts Vs : Set} (x : TInert Ts Vs) :
   option (TInert Ts Vs) :=
   match x with
-  (* TODO
-  | TInert_app x1 x2 => term_app (eval_tinert x1) (eval_tnormal x2)
-  | TInert_var v => term_var v
-  | TInert_ann a1 x1 => term_app (eval_type a1) (eval_tinert x1)
-  *)
+  (* TODO *)
   | _ => None
   end.
 

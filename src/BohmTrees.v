@@ -15,6 +15,9 @@ Require Export Compile.
 
 (* TODO prove reflexive, transitive, etc. *)
 
+(* ------------------------------------------------------------------------ *)
+(** ** Bohm trees as normal forms *)
+
 (** Bohm trees generalize the normal forms of pure lambda-calculus,
     where the language is extended by
     a term [BOT],
@@ -397,7 +400,7 @@ Qed.
 
 
 (* ------------------------------------------------------------------------ *)
-(** Many properties of Bohm trees are decidable *)
+(** ** Decidable properties of Bohm trees *)
 
 Fixpoint normal_conv {Var : Set} (x : Term Var) : bool :=
   match x with
