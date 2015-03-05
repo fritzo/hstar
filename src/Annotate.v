@@ -309,6 +309,8 @@ Inductive refines {Ts : Set} : relation (Tp Ts) :=
   | refines_bind a b : @refines (option Ts) a b -> refines (BIND a) (BIND b)
   | refines_conjugate a : refines (BIND a) (BIND (BIND (exp_sub a))).
 
+(* TODO deal with type binders, maybe with checks_unbind *)
+(* TODO keep track of type variance *)
 Inductive checks {Ts Vs : Set} : relation (TNormal Ts Vs) :=
   (* kleene algebra *)
   | checks_refl x : checks x x
@@ -321,10 +323,6 @@ Inductive checks {Ts Vs : Set} : relation (TNormal Ts Vs) :=
   | checks_inert x y : checks' x y -> checks [x] [y]
   | checks_lambda x y :
       @checks Ts (option Vs) x y -> checks (LAMBDA x) (LAMBDA y)
-  (* semilattice *)
-  | checks_le_bot x : checks x TNormal_bot
-  | checks_le_join_left x y : checks (x || y) x
-  | checks_le_join_right x y : checks (x || y) y
   (* expansion *)
   | checks_eta_expand x : checks x (LAMBDA (tnormal_map (@Some Vs) x))
   | checks_expand_top a : checks (a $ TOP) TOP
@@ -343,8 +341,6 @@ Inductive checks {Ts Vs : Set} : relation (TNormal Ts Vs) :=
   | checks_bubble_lambda : checks (LAMBDA TOP) TOP
   | checks_bubble_left x : checks (TOP || x) TOP
   | checks_bubble_right x : checks (x || TOP) TOP
-  (* TODO deal with binders, maybe with checks_unbind *)
-  (* TODO keep track of variance *)
 with checks' {Ts Vs : Set} : relation (TInert Ts Vs) :=
   (* kleene algebra *)
   | checks_refl' x : checks' x x
@@ -354,9 +350,7 @@ with checks' {Ts Vs : Set} : relation (TInert Ts Vs) :=
   | checks_app_right x y y' : checks y y' -> checks' (x * y) (x * y')
   (* expansion *)
   | checks_expand_app a b f x :
-      checks' (a --> b $ f * x)%tinert (b $ f * (a $ x)%tnormal)%tinert
-  (* bubbling *)
-.
+      checks' (a --> b $ f * x)%tinert (b $ f * (a $ x)%tnormal)%tinert.
 
 Instance checks_sound (Vs : Set) :
   Proper (checks --> term_le) (@eval_tnormal Vs).
