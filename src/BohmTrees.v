@@ -20,9 +20,9 @@ Require Export Compile.
 
 (** Bohm trees generalize the normal forms of pure lambda-calculus,
     where the language is extended by
-    a term [BOT],
-    a reduction rule [BOT x -beta-> BOT],
-    and an approximation rule [x -pi-> BOT].
+    terms [BOT] and [TOP],
+    reduction rules [BOT x -beta-> BOT] and [TOP x -beta-> TOP],
+    and approximation rules [x -pi-> BOT] and [TOP -pi-> x].
 
     In the lambda-join-calculus, we also have
     terms [JOIN x y],
@@ -32,11 +32,10 @@ Require Export Compile.
     (or equivalently [x -pi-> JOIN x x]),
     [JOIN x y -pi-> x], and
     [JOIN x y -pi-> y].
-    We also add an identifiable top term [TOP] with
-    an approximation rule [TOP -pi-> x].
     *)
 
 Inductive normal {Var : Set} : Term Var -> Prop :=
+  | normal_top : normal TOP
   | normal_bot : normal BOT
   | normal_join x y : normal x -> normal y -> normal (x || y)
   | normal_rand x y : normal x -> normal y -> normal (x (+) y)
@@ -66,13 +65,13 @@ Hint Resolve normal_protect inert_protect.
 
 Fixpoint is_normal {Var : Set} (w : Term Var) {struct w} : bool :=
   match w with
+  | TOP => true
   | BOT => true
   | x || y => andb (is_normal x) (is_normal y)
   | x (+) y => andb (is_normal x) (is_normal y)
   | x * y => andb (is_inert x) (is_normal y)
   | term_var v => true
   | term_lambda x => is_normal x
-  | _ => false
   end
 with is_inert {Var : Set} (w : Term Var) {struct w} : bool :=
   match w with
@@ -211,6 +210,7 @@ Inductive reduce {Var : Set} : relation (Term Var) :=
   | reduce_app_right x y y' : reduce y y' -> reduce (x * y) (x * y')
   | reduce_lambda x x' :
       @reduce (option Var) x x' -> reduce (LAMBDA x) (LAMBDA x') 
+  | reduce_top y : reduce (TOP * y) TOP
   | reduce_bot y : reduce (BOT * y) BOT
   | reduce_join_app x y z : reduce ((x || y) * z) (x * z || y * z)
   | reduce_rand_app x y z : reduce ((x (+) y) * z) (x * z (+) y * z)
@@ -259,12 +259,13 @@ Proof.
   - transitivity (compile y); assumption.
   - rewrite IHxy; auto.
   - code_simpl; auto.
+  - code_simpl; auto.
   - rewrite compile_lambda_app; auto.
 Qed.
 
 Fixpoint try_reduce_step {Var : Set} (x : Term Var) : option (Term Var) :=
   match x with
-  | TOP => Some TOP
+  | TOP * y => Some TOP
   | BOT * y => Some BOT
   | (x1 || x2) * y => Some (x1 * y || x2 * y)
   | (x1 (+) x2) * y => Some (x1 * y (+) x2 * y)
@@ -324,8 +325,6 @@ Section try_reduce_step_reduce.
       case_eq x1; intros; simpl; auto.
       + rewrite <- H; rewrite IHx1; reflexivity.
       + rewrite <- H; rewrite IHx1; reflexivity.
-      + rewrite <- H; rewrite IHx1; reflexivity.
-      + case_reduce x2 IHx2.
       + case_reduce x2 IHx2.
       + case_reduce x2 IHx2.
     - case_reduce x IHx.
@@ -334,7 +333,7 @@ End try_reduce_step_reduce.
 
 Fixpoint is_irreducible {Var : Set} (x : Term Var) : bool :=
   match x with
-  | TOP => false
+  | TOP * _ => false
   | BOT * _ => false
   | (_ || _) * _ => false
   | (_ (+) _) * _ => false

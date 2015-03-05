@@ -390,6 +390,7 @@ Proof.
   intro H; apply nle_normal_witness in H; destruct H as [n [Hn [ni nb]]].
   rewrite <- ni; clear i i' ni; revert nb.
   induction Hn; intro Hnle.
+  - admit. (* TODO deal with TOP *)
   - assert ((BOT [= (BOT : Term Var))%term); [reflexivity | contradiction].
   - rewrite term_le_join in Hnle.
     apply not_and in Hnle; auto.
@@ -409,6 +410,7 @@ Proof.
   intro H; apply nle_normal_witness in H; destruct H as [n [Hn [ni nb]]].
   rewrite <- ni; clear i i' ni; revert nb.
   induction Hn; intro Hnle.
+  - admit. (* TODO deal with TOP *)
   - assert ((BOT [= (DeBruijn.I : Term Var))%term);
       [term_to_code | contradiction].
   - rewrite term_le_join in Hnle.

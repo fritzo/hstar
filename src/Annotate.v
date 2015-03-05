@@ -13,6 +13,7 @@ Require Export BohmTrees.
 (** ** Normal forms *)
 
 Inductive Normal {Vs : Set} : Set :=
+  | Normal_top : Normal
   | Normal_bot : Normal
   | Normal_join : Normal -> Normal -> Normal
   | Normal_rand : Normal -> Normal -> Normal
@@ -27,6 +28,7 @@ Arguments Inert : default implicits.
 
 Fixpoint eval_normal {Vs : Set} (x : Normal Vs) : Term Vs :=
   match x with
+  | Normal_top => term_top
   | Normal_bot => term_bot
   | Normal_join x1 x2 => term_join (eval_normal x1) (eval_normal x2)
   | Normal_rand x1 x2 => term_rand (eval_normal x1) (eval_normal x2)
@@ -152,6 +154,7 @@ End eval_type.
 (** ** Type-annotated normal forms *)
 
 Inductive TNormal {Ts Vs : Set} : Set :=
+  | TNormal_top : TNormal
   | TNormal_bot : TNormal
   | TNormal_join : TNormal -> TNormal -> TNormal
   | TNormal_rand : TNormal -> TNormal -> TNormal
@@ -166,6 +169,7 @@ Hint Constructors TNormal TInert.
 Arguments TNormal : default implicits.
 Arguments TInert : default implicits.
 
+Notation "'TOP'" := TNormal_top : tnormal_scope.
 Notation "'BOT'" := TNormal_bot : tnormal_scope.
 Notation "'LAMBDA'" := TNormal_lambda : tnormal_scope.
 Notation "'VAR'" := TInert_var : tinert_scope.
@@ -189,6 +193,7 @@ Section tnormal_sub.
   Fixpoint tnormal_map {Vs Vs' Ts : Set} (f : Vs -> Vs') (x : TNormal Ts Vs) :
     TNormal Ts Vs' :=
     match x with
+    | TOP => TOP
     | BOT => BOT
     | x1 || x2 => tnormal_map f x1 || tnormal_map f x2
     | x1 (+) x2 => tnormal_map f x1 (+) tnormal_map f x2
@@ -216,6 +221,7 @@ Section tnormal_sub.
     {Ts Vs Vs' : Set} (f : Vs -> TInert Ts Vs') (x : TNormal Ts Vs) :
     TNormal Ts Vs' :=
     match x with
+    | TOP => TOP
     | BOT => BOT
     | x1 || x2 => tnormal_sub f x1 || tnormal_sub f x2
     | x1 (+) x2 => tnormal_sub f x1 (+) tnormal_sub f x2
@@ -237,6 +243,7 @@ Section tnormal_sub.
     {Ts Ts' Vs : Set} (f : Ts -> Tp Ts') (x : TNormal Ts Vs) :
     TNormal Ts' Vs :=
     match x with
+    | TOP => TOP
     | BOT => BOT
     | x1 || x2 => tnormal_tp_sub f x1 || tnormal_tp_sub f x2
     | x1 (+) x2 => tnormal_tp_sub f x1 (+) tnormal_tp_sub f x2
@@ -257,6 +264,7 @@ End tnormal_sub.
 
 Fixpoint eval_tnormal {Vs : Set} (x : TNormal Empty_set Vs) : Term Vs :=
   match x with
+  | TOP => term_top
   | BOT => term_bot
   | x1 || x2 => (eval_tnormal x1 || eval_tnormal x2)%term
   | x1 (+) x2 => (eval_tnormal x1 (+) eval_tnormal x2)%term
