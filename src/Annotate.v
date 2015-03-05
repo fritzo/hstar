@@ -327,6 +327,8 @@ Inductive checks {Ts Vs : Set} : relation (TNormal Ts Vs) :=
   | checks_le_join_right x y : checks (x || y) y
   (* expansion *)
   | checks_eta_expand x : checks x (LAMBDA (tnormal_map (@Some Vs) x))
+  | checks_expand_top a : checks (a $ TOP) TOP
+  | checks_expand_bot a : checks (a $ BOT) BOT
   | checks_expand_join a x y : checks (a $ x || y) ((a $ x) || (a $ y))
   | checks_expand_rand a x y : checks (a $ x (+) y) ((a $ x) (+) (a $ y))
   | checks_expand_lambda a b x :
@@ -335,13 +337,14 @@ Inductive checks {Ts Vs : Set} : relation (TNormal Ts Vs) :=
   | checks_expand_normal a x : checks [(a $ x)%tinert] (a $ [x])
   (* unification *)
   | checks_refines a a' x : refines a a' -> checks (a $ x) (a' $ x)
-  (* TODO
-  (* How to deal with covariance vs contravariance? *)
-  | checks_identity :
-  | checks_clash_var_var :
-  | checks_clash_var_exp :
-  | checks_clash_exp_var :
-  *)
+  | checks_identity a x : checks (a $ a $ x) x  (* TODO track variance *)
+  | checks_clash a b x : a <> b -> checks (a $ b $ x) TOP
+  | checks_bubble_app a x : checks [(a $ x * TOP)%tinert] TOP
+  | checks_bubble_lambda : checks (LAMBDA TOP) TOP
+  | checks_bubble_left x : checks (TOP || x) TOP
+  | checks_bubble_right x : checks (x || TOP) TOP
+  (* TODO deal with binders, maybe with checks_unbind *)
+  (* TODO keep track of variance *)
 with checks' {Ts Vs : Set} : relation (TInert Ts Vs) :=
   (* kleene algebra *)
   | checks_refl' x : checks' x x
@@ -352,6 +355,7 @@ with checks' {Ts Vs : Set} : relation (TInert Ts Vs) :=
   (* expansion *)
   | checks_expand_app a b f x :
       checks' (a --> b $ f * x)%tinert (b $ f * (a $ x)%tnormal)%tinert
+  (* bubbling *)
 .
 
 Instance checks_sound (Vs : Set) :
