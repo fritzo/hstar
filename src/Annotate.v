@@ -376,7 +376,7 @@ with checks' {Ts Vs : Set} : relation (Inert Ts Vs) :=
   | checks_expand_app a b f x :
       checks' (a --> b $ f * x)%inert (b $ f * (a $ x)%normal)%inert.
 
-Instance checks_proper_le (Vs : Set) :
+Instance eval_proper_le (Vs : Set) :
   Proper (checks --> term_le) (@eval_normal Vs).
 Proof.
   intros y x xy; induction xy; simpl;
@@ -392,9 +392,22 @@ Proof.
   *)
 Qed.
 
+(*
+Lemma quote_proper_le (Vs : Set) (x y : Term Vs) :
+  normal x -> normal y -> x
+  Proper (term_le --> prod --> checks) (@quote_normal Vs).
+*)
+
 (** These definition of [fixes] and [raises] are a bit too tricky,
     relying on a lemma that [quote_normal _] is unannotated.
     *)
+
+Inductive fixes {Vs : Set} (a : Tp Empty_set) : Term Vs -> Prop :=
+  fixes_intro x :
+    normal x ->
+    checks (a $ quote_normal x) (quote_normal x) ->
+    fixes a x.
+Hint Constructors fixes.
 
 Inductive raises {Vs : Set} (a : Tp Empty_set) : relation (Term Vs) :=
   raises_intro x y :
@@ -404,11 +417,26 @@ Inductive raises {Vs : Set} (a : Tp Empty_set) : relation (Term Vs) :=
     raises a x y.
 Hint Constructors raises.
 
+Lemma fixes_raises (Vs : Set) (a : Tp Empty_set) (x : Term Vs) :
+  fixes a x <-> raises a x x.
+Proof.
+  split; intro H; inversion H; auto.
+Qed.
+
 Theorem raises_sound (Vs : Set) (a : Tp Empty_set) (x y : Term Vs) :
   raises a x y -> (eval_type a * x)%term == y.
 Proof.
-  intros H.
-  admit.
+  intro H; destruct H as [x y Hnx Hny Haxy Hayy].
+  remember (quote_normal x) as x'.
+  remember (quote_normal y) as y'.
+  assert (eval_normal x' = x) as Ex;
+    [rewrite Heqx'; apply eval_quote_normal; auto|].
+  assert (eval_normal y' = y) as Ey;
+    [rewrite Heqy'; apply eval_quote_normal; auto|].
+  split.
+  - admit. (* TODO ??? *)
+  - apply eval_proper_le in Haxy; term_to_code in Haxy.
+    rewrite Ex, Ey in Haxy; rewrite Haxy; simpl; reflexivity.
 Qed.
 
 Theorem raises_complete (Vs : Set) (a : Tp Empty_set) (x y : Term Vs) :
@@ -416,19 +444,6 @@ Theorem raises_complete (Vs : Set) (a : Tp Empty_set) (x y : Term Vs) :
 Proof.
   intros Hnx Hny Heq.
   admit.
-Qed.
-
-Inductive fixes {Vs : Set} (a : Tp Empty_set) : Term Vs -> Prop :=
-  fixes_intro x :
-    normal x ->
-    checks (a $ quote_normal x) (quote_normal x) ->
-    fixes a x.
-Hint Constructors fixes.
-
-Lemma fixes_raises (Vs : Set) (a : Tp Empty_set) (x : Term Vs) :
-  fixes a x <-> raises a x x.
-Proof.
-  split; intro H; inversion H; auto.
 Qed.
 
 Lemma fixes_sound (Vs : Set) (a : Tp Empty_set) (x : Term Vs) :

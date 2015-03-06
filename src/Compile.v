@@ -427,6 +427,8 @@ Qed.
 (** Some useful lemmas transferred from [Code]. *)
 
 Ltac term_to_code := unfold term_conv, term_le, term_le; simpl; auto.
+Tactic Notation "term_to_code" "in" hyp(H) :=
+  unfold term_conv, term_le, term_le in H; simpl in H.
 
 Lemma decompile_app (Var : Set) (x y : Code Var) :
   decompile (x * y)%code == (decompile x) * (decompile y).
