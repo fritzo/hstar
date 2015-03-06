@@ -151,6 +151,25 @@ Reserved Notation "x $ y" (at level 56, right associativity).
 Notation "a $ x" := (Normal_ann a x)%normal : normal_scope.
 Notation "a $ x" := (Inert_ann a x)%inert : inert_scope.
 
+(*
+Fixpoint is_untyped_normal {Ts Vs : Set} (x : Normal Ts Vs) : bool :=
+  match x with
+  | TOP => TOP
+  | BOT => BOT
+  | x1 || x2 => is_untyped_normal x1 || is_untyped_normal x2
+  | x1 (+) x2 => is_untyped_normal x1 (+) is_untyped_normal x2
+  | [i] => [is_untyped_inert i]
+  | Normal_lambda x1 => LAMBDA (normal_map (option_map f) x1)
+  | a $ x1 => a $ is_untyped_normal x1
+  end
+with is_untyped_inert {Ts Vs : Set}  (x : Inert Ts Vs) : bool :=
+  match x with
+  | x1 * x2 => is_untyped_inert x1 * is_untyped_normal x2
+  | Inert_var v => Inert_var (f v)
+  | (a1 $ x1)%inert => (a1 $ is_untyped_inert x1)%inert
+  end.
+*)
+
 Section normal_sub.
   Fixpoint normal_map {Vs Vs' Ts : Set} (f : Vs -> Vs') (x : Normal Ts Vs) :
     Normal Ts Vs' :=
@@ -357,7 +376,7 @@ with checks' {Ts Vs : Set} : relation (Inert Ts Vs) :=
   | checks_expand_app a b f x :
       checks' (a --> b $ f * x)%inert (b $ f * (a $ x)%normal)%inert.
 
-Instance checks_sound (Vs : Set) :
+Instance checks_proper_le (Vs : Set) :
   Proper (checks --> term_le) (@eval_normal Vs).
 Proof.
   intros y x xy; induction xy; simpl;
@@ -373,20 +392,56 @@ Proof.
   *)
 Qed.
 
-(* TODO
-Theorem checks_complete (Ts Vs : Set) (x y : Normal Ts Vs) : ???
-*)
+(** These definition of [fixes] and [raises] are a bit too tricky,
+    relying on a lemma that [quote_normal _] is unannotated.
+    *)
 
-Definition fixes {Vs : Set} (a : Tp Empty_set) (x : Term Vs) : Prop :=
-  let nx := quote_normal x in
-  checks (Normal_ann a nx) nx.
+Inductive raises {Vs : Set} (a : Tp Empty_set) : relation (Term Vs) :=
+  raises_intro x y :
+    normal x -> normal y ->
+    checks (a $ quote_normal x) (quote_normal y) ->
+    checks (a $ quote_normal y) (quote_normal y) ->
+    raises a x y.
+Hint Constructors raises.
 
-(* TODO
-Theorem fixes_sound
-  (Vs : Set) (a : Tp Empty_set) (x : Normal Empty_set Vs) : ???
-Theorem fixes_complete
-  (Vs : Set) (a : Tp Empty_set) (x : Normal Empty_set Vs) : ???
-*)
+Theorem raises_sound (Vs : Set) (a : Tp Empty_set) (x y : Term Vs) :
+  raises a x y -> (eval_type a * x)%term == y.
+Proof.
+  intros H.
+  admit.
+Qed.
+
+Theorem raises_complete (Vs : Set) (a : Tp Empty_set) (x y : Term Vs) :
+  normal x -> normal y -> (eval_type a * x)%term == y -> raises a x y.
+Proof.
+  intros Hnx Hny Heq.
+  admit.
+Qed.
+
+Inductive fixes {Vs : Set} (a : Tp Empty_set) : Term Vs -> Prop :=
+  fixes_intro x :
+    normal x ->
+    checks (a $ quote_normal x) (quote_normal x) ->
+    fixes a x.
+Hint Constructors fixes.
+
+Lemma fixes_raises (Vs : Set) (a : Tp Empty_set) (x : Term Vs) :
+  fixes a x <-> raises a x x.
+Proof.
+  split; intro H; inversion H; auto.
+Qed.
+
+Lemma fixes_sound (Vs : Set) (a : Tp Empty_set) (x : Term Vs) :
+  fixes a x -> x :: eval_type a.
+Proof.
+  rewrite fixes_raises; apply raises_sound.
+Qed.
+
+Lemma fixes_complete (Vs : Set) (a : Tp Empty_set) (x : Term Vs) :
+  normal x -> x :: eval_type a -> fixes a x.
+Proof.
+  rewrite fixes_raises; intros; apply raises_complete; auto.
+Qed.
 
 (* ------------------------------------------------------------------------ *)
 (** ** Deterministic type checking *)
