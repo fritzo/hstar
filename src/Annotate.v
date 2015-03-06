@@ -9,46 +9,8 @@ Require Import Coq.Logic.Decidable.
 Require Import Coq.Bool.Bool.
 Require Export BohmTrees.
 
-(* ------------------------------------------------------------------------ *)
-(** ** Normal forms *)
-
-Inductive Normal {Vs : Set} : Set :=
-  | Normal_top : Normal
-  | Normal_bot : Normal
-  | Normal_join : Normal -> Normal -> Normal
-  | Normal_rand : Normal -> Normal -> Normal
-  | Normal_lambda : @Normal (option Vs) -> Normal
-  | Normal_inert : Inert -> Normal
-with Inert {Vs : Set} : Set :=
-  | Inert_var : Vs -> Inert
-  | Inert_app : Inert -> Normal -> Inert.
-Hint Constructors Normal Inert.
-Arguments Normal : default implicits.
-Arguments Inert : default implicits.
-
-Fixpoint eval_normal {Vs : Set} (x : Normal Vs) : Term Vs :=
-  match x with
-  | Normal_top => term_top
-  | Normal_bot => term_bot
-  | Normal_join x1 x2 => term_join (eval_normal x1) (eval_normal x2)
-  | Normal_rand x1 x2 => term_rand (eval_normal x1) (eval_normal x2)
-  | Normal_inert i => eval_inert i
-  | Normal_lambda x1 => term_lambda (eval_normal x1)
-  end
-with eval_inert {Vs : Set} (x : Inert Vs) : Term Vs :=
-  match x with
-  | Inert_app x1 x2 => term_app (eval_inert x1) (eval_normal x2)
-  | Inert_var v => term_var v
-  end.
-
-Fixpoint
-  eval_normal_normal (Vs : Set) (n : Normal Vs) : normal (eval_normal n)
-with
-  eval_inert_inert (Vs : Set) (i : Inert Vs) : inert (eval_inert i).
-Proof.
-  induction n; simpl; auto.
-  induction i; simpl; auto.
-Qed.
+Open Scope code_scope.
+Open Scope term_scope.
 
 (* ------------------------------------------------------------------------ *)
 (** ** Types *)
@@ -153,142 +115,185 @@ End eval_type.
 (* ------------------------------------------------------------------------ *)
 (** ** Type-annotated normal forms *)
 
-Inductive TNormal {Ts Vs : Set} : Set :=
-  | TNormal_top : TNormal
-  | TNormal_bot : TNormal
-  | TNormal_join : TNormal -> TNormal -> TNormal
-  | TNormal_rand : TNormal -> TNormal -> TNormal
-  | TNormal_inert : TInert -> TNormal
-  | TNormal_lambda : @TNormal Ts (option Vs) -> TNormal
-  | TNormal_ann : Tp Ts -> TNormal -> TNormal
-with TInert {Ts Vs : Set} : Set :=
-  | TInert_var : Vs -> TInert
-  | TInert_app : TInert -> TNormal -> TInert
-  | TInert_ann : Tp Ts -> TInert -> TInert.
-Hint Constructors TNormal TInert.
-Arguments TNormal : default implicits.
-Arguments TInert : default implicits.
+Inductive Normal {Ts Vs : Set} : Set :=
+  | Normal_top : Normal
+  | Normal_bot : Normal
+  | Normal_join : Normal -> Normal -> Normal
+  | Normal_rand : Normal -> Normal -> Normal
+  | Normal_inert : Inert -> Normal
+  | Normal_lambda : @Normal Ts (option Vs) -> Normal
+  | Normal_ann : Tp Ts -> Normal -> Normal
+with Inert {Ts Vs : Set} : Set :=
+  | Inert_var : Vs -> Inert
+  | Inert_app : Inert -> Normal -> Inert
+  | Inert_ann : Tp Ts -> Inert -> Inert.
+Hint Constructors Normal Inert.
+Arguments Normal : default implicits.
+Arguments Inert : default implicits.
 
-Notation "'TOP'" := TNormal_top : tnormal_scope.
-Notation "'BOT'" := TNormal_bot : tnormal_scope.
-Notation "'LAMBDA'" := TNormal_lambda : tnormal_scope.
-Notation "'VAR'" := TInert_var : tinert_scope.
+Notation "'TOP'" := Normal_top : normal_scope.
+Notation "'BOT'" := Normal_bot : normal_scope.
+Notation "'LAMBDA'" := Normal_lambda : normal_scope.
+Notation "'VAR'" := Inert_var : inert_scope.
 
-Open Scope tinert_scope.
-Open Scope tnormal_scope.
-Delimit Scope tnormal_scope with tnormal.
-Delimit Scope tinert_scope with tinert.
-Bind Scope tnormal_scope with TNormal.
-Bind Scope tinert_scope with TInert.
+Open Scope inert_scope.
+Open Scope normal_scope.
+Delimit Scope normal_scope with normal.
+Delimit Scope inert_scope with inert.
+Bind Scope normal_scope with Normal.
+Bind Scope inert_scope with Inert.
 
-Notation "[ x ]" := (TNormal_inert x)%tnormal : tnormal_scope.
-Notation "x * y" := (TInert_app x y)%tinert : tinert_scope.
-Notation "x || y" := (TNormal_join x y)%tnormal : tnormal_scope.
-Notation "x (+) y" := (TNormal_rand x y)%tnormal : tnormal_scope.
+Notation "[ x ]" := (Normal_inert x)%normal : normal_scope.
+Notation "x * y" := (Inert_app x y)%inert : inert_scope.
+Notation "x || y" := (Normal_join x y)%normal : normal_scope.
+Notation "x (+) y" := (Normal_rand x y)%normal : normal_scope.
 Reserved Notation "x $ y" (at level 56, right associativity).
-Notation "a $ x" := (TNormal_ann a x)%tnormal : tnormal_scope.
-Notation "a $ x" := (TInert_ann a x)%tinert : tinert_scope.
+Notation "a $ x" := (Normal_ann a x)%normal : normal_scope.
+Notation "a $ x" := (Inert_ann a x)%inert : inert_scope.
 
-Section tnormal_sub.
-  Fixpoint tnormal_map {Vs Vs' Ts : Set} (f : Vs -> Vs') (x : TNormal Ts Vs) :
-    TNormal Ts Vs' :=
+Section normal_sub.
+  Fixpoint normal_map {Vs Vs' Ts : Set} (f : Vs -> Vs') (x : Normal Ts Vs) :
+    Normal Ts Vs' :=
     match x with
     | TOP => TOP
     | BOT => BOT
-    | x1 || x2 => tnormal_map f x1 || tnormal_map f x2
-    | x1 (+) x2 => tnormal_map f x1 (+) tnormal_map f x2
-    | [i] => [tinert_map f i]
-    | TNormal_lambda x1 => LAMBDA (tnormal_map (option_map f) x1)
-    | a $ x1 => a $ tnormal_map f x1
+    | x1 || x2 => normal_map f x1 || normal_map f x2
+    | x1 (+) x2 => normal_map f x1 (+) normal_map f x2
+    | [i] => [inert_map f i]
+    | Normal_lambda x1 => LAMBDA (normal_map (option_map f) x1)
+    | a $ x1 => a $ normal_map f x1
     end
-  with tinert_map {Ts Vs Vs' : Set}  (f : Vs -> Vs') (x : TInert Ts Vs) :
-    TInert Ts Vs' :=
+  with inert_map {Ts Vs Vs' : Set}  (f : Vs -> Vs') (x : Inert Ts Vs) :
+    Inert Ts Vs' :=
     match x with
-    | x1 * x2 => tinert_map f x1 * tnormal_map f x2
-    | TInert_var v => TInert_var (f v)
-    | (a1 $ x1)%tinert => (a1 $ tinert_map f x1)%tinert
+    | x1 * x2 => inert_map f x1 * normal_map f x2
+    | Inert_var v => Inert_var (f v)
+    | (a1 $ x1)%inert => (a1 $ inert_map f x1)%inert
     end.
 
-  Definition tnormal_some_sub
-    {Ts Vs Vs' : Set} (f : Vs -> TInert Ts Vs') (v : option Vs) :
-    TInert Ts (option Vs') :=
+  Definition normal_some_sub
+    {Ts Vs Vs' : Set} (f : Vs -> Inert Ts Vs') (v : option Vs) :
+    Inert Ts (option Vs') :=
     match v with
-    | None => TInert_var None
-    | Some v' => tinert_map (@Some Vs') (f v')
+    | None => Inert_var None
+    | Some v' => inert_map (@Some Vs') (f v')
     end.
 
-  Fixpoint tnormal_sub
-    {Ts Vs Vs' : Set} (f : Vs -> TInert Ts Vs') (x : TNormal Ts Vs) :
-    TNormal Ts Vs' :=
+  Fixpoint normal_sub
+    {Ts Vs Vs' : Set} (f : Vs -> Inert Ts Vs') (x : Normal Ts Vs) :
+    Normal Ts Vs' :=
     match x with
     | TOP => TOP
     | BOT => BOT
-    | x1 || x2 => tnormal_sub f x1 || tnormal_sub f x2
-    | x1 (+) x2 => tnormal_sub f x1 (+) tnormal_sub f x2
-    | [i] => [tinert_sub f i]
-    | TNormal_lambda x1 => LAMBDA (tnormal_sub (tnormal_some_sub f) x1)
-    | a $ x1 => a $ tnormal_sub f x1
+    | x1 || x2 => normal_sub f x1 || normal_sub f x2
+    | x1 (+) x2 => normal_sub f x1 (+) normal_sub f x2
+    | [i] => [inert_sub f i]
+    | Normal_lambda x1 => LAMBDA (normal_sub (normal_some_sub f) x1)
+    | a $ x1 => a $ normal_sub f x1
     end
   with
-    tinert_sub
-    {Ts Vs Vs' : Set}  (f : Vs -> TInert Ts Vs') (x : TInert Ts Vs) :
-    TInert Ts Vs' :=
+    inert_sub
+    {Ts Vs Vs' : Set}  (f : Vs -> Inert Ts Vs') (x : Inert Ts Vs) :
+    Inert Ts Vs' :=
     match x with
-    | x1 * x2 => tinert_sub f x1 * tnormal_sub f x2
-    | TInert_var v => f v
-    | (a1 $ x1)%tinert => (a1 $ tinert_sub f x1)%tinert
+    | x1 * x2 => inert_sub f x1 * normal_sub f x2
+    | Inert_var v => f v
+    | (a1 $ x1)%inert => (a1 $ inert_sub f x1)%inert
     end.
 
-  Fixpoint tnormal_tp_sub
-    {Ts Ts' Vs : Set} (f : Ts -> Tp Ts') (x : TNormal Ts Vs) :
-    TNormal Ts' Vs :=
+  Fixpoint normal_tp_sub
+    {Ts Ts' Vs : Set} (f : Ts -> Tp Ts') (x : Normal Ts Vs) :
+    Normal Ts' Vs :=
     match x with
     | TOP => TOP
     | BOT => BOT
-    | x1 || x2 => tnormal_tp_sub f x1 || tnormal_tp_sub f x2
-    | x1 (+) x2 => tnormal_tp_sub f x1 (+) tnormal_tp_sub f x2
-    | [i] => [tinert_tp_sub f i]
-    | TNormal_lambda x1 => LAMBDA (tnormal_tp_sub f x1)
-    | a $ x1 => tp_sub f a $ tnormal_tp_sub f x1
+    | x1 || x2 => normal_tp_sub f x1 || normal_tp_sub f x2
+    | x1 (+) x2 => normal_tp_sub f x1 (+) normal_tp_sub f x2
+    | [i] => [inert_tp_sub f i]
+    | Normal_lambda x1 => LAMBDA (normal_tp_sub f x1)
+    | a $ x1 => tp_sub f a $ normal_tp_sub f x1
     end
   with
-    tinert_tp_sub
-    {Ts Ts' Vs : Set}  (f : Ts -> Tp Ts') (x : TInert Ts Vs) :
-    TInert Ts' Vs :=
+    inert_tp_sub
+    {Ts Ts' Vs : Set}  (f : Ts -> Tp Ts') (x : Inert Ts Vs) :
+    Inert Ts' Vs :=
     match x with
-    | x1 * x2 => tinert_tp_sub f x1 * tnormal_tp_sub f x2
-    | TInert_var v => TInert_var v
-    | (a $ x1)%tinert => (tp_sub f a $ tinert_tp_sub f x1)%tinert
+    | x1 * x2 => inert_tp_sub f x1 * normal_tp_sub f x2
+    | Inert_var v => Inert_var v
+    | (a $ x1)%inert => (tp_sub f a $ inert_tp_sub f x1)%inert
     end.
-End tnormal_sub.
+End normal_sub.
 
-Fixpoint eval_tnormal {Vs : Set} (x : TNormal Empty_set Vs) : Term Vs :=
+Fixpoint eval_normal {Vs : Set} (x : Normal Empty_set Vs) : Term Vs :=
   match x with
   | TOP => term_top
   | BOT => term_bot
-  | x1 || x2 => (eval_tnormal x1 || eval_tnormal x2)%term
-  | x1 (+) x2 => (eval_tnormal x1 (+) eval_tnormal x2)%term
-  | [i] => eval_tinert i
-  | TNormal_lambda x1 => term_lambda (eval_tnormal x1)
-  | a $ x1 => (eval_type a * eval_tnormal x1)%term
+  | x1 || x2 => (eval_normal x1 || eval_normal x2)%term
+  | x1 (+) x2 => (eval_normal x1 (+) eval_normal x2)%term
+  | [i] => eval_inert i
+  | Normal_lambda x1 => term_lambda (eval_normal x1)
+  | a $ x1 => (eval_type a * eval_normal x1)%term
   end
-with eval_tinert {Vs : Set} (x : TInert Empty_set Vs) : Term Vs :=
+with eval_inert {Vs : Set} (x : Inert Empty_set Vs) : Term Vs :=
   match x with
-  | x1 * x2 => (eval_tinert x1 * eval_tnormal x2)%term
-  | TInert_var v => term_var v
-  | (a1 $ x1)%tinert => (eval_type a1 * eval_tinert x1)%term
+  | x1 * x2 => (eval_inert x1 * eval_normal x2)%term
+  | Inert_var v => term_var v
+  | (a1 $ x1)%inert => (eval_type a1 * eval_inert x1)%term
   end.
+
+Fixpoint quote_normal {Vs : Set} (x : Term Vs) : Normal Empty_set Vs :=
+  match x with
+  | term_top => Normal_top
+  | term_bot => Normal_bot
+  | term_join x1 x2 => Normal_join (quote_normal x1) (quote_normal x2)
+  | term_rand x1 x2 => Normal_rand (quote_normal x1) (quote_normal x2)
+  | term_lambda x1 => Normal_lambda (quote_normal x1)
+  | term_var v => Normal_inert (Inert_var v)
+  | term_app x1 x2 =>
+      match quote_normal x1 with
+      | Normal_inert x1' => Normal_inert (Inert_app x1' (quote_normal x2))
+      | _ => Normal_bot
+      end
+  end.
+
+Lemma eval_quote_normal_le (Vs : Set) (x : Term Vs) :
+  eval_normal (quote_normal x) [= x.
+Proof.
+Admitted.
+
+Lemma quote_normal_not_ann (Vs : Set) (x : Term Vs) a y :
+  ~ quote_normal x = Normal_ann a y.
+Proof.
+  induction x; intro H; inversion H.
+  admit.
+Qed.
+
+Lemma eval_quote_normal (Vs : Set) (x : Term Vs) :
+  normal x -> eval_normal (quote_normal x) = x.
+Proof.
+  induction x; intro Hn; simpl; auto.
+  - inversion_clear Hn; [rewrite IHx1, IHx2; auto | inversion_clear H].
+  - inversion_clear Hn; [rewrite IHx1, IHx2; auto | inversion_clear H].
+  - case_eq (quote_normal x1); intros; simpl; auto;
+    inversion_clear Hn; inversion_clear H0;
+    rewrite H in IHx1; simpl in IHx1; assert (normal x1) by auto;
+    try (rewrite <- IHx1 in H1 by auto; inversion H1; reflexivity).
+    + rewrite IHx1, IHx2 by auto; auto.
+    + apply quote_normal_not_ann in H; contradiction.
+  - inversion Hn; rewrite IHx; auto.
+    inversion H.
+Qed.
 
 (* ------------------------------------------------------------------------ *)
 (** ** Type checking *)
 
 Definition ann_sub {Ts Vs : Set} (a : Tp Ts) :
-  TNormal Ts (option Vs) -> TNormal Ts (option Vs) :=
-  tnormal_sub (
+  Normal Ts (option Vs) -> Normal Ts (option Vs) :=
+  normal_sub (
     fun v =>
     match v with
-    | None => TInert_ann a (TInert_var None)
-    | Some v => TInert_var (Some v)
+    | None => Inert_ann a (Inert_var None)
+    | Some v => Inert_var (Some v)
     end).
 
 (* TODO How to use [exp_sub] in a homogeneous relation? *)
@@ -311,7 +316,7 @@ Inductive refines {Ts : Set} : relation (Tp Ts) :=
 
 (* TODO deal with type binders, maybe with checks_unbind *)
 (* TODO keep track of type variance *)
-Inductive checks {Ts Vs : Set} : relation (TNormal Ts Vs) :=
+Inductive checks {Ts Vs : Set} : relation (Normal Ts Vs) :=
   (* kleene algebra *)
   | checks_refl x : checks x x
   | checks_trans x y z : checks x y -> checks y z -> checks x z
@@ -324,24 +329,24 @@ Inductive checks {Ts Vs : Set} : relation (TNormal Ts Vs) :=
   | checks_lambda x y :
       @checks Ts (option Vs) x y -> checks (LAMBDA x) (LAMBDA y)
   (* expansion *)
-  | checks_eta_expand x : checks x (LAMBDA (tnormal_map (@Some Vs) x))
+  | checks_eta_expand x : checks x (LAMBDA (normal_map (@Some Vs) x))
   | checks_expand_top a : checks (a $ TOP) TOP
   | checks_expand_bot a : checks (a $ BOT) BOT
   | checks_expand_join a x y : checks (a $ x || y) ((a $ x) || (a $ y))
   | checks_expand_rand a x y : checks (a $ x (+) y) ((a $ x) (+) (a $ y))
   | checks_expand_lambda a b x :
       checks (a --> b $ LAMBDA x) (LAMBDA (b $ ann_sub a x))
-  | checks_expand_inert a x : checks (a $ [x]) [(a $ x)%tinert]
-  | checks_expand_normal a x : checks [(a $ x)%tinert] (a $ [x])
+  | checks_expand_inert a x : checks (a $ [x]) [(a $ x)%inert]
+  | checks_expand_normal a x : checks [(a $ x)%inert] (a $ [x])
   (* unification *)
   | checks_refines a a' x : refines a a' -> checks (a $ x) (a' $ x)
   | checks_identity a x : checks (a $ a $ x) x  (* TODO track variance *)
   | checks_clash a b x : a <> b -> checks (a $ b $ x) TOP
-  | checks_bubble_app a x : checks [(a $ x * TOP)%tinert] TOP
+  | checks_bubble_app a x : checks [(a $ x * TOP)%inert] TOP
   | checks_bubble_lambda : checks (LAMBDA TOP) TOP
   | checks_bubble_left x : checks (TOP || x) TOP
   | checks_bubble_right x : checks (x || TOP) TOP
-with checks' {Ts Vs : Set} : relation (TInert Ts Vs) :=
+with checks' {Ts Vs : Set} : relation (Inert Ts Vs) :=
   (* kleene algebra *)
   | checks_refl' x : checks' x x
   | checks_trans' x y z : checks' x y -> checks' y z -> checks' x z
@@ -350,16 +355,16 @@ with checks' {Ts Vs : Set} : relation (TInert Ts Vs) :=
   | checks_app_right x y y' : checks y y' -> checks' (x * y) (x * y')
   (* expansion *)
   | checks_expand_app a b f x :
-      checks' (a --> b $ f * x)%tinert (b $ f * (a $ x)%tnormal)%tinert.
+      checks' (a --> b $ f * x)%inert (b $ f * (a $ x)%normal)%inert.
 
 Instance checks_sound (Vs : Set) :
-  Proper (checks --> term_le) (@eval_tnormal Vs).
+  Proper (checks --> term_le) (@eval_normal Vs).
 Proof.
   intros y x xy; induction xy; simpl;
   admit.
   (* SLOW
   try (term_to_code; auto; reflexivity).
-  - transitivity (eval_tnormal y); auto.
+  - transitivity (eval_normal y); auto.
   - admit. (* TODO define [eval_type] *)
   - admit.
     (* TODO show [eval_type a (x (+) y) [= eval_type a x (+) eval_type a y]. *)
@@ -368,25 +373,43 @@ Proof.
   *)
 Qed.
 
-Fixpoint check_step {Ts Vs : Set} (x : TNormal Ts Vs) :
-  option (TNormal Ts Vs) :=
+(* TODO
+Theorem checks_complete (Ts Vs : Set) (x y : Normal Ts Vs) : ???
+*)
+
+Definition fixes {Vs : Set} (a : Tp Empty_set) (x : Term Vs) : Prop :=
+  let nx := quote_normal x in
+  checks (Normal_ann a nx) nx.
+
+(* TODO
+Theorem fixes_sound
+  (Vs : Set) (a : Tp Empty_set) (x : Normal Empty_set Vs) : ???
+Theorem fixes_complete
+  (Vs : Set) (a : Tp Empty_set) (x : Normal Empty_set Vs) : ???
+*)
+
+(* ------------------------------------------------------------------------ *)
+(** ** Deterministic type checking *)
+
+Fixpoint check_step {Ts Vs : Set} (x : Normal Ts Vs) :
+  option (Normal Ts Vs) :=
   match x with
   (* TODO *)
   | _ => None
   end
-with check_step' {Ts Vs : Set} (x : TInert Ts Vs) :
-  option (TInert Ts Vs) :=
+with check_step' {Ts Vs : Set} (x : Inert Ts Vs) :
+  option (Inert Ts Vs) :=
   match x with
   (* TODO *)
   | _ => None
   end.
 
-Fixpoint check_step_checks (Ts Vs : Set) (x : TNormal Ts Vs) :
+Fixpoint check_step_checks (Ts Vs : Set) (x : Normal Ts Vs) :
   match check_step x with
   | None => True
   | Some y => checks x y
   end
-with check_step_checks' (Ts Vs : Set) (x : TInert Ts Vs) :
+with check_step_checks' (Ts Vs : Set) (x : Inert Ts Vs) :
   match check_step' x with
   | None => True
   | Some y => checks' x y
@@ -396,7 +419,7 @@ Proof.
   - admit.
 Admitted.
 
-Fixpoint try_check {Ts Vs : Set} (n : nat) (x : TNormal Ts Vs) :
+Fixpoint try_check {Ts Vs : Set} (n : nat) (x : Normal Ts Vs) :
   option bool :=
   match n with
   | 0%nat => None
@@ -406,12 +429,3 @@ Fixpoint try_check {Ts Vs : Set} (n : nat) (x : TNormal Ts Vs) :
     | None => (* TODO *) Some false
     end
   end.
-
-(* TODO
-Instance checks_complete (Ts Vs : Set) (x y : TNormal Ts Vs) : ???
-*)
-
-(* FIXME
-Definition fixes {Ts Vs : Set} (a : Tp Ts) (x : TNormal Ts Vs) : Prop :=
-  checks (TNormal_ann a x) x.
-*)
