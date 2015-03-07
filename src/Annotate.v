@@ -149,8 +149,6 @@ Notation "[ x ]" := (Normal_inert x)%normal : normal_scope.
 Notation "x * y" := (Inert_app x y)%inert : inert_scope.
 Notation "x || y" := (Normal_join x y)%normal : normal_scope.
 Notation "x (+) y" := (Normal_rand x y)%normal : normal_scope.
-Reserved Notation "x $ y" (at level 56, right associativity).
-Reserved Notation "x $$ y" (at level 56, right associativity).
 Notation "a $ x" := (Normal_require a x)%normal : normal_scope.
 Notation "a $$ x" := (Normal_provide a x)%normal : normal_scope.
 Notation "a $ x" := (Inert_require a x)%inert : inert_scope.
@@ -314,7 +312,7 @@ Qed.
 (* ------------------------------------------------------------------------ *)
 (** ** Type checking *)
 
-Definition ann_sub {Ts Vs : Set} (a : Tp Ts) :
+Definition provide_sub {Ts Vs : Set} (a : Tp Ts) :
   Normal Ts (option Vs) -> Normal Ts (option Vs) :=
   normal_sub (
     fun v =>
@@ -345,7 +343,6 @@ Inductive refines {Ts : Set} : relation (Tp Ts) :=
 Inductive checks {Ts Vs : Set} : relation (Normal Ts Vs) :=
   | checks_refl x : checks x x
   | checks_trans x y z : checks x y -> checks y z -> checks x z
-  (* respectful *)
   | checks_join_left x x' y : checks x x' -> checks (x || y) (x' || y)
   | checks_join_right x y y' : checks y y' -> checks (x || y) (x || y')
   | checks_rand_left x x' y : checks x x' -> checks (x (+) y) (x' (+) y)
@@ -360,7 +357,7 @@ Inductive checks {Ts Vs : Set} : relation (Normal Ts Vs) :=
   | checks_expand_join a x y : checks (a $ x || y) ((a $ x) || (a $ y))
   | checks_expand_rand a x y : checks (a $ x (+) y) ((a $ x) (+) (a $ y))
   | checks_expand_lambda a b x :
-      checks (a --> b $ LAMBDA x) (LAMBDA (b $ ann_sub a x))
+      checks (a --> b $ LAMBDA x) (LAMBDA (b $ provide_sub a x))
   | checks_expand_inert a x : checks (a $ [x]) [(a $ x)%inert]
   | checks_expand_normal a x : checks [(a $ x)%inert] (a $ [x])
   | checks_expand_free a v : checks [(a $ VAR v)%inert] TOP
@@ -370,14 +367,15 @@ Inductive checks {Ts Vs : Set} : relation (Normal Ts Vs) :=
   | checks_clash_var_exp v a b x : checks (VAR v $ a --> b $$ x) TOP
   | checks_clash_exp_var a b v x : checks (a --> b $ VAR v $$ x) TOP
   | checks_clash_var_var v v' x : v <> v' -> checks (VAR v $ VAR v' $$ x) TOP
-  | checks_bubble_app v x : checks [(VAR v $ x * TOP)%inert] TOP
+  | checks_bubble_app v x : checks [(VAR v $ x * TOP)%inert] TOP  (* FIXME *)
   | checks_bubble_lambda : checks (LAMBDA TOP) TOP
+  (* DEPRECATED
   | checks_bubble_left x : checks (TOP || x) TOP
   | checks_bubble_right x : checks (x || TOP) TOP
+  *)
 with checks' {Ts Vs : Set} : relation (Inert Ts Vs) :=
   | checks_refl' x : checks' x x
   | checks_trans' x y z : checks' x y -> checks' y z -> checks' x z
-  (* respectful *)
   | checks_app_left x x' y : checks' x x' -> checks' (x * y) (x' * y)
   | checks_app_right x y y' : checks y y' -> checks' (x * y) (x * y')
   (* expansion *)
