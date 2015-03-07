@@ -186,7 +186,7 @@ Section normal_sub.
     Inert Ts Vs' :=
     match x with
     | x1 * x2 => inert_map f x1 * normal_map f x2
-    | Inert_var v => Inert_var (f v)
+    | Inert_var v => VAR (f v)
     | (a1 $ x1)%inert => (a1 $ inert_map f x1)%inert
     end.
 
@@ -194,7 +194,7 @@ Section normal_sub.
     {Ts Vs Vs' : Set} (f : Vs -> Inert Ts Vs') (v : option Vs) :
     Inert Ts (option Vs') :=
     match v with
-    | None => Inert_var None
+    | None => VAR None
     | Some v' => inert_map (@Some Vs') (f v')
     end.
 
@@ -238,7 +238,7 @@ Section normal_sub.
     Inert Ts' Vs :=
     match x with
     | x1 * x2 => inert_tp_sub f x1 * normal_tp_sub f x2
-    | Inert_var v => Inert_var v
+    | Inert_var v => VAR v
     | (a $ x1)%inert => (tp_sub f a $ inert_tp_sub f x1)%inert
     end.
 End normal_sub.
@@ -262,29 +262,34 @@ with eval_inert {Vs : Set} (x : Inert Empty_set Vs) : Term Vs :=
 
 Fixpoint quote_normal {Vs : Set} (x : Term Vs) : Normal Empty_set Vs :=
   match x with
-  | term_top => Normal_top
-  | term_bot => Normal_bot
-  | term_join x1 x2 => Normal_join (quote_normal x1) (quote_normal x2)
-  | term_rand x1 x2 => Normal_rand (quote_normal x1) (quote_normal x2)
-  | term_lambda x1 => Normal_lambda (quote_normal x1)
-  | term_var v => Normal_inert (Inert_var v)
+  | term_top => TOP
+  | term_bot => BOT
+  | term_join x1 x2 => quote_normal x1 || quote_normal x2
+  | term_rand x1 x2 => quote_normal x1 (+) quote_normal x2
+  | term_lambda x1 => LAMBDA (quote_normal x1)
+  | term_var v => [VAR v]
   | term_app x1 x2 =>
       match quote_normal x1 with
-      | Normal_inert x1' => Normal_inert (Inert_app x1' (quote_normal x2))
-      | _ => Normal_bot
+      | [x1'] => [x1' * quote_normal x2]
+      | _ => BOT
       end
   end.
 
 Lemma eval_quote_normal_le (Vs : Set) (x : Term Vs) :
   eval_normal (quote_normal x) [= x.
 Proof.
-Admitted.
+  induction x; simpl; try (term_to_code; reflexivity).
+  - case_eq (quote_normal x1); intros; simpl; try (term_to_code ; reflexivity).
+    rewrite <- IHx1, IHx2, H; simpl; reflexivity.
+  - rewrite IHx; reflexivity.
+Qed.
 
 Lemma quote_normal_not_ann (Vs : Set) (x : Term Vs) a y :
-  ~ quote_normal x = Normal_ann a y.
+  ~ quote_normal x = a $ y.
 Proof.
-  induction x; intro H; inversion H.
-  admit.
+  destruct x; intro H; try (inversion H; reflexivity).
+  simpl in H; case_eq (quote_normal x1);
+  intros until 0; intro eq; rewrite eq in H; inversion H.
 Qed.
 
 Lemma eval_quote_normal (Vs : Set) (x : Term Vs) :
@@ -311,8 +316,8 @@ Definition ann_sub {Ts Vs : Set} (a : Tp Ts) :
   normal_sub (
     fun v =>
     match v with
-    | None => Inert_ann a (Inert_var None)
-    | Some v => Inert_var (Some v)
+    | None => (a $ (VAR None))%inert
+    | Some v => VAR (Some v)
     end).
 
 (* TODO How to use [exp_sub] in a homogeneous relation? *)
@@ -489,8 +494,7 @@ Proof.
   - admit.
 Admitted.
 
-Fixpoint try_check {Ts Vs : Set} (n : nat) (x : Normal Ts Vs) :
-  option bool :=
+Fixpoint try_check {Ts Vs : Set} (n : nat) (x : Normal Ts Vs) : option bool :=
   match n with
   | 0%nat => None
   | Datatypes.S n' =>
