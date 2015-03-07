@@ -122,11 +122,13 @@ Inductive Normal {Ts Vs : Set} : Set :=
   | Normal_rand : Normal -> Normal -> Normal
   | Normal_inert : Inert -> Normal
   | Normal_lambda : @Normal Ts (option Vs) -> Normal
-  | Normal_ann : Tp Ts -> Normal -> Normal
+  | Normal_require : Tp Ts -> Normal -> Normal
+  | Normal_provide : Tp Ts -> Normal -> Normal
 with Inert {Ts Vs : Set} : Set :=
   | Inert_var : Vs -> Inert
   | Inert_app : Inert -> Normal -> Inert
-  | Inert_ann : Tp Ts -> Inert -> Inert.
+  | Inert_require : Tp Ts -> Inert -> Inert
+  | Inert_provide : Tp Ts -> Inert -> Inert.
 Hint Constructors Normal Inert.
 Arguments Normal : default implicits.
 Arguments Inert : default implicits.
@@ -148,8 +150,11 @@ Notation "x * y" := (Inert_app x y)%inert : inert_scope.
 Notation "x || y" := (Normal_join x y)%normal : normal_scope.
 Notation "x (+) y" := (Normal_rand x y)%normal : normal_scope.
 Reserved Notation "x $ y" (at level 56, right associativity).
-Notation "a $ x" := (Normal_ann a x)%normal : normal_scope.
-Notation "a $ x" := (Inert_ann a x)%inert : inert_scope.
+Reserved Notation "x $$ y" (at level 56, right associativity).
+Notation "a $ x" := (Normal_require a x)%normal : normal_scope.
+Notation "a $$ x" := (Normal_provide a x)%normal : normal_scope.
+Notation "a $ x" := (Inert_require a x)%inert : inert_scope.
+Notation "a $$ x" := (Inert_provide a x)%inert : inert_scope.
 
 Section normal_sub.
   Fixpoint normal_map {Vs Vs' Ts : Set} (f : Vs -> Vs') (x : Normal Ts Vs) :
@@ -162,6 +167,7 @@ Section normal_sub.
     | [i] => [inert_map f i]
     | Normal_lambda x1 => LAMBDA (normal_map (option_map f) x1)
     | a $ x1 => a $ normal_map f x1
+    | a $$ x1 => a $$ normal_map f x1
     end
   with inert_map {Ts Vs Vs' : Set}  (f : Vs -> Vs') (x : Inert Ts Vs) :
     Inert Ts Vs' :=
@@ -169,6 +175,7 @@ Section normal_sub.
     | x1 * x2 => inert_map f x1 * normal_map f x2
     | Inert_var v => VAR (f v)
     | (a1 $ x1)%inert => (a1 $ inert_map f x1)%inert
+    | (a1 $$ x1)%inert => (a1 $$ inert_map f x1)%inert
     end.
 
   Definition normal_some_sub
@@ -190,6 +197,7 @@ Section normal_sub.
     | [i] => [inert_sub f i]
     | Normal_lambda x1 => LAMBDA (normal_sub (normal_some_sub f) x1)
     | a $ x1 => a $ normal_sub f x1
+    | a $$ x1 => a $$ normal_sub f x1
     end
   with
     inert_sub
@@ -199,6 +207,7 @@ Section normal_sub.
     | x1 * x2 => inert_sub f x1 * normal_sub f x2
     | Inert_var v => f v
     | (a1 $ x1)%inert => (a1 $ inert_sub f x1)%inert
+    | (a1 $$ x1)%inert => (a1 $$ inert_sub f x1)%inert
     end.
 
   Fixpoint normal_tp_sub
@@ -212,6 +221,7 @@ Section normal_sub.
     | [i] => [inert_tp_sub f i]
     | Normal_lambda x1 => LAMBDA (normal_tp_sub f x1)
     | a $ x1 => tp_sub f a $ normal_tp_sub f x1
+    | a $$ x1 => tp_sub f a $$ normal_tp_sub f x1
     end
   with
     inert_tp_sub
@@ -221,6 +231,7 @@ Section normal_sub.
     | x1 * x2 => inert_tp_sub f x1 * normal_tp_sub f x2
     | Inert_var v => VAR v
     | (a $ x1)%inert => (tp_sub f a $ inert_tp_sub f x1)%inert
+    | (a $$ x1)%inert => (tp_sub f a $$ inert_tp_sub f x1)%inert
     end.
 End normal_sub.
 
@@ -233,12 +244,14 @@ Fixpoint eval_normal {Vs : Set} (x : Normal Empty_set Vs) : Term Vs :=
   | [i] => eval_inert i
   | Normal_lambda x1 => term_lambda (eval_normal x1)
   | a $ x1 => (eval_type a * eval_normal x1)%term
+  | a $$ x1 => (eval_type a * eval_normal x1)%term
   end
 with eval_inert {Vs : Set} (x : Inert Empty_set Vs) : Term Vs :=
   match x with
   | x1 * x2 => (eval_inert x1 * eval_normal x2)%term
   | Inert_var v => term_var v
   | (a1 $ x1)%inert => (eval_type a1 * eval_inert x1)%term
+  | (a1 $$ x1)%inert => (eval_type a1 * eval_inert x1)%term
   end.
 
 Fixpoint quote_normal {Vs : Set} (x : Term Vs) : Normal Empty_set Vs :=
@@ -265,8 +278,16 @@ Proof.
   - rewrite IHx; reflexivity.
 Qed.
 
-Lemma quote_normal_not_ann (Vs : Set) (x : Term Vs) a y :
+Lemma quote_normal_not_require (Vs : Set) (x : Term Vs) a y :
   ~ quote_normal x = a $ y.
+Proof.
+  destruct x; intro H; try (inversion H; reflexivity).
+  simpl in H; case_eq (quote_normal x1);
+  intros until 0; intro eq; rewrite eq in H; inversion H.
+Qed.
+
+Lemma quote_normal_not_provide (Vs : Set) (x : Term Vs) a y :
+  ~ quote_normal x = a $$ y.
 Proof.
   destruct x; intro H; try (inversion H; reflexivity).
   simpl in H; case_eq (quote_normal x1);
@@ -284,7 +305,8 @@ Proof.
     rewrite H in IHx1; simpl in IHx1; assert (normal x1) by auto;
     try (rewrite <- IHx1 in H1 by auto; inversion H1; reflexivity).
     + rewrite IHx1, IHx2 by auto; auto.
-    + apply quote_normal_not_ann in H; contradiction.
+    + apply quote_normal_not_require in H; contradiction.
+    + apply quote_normal_not_provide in H; contradiction.
   - inversion Hn; rewrite IHx; auto.
     inversion H.
 Qed.
@@ -297,7 +319,7 @@ Definition ann_sub {Ts Vs : Set} (a : Tp Ts) :
   normal_sub (
     fun v =>
     match v with
-    | None => (a $ (VAR None))%inert
+    | None => (a $$ (VAR None))%inert
     | Some v => VAR (Some v)
     end).
 
@@ -320,9 +342,7 @@ Inductive refines {Ts : Set} : relation (Tp Ts) :=
   | refines_conjugate a : refines (BIND a) (BIND (BIND (exp_sub a))).
 
 (* TODO deal with type binders, maybe with checks_unbind *)
-(* TODO keep track of type variance *)
 Inductive checks {Ts Vs : Set} : relation (Normal Ts Vs) :=
-  (* kleene algebra *)
   | checks_refl x : checks x x
   | checks_trans x y z : checks x y -> checks y z -> checks x z
   (* respectful *)
@@ -343,16 +363,18 @@ Inductive checks {Ts Vs : Set} : relation (Normal Ts Vs) :=
       checks (a --> b $ LAMBDA x) (LAMBDA (b $ ann_sub a x))
   | checks_expand_inert a x : checks (a $ [x]) [(a $ x)%inert]
   | checks_expand_normal a x : checks [(a $ x)%inert] (a $ [x])
+  | checks_expand_free a v : checks [(a $ VAR v)%inert] TOP
   (* unification *)
   | checks_refines a a' x : refines a a' -> checks (a $ x) (a' $ x)
-  | checks_identity a x : checks (a $ a $ x) x  (* TODO track variance *)
-  | checks_clash a b x : a <> b -> checks (a $ b $ x) TOP
-  | checks_bubble_app a x : checks [(a $ x * TOP)%inert] TOP
+  | checks_identity a x : checks (a $ a $$ x) x
+  | checks_clash_var_exp v a b x : checks (VAR v $ a --> b $$ x) TOP
+  | checks_clash_exp_var a b v x : checks (a --> b $ VAR v $$ x) TOP
+  | checks_clash_var_var v v' x : v <> v' -> checks (VAR v $ VAR v' $$ x) TOP
+  | checks_bubble_app v x : checks [(VAR v $ x * TOP)%inert] TOP
   | checks_bubble_lambda : checks (LAMBDA TOP) TOP
   | checks_bubble_left x : checks (TOP || x) TOP
   | checks_bubble_right x : checks (x || TOP) TOP
 with checks' {Ts Vs : Set} : relation (Inert Ts Vs) :=
-  (* kleene algebra *)
   | checks_refl' x : checks' x x
   | checks_trans' x y z : checks' x y -> checks' y z -> checks' x z
   (* respectful *)
@@ -360,7 +382,7 @@ with checks' {Ts Vs : Set} : relation (Inert Ts Vs) :=
   | checks_app_right x y y' : checks y y' -> checks' (x * y) (x * y')
   (* expansion *)
   | checks_expand_app a b f x :
-      checks' (a --> b $ f * x)%inert (b $ f * (a $ x)%normal)%inert.
+      checks' ((a --> b $$ f) * x)%inert (b $$ f * (a $ x)%normal)%inert.
 
 Instance eval_proper_le (Vs : Set) :
   Proper (checks --> term_le) (@eval_normal Vs).
