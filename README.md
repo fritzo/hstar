@@ -100,7 +100,10 @@ case analysis for well typed terms, for example:
 
 The reasoning principles developed here are intended to be used in the
 [Pomagma](http://github.com/fritzo/pomagma)
-forward-chaining inference engine.
+forward-chaining inference engine
+(see [a.theory](https://github.com/fritzo/pomagma/blob/master/src/theory/a.theory)
+and [types.theory](https://github.com/fritzo/pomagma/blob/master/src/theory/types.theory)
+in the Pomagma project).
 
 ## References
 
