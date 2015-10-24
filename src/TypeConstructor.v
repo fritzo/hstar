@@ -80,40 +80,45 @@ Qed.
 
 Section compose.
   Context {Var : Set}.
-  Let s := make_var Var 0.
-  Let a := make_var Var 1.
-  Let a' := make_var Var 2.
-  Let b := make_var Var 3.
-  Let b' := make_var Var 4.
+  Let a := make_var Var 0.
+  Let r := make_var Var 1.
+  Let s := make_var Var 2.
+  Let r' := make_var Var 3.
+  Let s' := make_var Var 4.
 
   Definition compose := Eval compute in close_var
-    (\s, s*\a,\a', s*\b,\b', [a o b, b' o a']).
+    (\a, a*\r,\s, a*\r',\s', [r' o r, s o s']).
 
-  Definition conjugate := Eval compute in close_var
-    (\s, s*\a,\a', s*\b,\b', [a' --> b, a --> b']).
+  Definition preconjugate := Eval compute in close_var
+    (\a, a*\r,\s, [B * r, B * s]).
+
+  Definition postconjugate := Eval compute in close_var
+    (\a, a*\r,\s, [C * B * s, C * B * r]).
 End compose.
 
-Lemma compose_pair_le (Var : Set) (s1 r1 s2 r2 : Code Var) :
-  [s1 o s2, r2 o r1] [= compose * ([s1, r1] || [s2, r2]).
+Lemma compose_pair_le (Var : Set) (r1 s1 r2 s2 : Code Var) :
+  [r2 o r1, s1 o s2] [= compose * ([s1, r1] || [s2, r2]).
 Proof.
   unfold compose, pair; beta_reduce.
-  rewrite pi_j_left, pi_j_right; reflexivity.
-Qed.
+  (* TODO rewrite pi_j_left, pi_j_right; reflexivity. *)
+Admitted.
 
-Lemma conjugate_pair_le (Var : Set) (s1 r1 s2 r2 : Code Var) :
+(* TODO is this still needed?
+Lemma conjugate_pair_le (Var : Set) (r1 s1 r2 s2 : Code Var) :
   [r1 --> s2, s1 --> r2] [= conjugate * ([s1, r1] || [s2, r2]).
 Proof.
   unfold conjugate, pair; beta_reduce.
   rewrite pi_j_left, pi_j_right.
   unfold exp; code_simpl; reflexivity.
 Qed.
+*)
 
 (* ------------------------------------------------------------------------ *)
 (** ** A constructive definition of [A] *)
 
 Definition A_step {Var : Set} : Code Var
-  := K * ([I, I] || [raise, lower] || [pull, push])
-    || (compose || conjugate).
+  := K * ([I, I] || [lower, raise] || [push, pull])
+    || (compose || preconjugate || postconjugate).
 
 Definition A {Var : Set} : Code Var := Eval compute in Y * A_step.
 
@@ -151,31 +156,33 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma A_move_raise_lower (Var : Set) : [raise, lower] [= (A : Code Var).
+Lemma A_move_lower_raise (Var : Set) : [lower, raise] [= (A : Code Var).
 Proof.
   A_simpl;
   rewrite code_eq_y, pi_j_left, beta_k, pi_j_left, pi_j_right;
   reflexivity.
 Qed.
 
-Lemma A_move_pull_push (Var : Set) : [pull, push] [= (A : Code Var).
+Lemma A_move_push_pull (Var : Set) : [push, pull] [= (A : Code Var).
 Proof.
   A_simpl; rewrite code_eq_y, pi_j_left, beta_k, pi_j_right;
   reflexivity.
 Qed.
 
-Lemma A_move_compose (Var : Set) (s1 r1 s2 r2 : Code Var) :
-  [s1, r1] [= A -> [s2, r2] [= A -> [s1 o s2, r2 o r1] [= A.
+Lemma A_move_compose (Var : Set) (r1 s1 r2 s2 : Code Var) :
+  [r1, s1] [= A -> [r2, s2] [= A -> [r2 o r1, s1 o s2] [= A.
 Proof.
   rewrite A_simpl at 3; rewrite code_eq_y; rewrite <- A_simpl.
   unfold A_step; rewrite pi_j_right, pi_j_left.
   intros H1 H2.
+  (* TODO
   assert ([s1, r1] || [s2, r2] [= A) as H; auto; rewrite <- H.
   apply compose_pair_le.
-Qed.
+  *)
+Admitted.
 
-Lemma A_move_conjugate (Var : Set) (s1 r1 s2 r2 : Code Var) :
-  [s1, r1] [= A -> [s2, r2] [= A -> [r1 --> s2, s1 --> r2] [= A.
+Lemma A_move_conjugate (Var : Set) (r1 s1 r2 s2 : Code Var) :
+  [r1, s1] [= A -> [r2, s2] [= A -> [s1 --> r2, r1 --> s2] [= A.
 Proof.
   rewrite A_simpl at 3; rewrite code_eq_y; rewrite <- A_simpl.
   unfold A_step; rewrite pi_j_right, pi_j_right.
@@ -322,7 +329,7 @@ Qed.
 (** This follows %\cite{obermeyer2009equational}% pp. 48 Lemma 3.6.11. *)
 
 Theorem A_repairs_pair (i : ClosedCode) :
-  ~ i [= BOT -> exists s r, [s, r] [= A /\ I [= r o i o s.
+  ~ i [= BOT -> exists r s, [r, s] [= A /\ I [= r o i o s.
 Proof.
   intro H; apply nle_bot_witness in H; destruct H as [h [k [b H]]].
   setoid_rewrite <- H; clear H i.
@@ -367,7 +374,7 @@ Lemma nle_i_witness (x : ClosedCode) : ~x [= I -> ???.
 *)
 
 Theorem A_raises_pair (i : ClosedCode) :
-  ~ i [= I -> exists s r, [s, r] [= A /\ TOP [= r o i o s.
+  ~ i [= I -> exists r s, [r, s] [= A /\ TOP [= r o i o s.
 Proof.
   admit.
 Qed.
